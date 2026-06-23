@@ -2,7 +2,7 @@
     <section
         x-data="productMovements(@js($movementConfig))"
         x-cloak
-        class="w-full px-4 py-6 sm:px-6 lg:px-8"
+        class="w-full px-0 py-6"
     >
         <div
             x-show="toast.visible"
@@ -16,10 +16,10 @@
             <div class="mt-1 text-sm opacity-90" x-text="toast.message"></div>
         </div>
 
-        <div class="relative overflow-hidden rounded-[32px] border border-zinc-200/80 bg-white shadow-[0_20px_70px_rgba(122,80,210,0.08)]">
+        <div class="relative w-full overflow-hidden rounded-[24px] border border-zinc-200/80 bg-white shadow-[0_20px_70px_rgba(122,80,210,0.08)]">
             <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-400"></div>
 
-            <div class="space-y-6 px-5 py-6 sm:px-6 lg:px-8">
+            <div class="space-y-6 px-4 py-6 sm:px-5 lg:px-6">
                 <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                     <div class="min-w-0">
                         <flux:badge color="violet" size="sm" inset="left">Productos</flux:badge>

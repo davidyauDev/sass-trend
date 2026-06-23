@@ -49,6 +49,8 @@ class ProductController extends Controller
                     'brands' => route('product-brands.store'),
                     'categories' => route('product-categories.store'),
                     'presentations' => route('product-presentations.store'),
+                    'movementDetail' => url('/products/movimientos'),
+                    'movementStore' => url('/products/movimientos'),
                 ],
                 'catalogs' => [
                     'brands' => $this->catalogPayload(ProductBrand::query()->orderBy('name')->get()),
@@ -205,8 +207,8 @@ class ProductController extends Controller
             'movementConfig' => [
                 'csrf' => csrf_token(),
                 'endpoints' => [
-                    'detail' => url('/products/movements'),
-                    'store' => url('/products/movements'),
+                    'detail' => url('/products/movimientos'),
+                    'store' => url('/products/movimientos'),
                 ],
             ],
         ]);
@@ -243,8 +245,9 @@ class ProductController extends Controller
             'branchStocks' => $this->movementBranchStockPayloads($product, $branches),
             'history' => $product->stockMovements()
                 ->with(['branch', 'user'])
+                ->where('occurred_at', '>=', now()->subYear())
                 ->latest('occurred_at')
-                ->limit(15)
+                ->limit(50)
                 ->get()
                 ->map(fn (ProductStockMovement $movement): array => $this->movementPayload($movement))
                 ->values()
@@ -254,14 +257,40 @@ class ProductController extends Controller
 
     public function movementStore(Request $request, Product $product, AdjustProductStockAction $action): JsonResponse|RedirectResponse
     {
+        if ($request->has('stock_by_branch')) {
+            $data = $request->validate([
+                'stock_by_branch' => ['required', 'array'],
+                'stock_by_branch.*' => ['nullable', 'numeric', 'min:0'],
+            ]);
+
+            $action->handle($request->user(), $product, $data['stock_by_branch']);
+
+            return $this->respond($request, 'Stock actualizado correctamente.');
+        }
+
         $data = $request->validate([
-            'stock_by_branch' => ['required', 'array'],
-            'stock_by_branch.*' => ['nullable', 'numeric', 'min:0'],
+            'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')],
+            'adjustment_type' => ['required', Rule::in(['increase', 'decrease'])],
+            'quantity' => ['required', 'numeric', 'min:0.01'],
+            'comment' => ['nullable', 'string'],
         ]);
 
-        $action->handle($request->user(), $product, $data['stock_by_branch']);
+        $branch = Branch::query()->findOrFail((int) $data['branch_id']);
 
-        return $this->respond($request, 'Stock actualizado correctamente.');
+        $action->handleSingleBranchAdjustment(
+            $request->user(),
+            $product,
+            $branch,
+            (float) $data['quantity'],
+            (string) $data['adjustment_type'],
+            $this->nullableString($data['comment'] ?? null),
+        );
+
+        $message = $data['adjustment_type'] === 'increase'
+            ? 'Stock aumentado correctamente.'
+            : 'Stock reducido correctamente.';
+
+        return $this->respond($request, $message);
     }
 
     public function storeBrand(Request $request): JsonResponse|RedirectResponse

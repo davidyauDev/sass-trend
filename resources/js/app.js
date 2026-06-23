@@ -51,6 +51,17 @@ document.addEventListener('alpine:init', () => {
         isEditing: false,
         saving: false,
         errors: {},
+        movementLoading: false,
+        movementHistory: [],
+        movementBranches: [],
+        stockAdjustmentOpen: false,
+        stockAdjustmentLoading: false,
+        stockAdjustmentSaving: false,
+        stockAdjustmentErrors: {},
+        stockAdjustmentMode: 'increase',
+        stockAdjustmentProduct: null,
+        stockAdjustmentBranches: [],
+        stockAdjustmentForm: {},
         toastTimer: null,
         toast: {
             visible: false,
@@ -66,6 +77,7 @@ document.addEventListener('alpine:init', () => {
         form: {},
         init() {
             this.form = this.blankForm();
+            this.stockAdjustmentForm = this.blankStockAdjustmentForm();
             this.restoreToast();
         },
         blankForm() {
@@ -89,17 +101,41 @@ document.addEventListener('alpine:init', () => {
                 is_active: true,
             };
         },
+        blankStockAdjustmentForm() {
+            return {
+                branch_id: '',
+                quantity: '',
+                comment: '',
+            };
+        },
+        resetMovementState() {
+            this.movementLoading = false;
+            this.movementHistory = [];
+            this.movementBranches = [];
+        },
+        resetStockAdjustment() {
+            this.stockAdjustmentOpen = false;
+            this.stockAdjustmentLoading = false;
+            this.stockAdjustmentSaving = false;
+            this.stockAdjustmentErrors = {};
+            this.stockAdjustmentMode = 'increase';
+            this.stockAdjustmentProduct = null;
+            this.stockAdjustmentBranches = [];
+            this.stockAdjustmentForm = this.blankStockAdjustmentForm();
+        },
         openCreate() {
             this.isEditing = false;
             this.activeTab = 'basic';
             this.errors = {};
             this.form = this.blankForm();
+            this.resetMovementState();
             this.isOpen = true;
         },
         openEdit(product) {
             this.isEditing = true;
             this.activeTab = 'basic';
             this.errors = {};
+            this.resetMovementState();
             this.form = {
                 ...this.blankForm(),
                 ...product,
@@ -112,16 +148,35 @@ document.addEventListener('alpine:init', () => {
                 is_active: Boolean(product.is_active),
             };
             this.isOpen = true;
+            this.loadMovementData(product.id);
         },
         closeModal() {
             this.isOpen = false;
             this.errors = {};
             this.form = this.blankForm();
+            this.resetMovementState();
+        },
+        openStockAdjustment(mode, product) {
+            this.resetStockAdjustment();
+            this.stockAdjustmentMode = mode;
+            this.stockAdjustmentProduct = {
+                id: product.id,
+                name: product.name,
+            };
+            this.stockAdjustmentOpen = true;
+            this.loadStockAdjustmentDetail(product.id);
+        },
+        closeStockAdjustment() {
+            this.resetStockAdjustment();
         },
         modalTitle() {
-            return this.isEditing ? 'Editar producto' : 'Nuevo producto';
+            return this.isEditing ? `Editando ${this.form.name || 'producto'}` : 'Nuevo producto';
         },
         footerMessage() {
+            if (this.isEditing && this.activeTab === 'movements') {
+                return 'Aqui puedes revisar el historial de stock por local del producto seleccionado.';
+            }
+
             return this.isEditing
                 ? 'Los cambios se guardarán sobre el producto seleccionado.'
                 : 'Los productos nuevos quedan activos por defecto.';
@@ -132,6 +187,120 @@ document.addEventListener('alpine:init', () => {
                 : this.isEditing
                     ? 'Guardar'
                     : 'Agregar';
+        },
+        async fetchMovementDetail(productId) {
+            const response = await fetch(`${this.endpoints.movementDetail}/${productId}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': this.csrf,
+                },
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message ?? 'No se pudo cargar el detalle del stock.');
+            }
+
+            return data;
+        },
+        async loadMovementData(productId) {
+            this.movementLoading = true;
+
+            try {
+                const data = await this.fetchMovementDetail(productId);
+
+                if (!this.isEditing || String(this.form.id) !== String(productId)) {
+                    return;
+                }
+
+                this.movementHistory = data.history ?? [];
+                this.movementBranches = data.branchStocks ?? [];
+
+                if (data.product?.current_stock !== undefined) {
+                    this.form.current_stock = data.product.current_stock;
+                }
+            } catch (error) {
+                this.showToast('error', 'Error', error?.message ?? 'No se pudo cargar el historial del producto.');
+            } finally {
+                this.movementLoading = false;
+            }
+        },
+        async loadStockAdjustmentDetail(productId) {
+            this.stockAdjustmentLoading = true;
+
+            try {
+                const data = await this.fetchMovementDetail(productId);
+
+                this.stockAdjustmentProduct = data.product ?? this.stockAdjustmentProduct;
+                this.stockAdjustmentBranches = data.branchStocks ?? [];
+                this.stockAdjustmentForm.branch_id = this.stockAdjustmentBranches[0]?.id
+                    ? String(this.stockAdjustmentBranches[0].id)
+                    : '';
+            } catch (error) {
+                this.showToast('error', 'Error', error?.message ?? 'No se pudo cargar los locales para ajustar stock.');
+                this.closeStockAdjustment();
+            } finally {
+                this.stockAdjustmentLoading = false;
+            }
+        },
+        selectedStockAdjustmentBranch() {
+            return this.stockAdjustmentBranches.find((branch) => String(branch.id) === String(this.stockAdjustmentForm.branch_id)) ?? null;
+        },
+        selectedStockAdjustmentCurrent() {
+            return Number.parseFloat(this.selectedStockAdjustmentBranch()?.current_stock ?? '0') || 0;
+        },
+        stockAdjustmentQuantity() {
+            return Math.max(0, Number.parseFloat(this.stockAdjustmentForm.quantity || '0') || 0);
+        },
+        stockAdjustmentPreviewStock() {
+            const currentStock = this.selectedStockAdjustmentCurrent();
+            const quantity = this.stockAdjustmentQuantity();
+
+            return this.stockAdjustmentMode === 'increase'
+                ? currentStock + quantity
+                : Math.max(0, currentStock - quantity);
+        },
+        stockAdjustmentTitle() {
+            if (!this.stockAdjustmentProduct) {
+                return 'Ajustar stock';
+            }
+
+            return this.stockAdjustmentMode === 'increase'
+                ? `Aumentar stock en: ${this.stockAdjustmentProduct.name}`
+                : `Disminuir stock en: ${this.stockAdjustmentProduct.name}`;
+        },
+        stockAdjustmentHelpText() {
+            return this.stockAdjustmentMode === 'increase'
+                ? 'Aqui podras aumentar el stock existente del producto por cada local.'
+                : 'Aqui podras reducir el stock existente del producto por cada local.';
+        },
+        stockAdjustmentQuantityLabel() {
+            const branchName = this.selectedStockAdjustmentBranch()?.name ?? 'el local seleccionado';
+
+            return this.stockAdjustmentMode === 'increase'
+                ? `Agregar a ${branchName}`
+                : `Disminuir en ${branchName}`;
+        },
+        stockAdjustmentCommentPlaceholder() {
+            return this.stockAdjustmentMode === 'increase'
+                ? 'Agregar una nota por el aumento de stock para que quede en el historial'
+                : 'Agregar una nota por la reduccion de stock para que quede en el historial';
+        },
+        stockAdjustmentSubmitLabel() {
+            return this.stockAdjustmentSaving ? 'Guardando...' : 'Guardar';
+        },
+        movementAdjustmentLabel(movement) {
+            return `De ${movement.previous_stock} a ${movement.new_stock}`;
+        },
+        formatStock(value) {
+            const number = Number.parseFloat(String(value ?? 0));
+
+            if (!Number.isFinite(number)) {
+                return '0';
+            }
+
+            return Number.isInteger(number) ? String(number) : number.toFixed(2);
         },
         async saveProduct() {
             this.saving = true;
@@ -171,6 +340,51 @@ document.addEventListener('alpine:init', () => {
                 this.showToast('error', 'Error', error?.message ?? 'Ocurrió un problema al guardar.');
             } finally {
                 this.saving = false;
+            }
+        },
+        async saveStockAdjustment() {
+            if (!this.stockAdjustmentProduct) {
+                return;
+            }
+
+            this.stockAdjustmentSaving = true;
+            this.stockAdjustmentErrors = {};
+
+            try {
+                const response = await fetch(`${this.endpoints.movementStore}/${this.stockAdjustmentProduct.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.csrf,
+                    },
+                    body: JSON.stringify({
+                        branch_id: Number(this.stockAdjustmentForm.branch_id),
+                        adjustment_type: this.stockAdjustmentMode,
+                        quantity: this.stockAdjustmentQuantity(),
+                        comment: this.stockAdjustmentForm.comment,
+                    }),
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    if (response.status === 422 && data.errors) {
+                        this.applyErrorsTo(this.stockAdjustmentErrors, data.errors);
+                        this.showToast('error', 'Revisa el formulario', data.message ?? 'Hay campos que necesitan corrección.');
+                        return;
+                    }
+
+                    throw new Error(data.message ?? 'No se pudo ajustar el stock.');
+                }
+
+                this.persistToast('success', data.message ?? 'Stock actualizado correctamente.');
+                this.closeStockAdjustment();
+                window.location.reload();
+            } catch (error) {
+                this.showToast('error', 'Error', error?.message ?? 'No se pudo guardar el ajuste.');
+            } finally {
+                this.stockAdjustmentSaving = false;
             }
         },
         async deleteProduct(productId, productName) {
@@ -269,6 +483,14 @@ document.addEventListener('alpine:init', () => {
         applyErrors(errors) {
             this.errors = Object.fromEntries(
                 Object.entries(errors).map(([field, messages]) => [field, Array.isArray(messages) ? messages[0] : messages]),
+            );
+        },
+        applyErrorsTo(target, errors) {
+            Object.assign(
+                target,
+                Object.fromEntries(
+                    Object.entries(errors).map(([field, messages]) => [field, Array.isArray(messages) ? messages[0] : messages]),
+                ),
             );
         },
         showToast(type, title, message) {
