@@ -1,0 +1,444 @@
+<x-layouts::app :title="__('Inventario de productos')">
+    <section
+        x-data="productInventory(@js($inventoryConfig))"
+        x-cloak
+        class="w-full px-4 py-6 sm:px-6 lg:px-8"
+    >
+        <div
+            x-show="toast.visible"
+            x-transition
+            class="fixed right-4 top-4 z-[70] max-w-sm rounded-2xl border px-4 py-3 shadow-2xl"
+            :class="toast.type === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                : 'border-rose-200 bg-rose-50 text-rose-900'"
+        >
+            <div class="text-sm font-semibold" x-text="toast.title"></div>
+            <div class="mt-1 text-sm opacity-90" x-text="toast.message"></div>
+        </div>
+
+        <div class="relative overflow-hidden rounded-[32px] border border-zinc-200/80 bg-white shadow-[0_20px_70px_rgba(122,80,210,0.08)]">
+            <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-400"></div>
+
+            <div class="space-y-6 px-5 py-6 sm:px-6 lg:px-8">
+                <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                    <div class="min-w-0">
+                        <flux:badge color="violet" size="sm" inset="left">Productos</flux:badge>
+                        <flux:heading size="xl" class="mt-3">Inventario</flux:heading>
+                        <flux:text class="mt-2 max-w-3xl text-sm text-zinc-500 dark:text-zinc-400">
+                            Administra el catálogo de productos, sus categorías, formatos, precios, stock y alarmas para preparar las ventas y los movimientos futuros.
+                        </flux:text>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <form method="GET" action="{{ route('products.index') }}" class="flex flex-wrap items-center gap-2">
+                            <flux:input
+                                name="q"
+                                value="{{ $search }}"
+                                type="search"
+                                icon="magnifying-glass"
+                                placeholder="Busca por nombre, marca o código"
+                                class="w-full min-w-[16rem] rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm xl:w-[22rem]"
+                            />
+                            <flux:button type="submit" variant="ghost" icon="magnifying-glass">
+                                Buscar
+                            </flux:button>
+                            @if ($search !== '')
+                                <flux:button variant="ghost" href="{{ route('products.index') }}" icon="x-mark">
+                                    Limpiar
+                                </flux:button>
+                            @endif
+                        </form>
+
+                        <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
+                            Nuevo producto
+                        </flux:button>
+                    </div>
+                </div>
+
+                @if (session('success'))
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                        {{ session('success') }}
+                    </div>
+                @endif
+
+                @if (session('error'))
+                    <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
+                <flux:card class="overflow-hidden border border-zinc-200/80 bg-white shadow-sm">
+                    @if ($products->isEmpty())
+                        <div class="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
+                            <div class="flex size-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                                <flux:icon name="cube" class="size-8" />
+                            </div>
+
+                            <div class="space-y-1">
+                                <flux:heading size="lg">No hay productos aún</flux:heading>
+                                <flux:text class="text-sm text-zinc-500">
+                                    Crea tu primer producto para comenzar a registrar precios, stock y alarmas.
+                                </flux:text>
+                            </div>
+
+                            <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
+                                Nuevo producto
+                            </flux:button>
+                        </div>
+                    @else
+                        <div class="overflow-x-auto">
+                            <flux:table>
+                                <flux:table.columns>
+                                    <flux:table.column>Producto</flux:table.column>
+                                    <flux:table.column>Marca</flux:table.column>
+                                    <flux:table.column>Categoría</flux:table.column>
+                                    <flux:table.column>Formato</flux:table.column>
+                                    <flux:table.column>Precio</flux:table.column>
+                                    <flux:table.column>Stock</flux:table.column>
+                                    <flux:table.column>Estado</flux:table.column>
+                                    <flux:table.column class="text-right">Opciones</flux:table.column>
+                                </flux:table.columns>
+
+                                <flux:table.rows>
+                                    @foreach ($products as $product)
+                                        <flux:table.row :key="$product->id">
+                                            <flux:table.cell>
+                                                <div class="min-w-0">
+                                                    <div class="font-medium text-zinc-900">{{ $product->name }}</div>
+                                                    <div class="text-xs text-zinc-500">
+                                                        {{ $product->barcode ?: 'Sin código de barras' }}
+                                                    </div>
+                                                </div>
+                                            </flux:table.cell>
+                                            <flux:table.cell>{{ $product->brand?->name ?? 'Sin marca' }}</flux:table.cell>
+                                            <flux:table.cell>{{ $product->category?->name ?? 'Sin categoría' }}</flux:table.cell>
+                                            <flux:table.cell>{{ $product->presentation?->name ?? 'Sin formato' }}</flux:table.cell>
+                                            <flux:table.cell>S/ {{ number_format((float) $product->public_sale_price, 2) }}</flux:table.cell>
+                                            <flux:table.cell>{{ number_format((float) $product->current_stock, 2) }}</flux:table.cell>
+                                            <flux:table.cell>
+                                                <div class="flex flex-wrap gap-2">
+                                                    <flux:badge :color="$product->is_active ? 'emerald' : 'zinc'">
+                                                        {{ $product->is_active ? 'Activo' : 'Inactivo' }}
+                                                    </flux:badge>
+                                                    @if ($product->stock_alarm_enabled)
+                                                        <flux:badge color="violet">Alarma activa</flux:badge>
+                                                    @endif
+                                                </div>
+                                            </flux:table.cell>
+                                            <flux:table.cell>
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <flux:button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        icon="pencil-square"
+                                                        type="button"
+                                                        @click="openEdit(@js([
+                                                            'id' => $product->id,
+                                                            'name' => $product->name,
+                                                            'barcode' => $product->barcode ?? '',
+                                                            'brand_id' => $product->brand_id,
+                                                            'category_id' => $product->category_id,
+                                                            'presentation_id' => $product->presentation_id,
+                                                            'public_sale_price' => (string) $product->public_sale_price,
+                                                            'current_stock' => (string) $product->current_stock,
+                                                            'purchase_cost' => (string) $product->purchase_cost,
+                                                            'internal_sale_price' => (string) $product->internal_sale_price,
+                                                            'sale_commission' => (string) $product->sale_commission,
+                                                            'commission_type' => $product->commission_type,
+                                                            'includes_tax' => (bool) $product->includes_tax,
+                                                            'description' => $product->description ?? '',
+                                                            'stock_alarm_enabled' => (bool) $product->stock_alarm_enabled,
+                                                            'stock_alarm_limit' => $product->stock_alarm_limit === null ? '' : (string) $product->stock_alarm_limit,
+                                                            'stock_alarm_emails' => $product->stock_alarm_emails ?? '',
+                                                            'is_active' => (bool) $product->is_active,
+                                                        ]))"
+                                                    >
+                                                        Editar
+                                                    </flux:button>
+
+                                                    <flux:button
+                                                        size="sm"
+                                                        variant="danger"
+                                                        icon="trash"
+                                                        type="button"
+                                                        @click="deleteProduct({{ $product->id }}, @js($product->name))"
+                                                    >
+                                                        Eliminar
+                                                    </flux:button>
+                                                </div>
+                                            </flux:table.cell>
+                                        </flux:table.row>
+                                    @endforeach
+                                </flux:table.rows>
+                            </flux:table>
+                        </div>
+
+                        <div class="border-t border-zinc-200/80 px-5 py-4">
+                            {{ $products->links() }}
+                        </div>
+                    @endif
+                </flux:card>
+            </div>
+        </div>
+
+        <div
+            x-show="isOpen"
+            x-transition.opacity
+            class="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/50 px-3 py-6 backdrop-blur-[2px]"
+            @keydown.escape.window="closeModal()"
+            @click.self="closeModal()"
+        >
+            <div class="relative flex w-full max-w-[1500px] max-h-[92vh] flex-col overflow-hidden rounded-[30px] bg-white shadow-[0_30px_100px_rgba(0,0,0,0.25)] ring-1 ring-violet-200">
+                <div class="flex items-start justify-between gap-4 border-b border-violet-100 px-6 py-5">
+                    <div>
+                        <flux:heading size="lg" x-text="modalTitle()"></flux:heading>
+                        <flux:text class="mt-1 text-sm text-zinc-500">
+                            Completa los datos básicos, opciones avanzadas y alarmas de stock.
+                        </flux:text>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+                        @click="closeModal()"
+                        aria-label="Cerrar modal"
+                    >
+                        <flux:icon name="x-mark" class="size-6" />
+                    </button>
+                </div>
+
+                <div class="border-b border-violet-200 px-6 pt-4">
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            class="rounded-t-2xl border px-4 py-3 text-sm font-medium transition"
+                            :class="activeTab === 'basic'
+                                ? 'border-violet-300 bg-violet-50 text-violet-700 shadow-sm'
+                                : 'border-transparent bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
+                            @click="activeTab = 'basic'"
+                        >
+                            Datos básicos
+                        </button>
+
+                        <button
+                            type="button"
+                            class="rounded-t-2xl border px-4 py-3 text-sm font-medium transition"
+                            :class="activeTab === 'advanced'
+                                ? 'border-violet-300 bg-violet-50 text-violet-700 shadow-sm'
+                                : 'border-transparent bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
+                            @click="activeTab = 'advanced'"
+                        >
+                            Opciones avanzadas
+                        </button>
+
+                        <button
+                            type="button"
+                            class="rounded-t-2xl border px-4 py-3 text-sm font-medium transition"
+                            :class="activeTab === 'alarms'
+                                ? 'border-violet-300 bg-violet-50 text-violet-700 shadow-sm'
+                                : 'border-transparent bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
+                            @click="activeTab = 'alarms'"
+                        >
+                            Alarmas de stock
+                        </button>
+                    </div>
+                </div>
+
+                <form @submit.prevent="saveProduct" class="flex min-h-0 flex-1 flex-col">
+                    <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                        <div x-show="activeTab === 'basic'" x-cloak class="space-y-4">
+                            <div class="rounded-[24px] border border-zinc-200/80 p-5">
+                                <div class="mb-5">
+                                    <flux:heading size="base">Datos básicos</flux:heading>
+                                </div>
+
+                                <div class="grid gap-4 lg:grid-cols-2">
+                                    <div class="space-y-1.5">
+                                        <flux:input x-model="form.name" label="Nombre *" type="text" placeholder="Indica el nombre del producto" class="rounded-2xl" />
+                                        <p class="text-sm text-rose-600" x-show="errors.name" x-text="errors.name" x-cloak></p>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <flux:input x-model="form.barcode" label="Código de barras" type="text" placeholder="Indica el código del producto" class="rounded-2xl" />
+                                        <p class="text-sm text-rose-600" x-show="errors.barcode" x-text="errors.barcode" x-cloak></p>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <flux:select x-model="form.brand_id" label="Marca *" class="rounded-2xl">
+                                            <option value="">Selecciona una marca</option>
+                                            <template x-for="brand in brands" :key="brand.id">
+                                                <option :value="brand.id" x-text="brand.name"></option>
+                                            </template>
+                                        </flux:select>
+                                        <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="quickCreate('brands')">
+                                            + Nueva marca
+                                        </button>
+                                        <p class="text-sm text-rose-600" x-show="errors.brand_id" x-text="errors.brand_id" x-cloak></p>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <flux:select x-model="form.category_id" label="Categoría *" class="rounded-2xl">
+                                            <option value="">Selecciona una categoría</option>
+                                            <template x-for="category in categories" :key="category.id">
+                                                <option :value="category.id" x-text="category.name"></option>
+                                            </template>
+                                        </flux:select>
+                                        <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="quickCreate('categories')">
+                                            + Nueva categoría
+                                        </button>
+                                        <p class="text-sm text-rose-600" x-show="errors.category_id" x-text="errors.category_id" x-cloak></p>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <flux:select x-model="form.presentation_id" label="Formato/Presentación *" class="rounded-2xl">
+                                            <option value="">Selecciona un formato</option>
+                                            <template x-for="presentation in presentations" :key="presentation.id">
+                                                <option :value="presentation.id" x-text="presentation.name"></option>
+                                            </template>
+                                        </flux:select>
+                                        <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="quickCreate('presentations')">
+                                            + Nuevo formato
+                                        </button>
+                                        <p class="text-sm text-rose-600" x-show="errors.presentation_id" x-text="errors.presentation_id" x-cloak></p>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <flux:input x-model="form.public_sale_price" label="Precio de venta al público" type="number" min="0" step="0.01" class="rounded-2xl" />
+                                        <p class="text-sm text-rose-600" x-show="errors.public_sale_price" x-text="errors.public_sale_price" x-cloak></p>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <flux:input x-model="form.current_stock" label="Cantidad en stock" type="number" min="0" step="0.01" class="rounded-2xl" />
+                                        <p class="text-sm text-rose-600" x-show="errors.current_stock" x-text="errors.current_stock" x-cloak></p>
+                                    </div>
+                                </div>
+
+                                <div class="mt-5 rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-4">
+                                    <flux:switch x-model="form.stock_alarm_enabled" label="Activar alarma de stock bajo del producto" align="left" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div x-show="activeTab === 'advanced'" x-cloak class="space-y-4">
+                            <div class="rounded-[24px] border border-zinc-200/80 p-5">
+                                <div class="mb-5">
+                                    <flux:heading size="base">Opciones avanzadas</flux:heading>
+                                </div>
+
+                                <div class="space-y-5">
+                                    <div class="grid gap-4 lg:grid-cols-2">
+                                        <div class="space-y-1.5">
+                                            <flux:input x-model="form.purchase_cost" label="Costo de compra" type="number" min="0" step="0.01" class="rounded-2xl" />
+                                            <p class="text-sm text-rose-600" x-show="errors.purchase_cost" x-text="errors.purchase_cost" x-cloak></p>
+                                        </div>
+
+                                        <div class="space-y-1.5">
+                                            <flux:input x-model="form.internal_sale_price" label="Precio de venta interna" type="number" min="0" step="0.01" class="rounded-2xl" />
+                                            <p class="text-sm text-rose-600" x-show="errors.internal_sale_price" x-text="errors.internal_sale_price" x-cloak></p>
+                                        </div>
+
+                                        <div class="space-y-1.5">
+                                            <flux:label>Comisión de venta</flux:label>
+                                            <div class="grid grid-cols-[minmax(0,1fr)_8rem] overflow-hidden rounded-2xl border border-zinc-300 bg-white">
+                                                <input
+                                                    x-model="form.sale_commission"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    class="h-12 border-0 px-4 text-sm text-zinc-900 outline-none focus:ring-0"
+                                                />
+                                                <select
+                                                    x-model="form.commission_type"
+                                                    class="h-12 border-l border-zinc-300 bg-white px-3 text-sm text-zinc-700 outline-none focus:ring-0"
+                                                >
+                                                    <option value="percent">%</option>
+                                                    <option value="amount">Monto</option>
+                                                </select>
+                                            </div>
+                                            <p class="text-sm text-rose-600" x-show="errors.sale_commission" x-text="errors.sale_commission" x-cloak></p>
+                                        </div>
+
+                                        <div class="flex items-end">
+                                            <div class="rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-4">
+                                                <flux:switch x-model="form.includes_tax" label="Precio incluye IVA en comprobante de caja" align="left" />
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-end">
+                                            <div class="rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-4">
+                                                <flux:switch x-model="form.is_active" label="Producto activo" align="left" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <flux:textarea x-model="form.description" label="Descripción" rows="5" class="rounded-2xl" />
+                                        <p class="text-sm text-rose-600" x-show="errors.description" x-text="errors.description" x-cloak></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div x-show="activeTab === 'alarms'" x-cloak class="space-y-4">
+                            <div class="rounded-[24px] border border-zinc-200/80 p-5">
+                                <div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                                    Te damos la opción de configurar el stock límite de este producto por cada local para que recibas un aviso de bajo stock y puedas reponerlo.
+                                </div>
+
+                                <div class="mt-5">
+                                    <flux:heading size="base">Alarma de stock</flux:heading>
+                                </div>
+
+                                <div class="mt-5 grid gap-4 lg:grid-cols-2">
+                                    <div class="space-y-1.5">
+                                        <flux:input x-model="form.stock_alarm_limit" label="Stock en locales" type="number" min="0" step="0.01" placeholder="00" class="rounded-2xl" />
+                                        <p class="text-sm text-zinc-500">
+                                            Indica la cantidad de stock actual del producto en cada uno de tus locales.
+                                        </p>
+                                        <p class="text-sm text-rose-600" x-show="errors.stock_alarm_limit" x-text="errors.stock_alarm_limit" x-cloak></p>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <flux:input
+                                            x-model="form.stock_alarm_emails"
+                                            label="Email para notificaciones"
+                                            type="text"
+                                            placeholder="mail1@email.com, mail2@email.com"
+                                            class="rounded-2xl"
+                                        />
+                                        <p class="text-sm text-zinc-500">
+                                            Ingresa los correos que recibirán los avisos, si agregas más de uno sepáralo por comas.
+                                        </p>
+                                        <p class="text-sm text-rose-600" x-show="errors.stock_alarm_emails" x-text="errors.stock_alarm_emails" x-cloak></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="text-sm text-zinc-500" x-text="footerMessage()"></div>
+
+                        <div class="flex items-center gap-3">
+                            <button
+                                type="button"
+                                class="inline-flex h-10 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-200"
+                                @click="closeModal()"
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                type="submit"
+                                class="inline-flex h-10 items-center justify-center rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                x-bind:disabled="saving"
+                            >
+                                <span x-text="submitLabel()"></span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</x-layouts::app>
