@@ -73,7 +73,7 @@ return [
     |
     */
 
-    'home' => '/dashboard',
+    'home' => '/ventas',
 
     /*
     |--------------------------------------------------------------------------
@@ -163,8 +163,6 @@ return [
     */
 
     'features' => [
-        Features::registration(),
-        Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([
             'confirm' => true,

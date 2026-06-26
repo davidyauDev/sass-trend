@@ -162,9 +162,15 @@
             <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
                 <div class="flex items-center gap-3">
                     @if ($drawerStep !== 'cart' && $drawerStep !== 'success')
-                        <button type="button" wire:click="backToCart" class="text-zinc-500">
-                            <flux:icon.chevron-left class="size-6" />
-                        </button>
+                        @if ($drawerStep === 'service-professional')
+                            <button type="button" wire:click="backToItemPicker" class="text-zinc-500">
+                                <flux:icon.chevron-left class="size-6" />
+                            </button>
+                        @else
+                            <button type="button" wire:click="backToCart" class="text-zinc-500">
+                                <flux:icon.chevron-left class="size-6" />
+                            </button>
+                        @endif
                     @elseif ($drawerStep === 'success')
                         <button type="button" wire:click="openCreateSale" class="text-zinc-500">
                             <flux:icon.chevron-left class="size-6" />
@@ -175,6 +181,7 @@
                             @case('client-search') Asociar cliente a la venta @break
                             @case('client-create') Agrega un nuevo cliente @break
                             @case('item-picker') Agrega lo que desees @break
+                            @case('service-professional') Selecciona un profesional @break
                             @case('payment') Método de pago @break
                             @case('success') {{ $saleSummaryMode === 'detail' ? 'Detalle de venta' : 'Venta completada' }} @break
                             @default Nueva venta
@@ -231,13 +238,41 @@
                             @forelse ($saleForm['cart'] as $item)
                                 <div class="flex items-start justify-between rounded-2xl border border-zinc-200 px-4 py-4">
                                     <div>
-                                        <div class="font-medium text-zinc-900">{{ $item['item_name'] }} <span class="text-sm text-zinc-400">x{{ rtrim(rtrim((string) $item['quantity'], '0'), '.') }}</span></div>
-                                        @if ($item['item_detail'])
+                                        <div class="font-medium text-zinc-900">
+                                            {{ $item['item_name'] }}
+                                            <span class="text-sm text-zinc-400">x{{ rtrim(rtrim((string) $item['quantity'], '0'), '.') }}</span>
+                                        </div>
+
+                                        @if (($item['meta']['professional_name'] ?? null) || $item['item_detail'])
                                             <div class="mt-1 text-sm text-zinc-500">{{ $item['item_detail'] }}</div>
+                                        @endif
+
+                                        @if ($item['item_type'] === 'service' && ($item['meta']['professional_name'] ?? null))
+                                            <div class="mt-1 inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
+                                                <span>Profesional</span>
+                                                <span>{{ $item['meta']['professional_name'] }}</span>
+                                            </div>
                                         @endif
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <div class="font-semibold text-zinc-900">S/{{ number_format((float) $item['subtotal'], 0) }}</div>
+                                        <div class="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                wire:click="decreaseCartItem('{{ $item['key'] }}')"
+                                                @disabled((float) $item['quantity'] <= 1)
+                                                class="inline-flex size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                                            >
+                                                <flux:icon.minus class="size-4" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                wire:click="increaseCartItem('{{ $item['key'] }}')"
+                                                class="inline-flex size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-sm"
+                                            >
+                                                <flux:icon.plus class="size-4" />
+                                            </button>
+                                        </div>
                                         <button type="button" wire:click="removeCartItem('{{ $item['key'] }}')" class="rounded-xl border border-zinc-200 p-2 text-rose-500 shadow-sm">
                                             <flux:icon.trash class="size-4" />
                                         </button>
@@ -327,9 +362,15 @@
                                             <div class="font-medium text-zinc-900">{{ $service->name }}</div>
                                             <div class="mt-1 text-sm text-zinc-500">S/{{ number_format((float) $service->price, 0) }} | {{ $service->duration_minutes }} min</div>
                                         </div>
-                                        <button type="button" wire:click="addServiceToCart({{ $service->id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
-                                            <flux:icon.plus class="size-5 text-violet-600" />
-                                        </button>
+                                        @if ($service->professionalProfiles->isNotEmpty())
+                                            <button type="button" wire:click="openServiceProfessionalPicker({{ $service->id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
+                                                <flux:icon.plus class="size-5 text-violet-600" />
+                                            </button>
+                                        @else
+                                            <button type="button" disabled class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-300 shadow-sm">
+                                                <flux:icon.plus class="size-5" />
+                                            </button>
+                                        @endif
                                     </div>
                                 @empty
                                     <div class="px-4 py-6 text-sm text-zinc-500">No se encontraron servicios.</div>
@@ -341,9 +382,21 @@
                                             <div class="font-medium text-zinc-900">{{ $product->name }}</div>
                                             <div class="mt-1 text-sm text-zinc-500">S/{{ number_format((float) $product->public_sale_price, 0) }} | {{ $product->brand?->name }} | {{ $product->presentation?->name }}</div>
                                         </div>
-                                        <button type="button" wire:click="addProductToCart({{ $product->id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
-                                            <flux:icon.plus class="size-5 text-violet-600" />
-                                        </button>
+                                        <div class="flex items-center gap-3">
+                                            @if ($this->cartQuantityForProduct($product->id) > 0)
+                                                <button type="button" wire:click="decreaseProductToCart({{ $product->id }})" class="flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm">
+                                                    <flux:icon.minus class="size-4" />
+                                                </button>
+
+                                                <div class="flex size-10 items-center justify-center rounded-xl bg-violet-600 text-sm font-semibold text-white shadow-sm">
+                                                    {{ $this->cartQuantityForProduct($product->id) }}
+                                                </div>
+                                            @endif
+
+                                            <button type="button" wire:click="addProductToCart({{ $product->id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
+                                                <flux:icon.plus class="size-5 text-violet-600" />
+                                            </button>
+                                        </div>
                                     </div>
                                 @empty
                                     <div class="px-4 py-6 text-sm text-zinc-500">No se encontraron productos.</div>
@@ -356,13 +409,31 @@
                                             <div class="mt-1 text-sm text-zinc-500">{{ $item->item_detail ?: 'Ítem reciente' }}</div>
                                         </div>
                                         @if ($item->item_type === 'service' && $item->service_id)
-                                            <button type="button" wire:click="addServiceToCart({{ $item->service_id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
-                                                <flux:icon.plus class="size-5 text-violet-600" />
-                                            </button>
+                                            @if ($item->service?->professionalProfiles?->isNotEmpty())
+                                                <button type="button" wire:click="openServiceProfessionalPicker({{ $item->service_id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
+                                                    <flux:icon.plus class="size-5 text-violet-600" />
+                                                </button>
+                                            @else
+                                                <button type="button" disabled class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-300 shadow-sm">
+                                                    <flux:icon.plus class="size-5" />
+                                                </button>
+                                            @endif
                                         @elseif ($item->item_type === 'product' && $item->product_id)
-                                            <button type="button" wire:click="addProductToCart({{ $item->product_id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
-                                                <flux:icon.plus class="size-5 text-violet-600" />
-                                            </button>
+                                            <div class="flex items-center gap-3">
+                                                @if ($this->cartQuantityForProduct($item->product_id) > 0)
+                                                    <button type="button" wire:click="decreaseProductToCart({{ $item->product_id }})" class="flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm">
+                                                        <flux:icon.minus class="size-4" />
+                                                    </button>
+
+                                                    <div class="flex size-10 items-center justify-center rounded-xl bg-violet-600 text-sm font-semibold text-white shadow-sm">
+                                                        {{ $this->cartQuantityForProduct($item->product_id) }}
+                                                    </div>
+                                                @endif
+
+                                                <button type="button" wire:click="addProductToCart({{ $item->product_id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
+                                                    <flux:icon.plus class="size-5 text-violet-600" />
+                                                </button>
+                                            </div>
                                         @endif
                                     </div>
                                 @empty
@@ -373,143 +444,151 @@
                             @endif
                         </div>
                     </div>
+                @elseif ($drawerStep === 'service-professional')
+                    @php($selectedService = $this->serviceProfessionalPickerService)
+
+                    <div class="space-y-4">
+                        @if ($selectedService)
+                            <div class="rounded-[24px] border border-zinc-200 bg-zinc-50 px-4 py-4">
+                                <div class="text-sm text-zinc-500">Servicio seleccionado</div>
+                                <div class="mt-1 text-lg font-semibold text-zinc-900">{{ $selectedService->name }}</div>
+                                <div class="mt-1 text-sm text-zinc-500">S/{{ number_format((float) $selectedService->price, 0) }} · {{ $selectedService->duration_minutes }} min</div>
+                            </div>
+                        @endif
+
+                        <div class="space-y-2">
+                            <div class="text-sm font-medium text-zinc-700">Profesional</div>
+                            <div class="text-sm text-zinc-500">Elige quién realizará este servicio para guardarlo en la venta.</div>
+                        </div>
+
+                        <div class="grid gap-3">
+                            @forelse ($this->serviceProfessionalPickerProfessionals as $professional)
+                                <button
+                                    type="button"
+                                    wire:click="selectServiceProfessional({{ $professional->id }})"
+                                    class="flex items-center gap-3 rounded-[22px] border {{ $serviceProfessionalPickerProfessionalId === $professional->id ? 'border-violet-400 bg-violet-50 ring-2 ring-violet-100' : 'border-zinc-200 bg-white' }} px-4 py-4 text-left transition hover:border-violet-300"
+                                >
+                                    @if ($professional->photoUrl())
+                                        <img src="{{ $professional->photoUrl() }}" alt="{{ $professional->displayName() }}" class="size-12 rounded-2xl object-cover">
+                                    @else
+                                        <div class="flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-sm font-semibold text-zinc-500">
+                                            {{ $professional->initials() }}
+                                        </div>
+                                    @endif
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-semibold text-zinc-900">{{ $professional->displayName() }}</div>
+                                        <div class="mt-0.5 text-sm text-zinc-500">{{ $selectedService?->duration_minutes ?? 0 }} min · Asignado a este servicio</div>
+                                    </div>
+
+                                    <flux:icon.chevron-right class="size-5 text-zinc-400" />
+                                </button>
+                            @empty
+                                <div class="rounded-[22px] border border-dashed border-zinc-300 px-4 py-6 text-sm text-zinc-500">
+                                    No hay profesionales vinculados a este servicio.
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
                 @elseif ($drawerStep === 'payment')
                     <div class="space-y-6">
                         <div class="grid grid-cols-2 gap-3">
                             @foreach ($this->paymentMethods as $key => $label)
                                 <button
                                     type="button"
-                                    wire:click="selectPaymentMethod('{{ $key }}')"
+                                    wire:click="completeSale('{{ $key }}')"
                                     class="{{ $saleForm['selected_payment_method'] === $key ? 'border-violet-400 ring-2 ring-violet-100' : 'border-zinc-200' }} rounded-2xl border px-4 py-6 text-center text-sm font-medium text-zinc-700"
                                 >
                                     {{ $label }}
                                 </button>
                             @endforeach
                         </div>
-
-                        <div class="space-y-3">
-                            <div class="text-lg font-semibold text-zinc-700">Opciones de pago</div>
-
-                            <button type="button" wire:click="enablePaymentOption('split')" class="flex w-full items-center justify-between rounded-2xl border border-zinc-200 px-4 py-4 text-left">
-                                <span>Múltiples métodos de pago</span>
-                                @if ($saleForm['payment_option'] === 'split') <flux:icon.check class="size-5 text-emerald-500" /> @endif
-                            </button>
-
-                            <button type="button" wire:click="enablePaymentOption('partial')" class="flex w-full items-center justify-between rounded-2xl border border-zinc-200 px-4 py-4 text-left">
-                                <span>Abono</span>
-                                @if ($saleForm['payment_option'] === 'partial') <flux:icon.check class="size-5 text-emerald-500" /> @endif
-                            </button>
-
-                            <button type="button" wire:click="saveDraft" class="flex w-full items-center justify-between rounded-2xl border border-violet-300 px-4 py-4 text-left">
-                                <span>Enviar carro</span>
-                                <span class="text-sm text-violet-600 underline">Guardar borrador</span>
-                            </button>
-                        </div>
-
-                        <div class="space-y-3 rounded-2xl border border-zinc-200 p-4">
-                            @foreach ($saleForm['payments'] as $index => $payment)
-                                <div class="grid gap-3">
-                                    <flux:select wire:model.live="saleForm.payments.{{ $index }}.method">
-                                        @foreach ($this->paymentMethods as $key => $label)
-                                            <option value="{{ $key }}">{{ $label }}</option>
-                                        @endforeach
-                                    </flux:select>
-                                    <flux:input wire:model="saleForm.payments.{{ $index }}.amount" label="Monto" type="number" step="0.01" min="0" />
-                                    <flux:input wire:model="saleForm.payments.{{ $index }}.reference" label="Referencia" />
-                                    @if ($saleForm['payment_option'] === 'split' && count($saleForm['payments']) > 1)
-                                        <button type="button" wire:click="removeSplitPayment({{ $index }})" class="text-sm font-medium text-rose-600 underline underline-offset-4">
-                                            Quitar método
-                                        </button>
-                                    @endif
-                                </div>
-                                @if (! $loop->last)
-                                    <div class="border-b border-dashed border-zinc-200 pt-3"></div>
-                                @endif
-                            @endforeach
-
-                            @if ($saleForm['payment_option'] === 'split')
-                                <button type="button" wire:click="addSplitPayment" class="text-sm font-medium text-violet-600 underline underline-offset-4">
-                                    Agregar otro método
-                                </button>
-                            @endif
+                        <div class="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-500">
+                            Al tocar un método de pago, la venta se registra automáticamente.
                         </div>
                     </div>
                 @elseif ($drawerStep === 'success')
                     @if ($selectedSale)
-                        <div class="space-y-5 pb-6">
-                            @if ($saleSummaryMode === 'success')
-                                <div class="flex flex-col items-center text-center">
-                                    <div class="flex size-16 items-center justify-center rounded-full bg-emerald-500 text-white">
+                        <div class="space-y-6 pb-6">
+                            <div class="rounded-[28px] border border-zinc-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
+                                <div class="border-b border-zinc-200/80 px-5 py-4 text-center">
+                                    <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_10px_25px_rgba(16,185,129,0.3)]">
                                         <flux:icon.check class="size-8" />
                                     </div>
-                                    <div class="mt-5 text-4xl font-semibold text-zinc-800">El pago se realizó con éxito</div>
-                                    <div class="mt-1 text-zinc-500">Venta #{{ $selectedSale->ticket_number }}</div>
-                                </div>
-                            @else
-                                <div class="rounded-[24px] border border-zinc-200 p-4">
-                                    <div class="flex items-center justify-between gap-3">
-                                        <div>
-                                            <div class="text-sm text-zinc-400">Venta</div>
-                                            <div class="mt-1 text-2xl font-semibold text-zinc-900">#{{ $selectedSale->sale_number ?? $selectedSale->id }}</div>
-                                        </div>
-                                        <span class="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium capitalize text-zinc-700">
-                                            {{ $selectedSale->status }}
-                                        </span>
+
+                                    <div class="mt-5 text-2xl font-semibold text-zinc-800">
+                                        El pago se realizó con éxito
                                     </div>
-                                    <div class="mt-3 text-sm text-zinc-500">{{ $selectedSale->sold_at?->format('d/m/Y h:i a') }}</div>
-                                </div>
-                            @endif
-
-                            <div class="rounded-[24px] border border-zinc-200 p-4">
-                                <div class="text-sm text-zinc-400">Cliente</div>
-                                <div class="mt-2 font-semibold text-zinc-900">{{ $selectedSale->client?->fullName() ?? 'Consumidor final' }}</div>
-                                @if ($selectedSale->client?->email)
-                                    <div class="text-sm text-zinc-500">{{ $selectedSale->client?->email }}</div>
-                                @endif
-                                @if ($selectedSale->client?->phone)
-                                    <div class="text-sm text-zinc-500">{{ $selectedSale->client?->phone }}</div>
-                                @endif
-                            </div>
-
-                            <div class="rounded-[24px] border border-zinc-200 p-4">
-                                <div class="text-sm text-zinc-400">Medio de pago</div>
-                                @forelse ($selectedSale->payments as $payment)
-                                    <div class="mt-3 flex items-start justify-between gap-3">
-                                        <div>
-                                            <div class="font-medium text-zinc-900">{{ $this->paymentMethods[$payment->method] ?? $payment->method }}</div>
-                                            <div class="text-sm text-zinc-500">#{{ $selectedSale->ticket_number }} · {{ $selectedSale->sold_at?->format('d-m-Y') }}</div>
-                                        </div>
-                                        <div class="font-medium">S/{{ number_format((float) $payment->amount, 0) }}</div>
+                                    <div class="mt-1 text-sm text-zinc-500">
+                                        Venta #{{ $selectedSale->ticket_number }}
                                     </div>
-                                @empty
-                                    <div class="mt-3 text-sm text-zinc-500">No hay pagos registrados para esta venta.</div>
-                                @endforelse
-                            </div>
-
-                            <div class="rounded-[24px] border border-zinc-200 p-4">
-                                <div class="text-sm text-zinc-400">Detalle del pago</div>
-                                <div class="mt-3 space-y-2 text-zinc-700">
-                                    <div class="flex items-center justify-between"><span>Subtotal</span><span>S/{{ number_format((float) $selectedSale->subtotal, 0) }}</span></div>
-                                    <div class="flex items-center justify-between"><span>Vuelto</span><span>S/{{ number_format((float) $selectedSale->change_total, 0) }}</span></div>
-                                    <div class="flex items-center justify-between"><span>Descuentos</span><span>S/{{ number_format((float) $selectedSale->discount_total, 0) }}</span></div>
-                                    <div class="flex items-center justify-between font-semibold text-zinc-900"><span>Total</span><span>S/{{ number_format((float) $selectedSale->total, 0) }}</span></div>
                                 </div>
-                            </div>
 
-                            <div class="space-y-3">
-                                @if ($emailReceiptUrl)
-                                    <a href="{{ $emailReceiptUrl }}" class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-violet-600 shadow-sm">
-                                        Enviar comprobante
-                                    </a>
-                                @else
-                                    <button type="button" disabled class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-zinc-400 shadow-sm">
-                                        Enviar comprobante
-                                    </button>
-                                @endif
+                                <div class="space-y-5 px-5 py-5">
+                                    <div>
+                                        <div class="text-sm text-zinc-400">Cliente</div>
+                                        <div class="mt-2 text-base font-semibold text-zinc-900">
+                                            {{ $selectedSale->client?->fullName() ?? 'Consumidor final' }}
+                                        </div>
 
-                                <a href="{{ $receiptUrl }}" target="_blank" class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-violet-600 shadow-sm">
-                                    Ver comprobante
-                                </a>
+                                        @if ($selectedSale->client?->email)
+                                            <div class="mt-1 flex items-center gap-2 text-sm text-zinc-500">
+                                                <flux:icon.envelope class="size-4" />
+                                                <span>{{ $selectedSale->client?->email }}</span>
+                                            </div>
+                                        @endif
+
+                                        @if ($selectedSale->client?->phone)
+                                            <div class="mt-1 flex items-center gap-2 text-sm text-zinc-500">
+                                                <flux:icon.phone class="size-4" />
+                                                <span>{{ $selectedSale->client?->phone }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="border-t border-zinc-200 pt-5">
+                                        <div class="text-sm text-zinc-400">Medio de pago</div>
+                                        @forelse ($selectedSale->payments as $payment)
+                                            <div class="mt-3 flex items-start justify-between gap-3">
+                                                <div>
+                                                    <div class="font-medium text-zinc-900">{{ $this->paymentMethods[$payment->method] ?? $payment->method }}</div>
+                                                    <div class="text-sm text-zinc-500">#{{ $selectedSale->ticket_number }} · {{ $selectedSale->sold_at?->format('d-m-Y') }}</div>
+                                                </div>
+                                                <div class="font-medium text-zinc-900">S/{{ number_format((float) $payment->amount, 0) }}</div>
+                                            </div>
+                                        @empty
+                                            <div class="mt-3 text-sm text-zinc-500">No hay pagos registrados para esta venta.</div>
+                                        @endforelse
+                                    </div>
+
+                                    <div class="border-t border-zinc-200 pt-5">
+                                        <div class="text-sm text-zinc-400">Detalle del pago</div>
+                                        <div class="mt-3 space-y-2 text-zinc-700">
+                                            <div class="flex items-center justify-between"><span>Subtotal</span><span>S/{{ number_format((float) $selectedSale->subtotal, 0) }}</span></div>
+                                            <div class="flex items-center justify-between"><span>Vuelto</span><span>S/{{ number_format((float) $selectedSale->change_total, 0) }}</span></div>
+                                            <div class="flex items-center justify-between"><span>Descuentos</span><span>S/{{ number_format((float) $selectedSale->discount_total, 0) }}</span></div>
+                                            <div class="flex items-center justify-between font-semibold text-zinc-900"><span>Total:</span><span>S/{{ number_format((float) $selectedSale->total, 0) }}</span></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-t border-zinc-200 pt-5">
+                                        <div class="space-y-3">
+                                            @if ($emailReceiptUrl)
+                                                <a href="{{ $emailReceiptUrl }}" class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-violet-600 shadow-sm transition hover:bg-violet-50">
+                                                    Enviar comprobante
+                                                </a>
+                                            @else
+                                                <button type="button" disabled class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-zinc-400 shadow-sm">
+                                                    Enviar comprobante
+                                                </button>
+                                            @endif
+
+                                            <a href="{{ $receiptUrl }}" target="_blank" class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-violet-600 shadow-sm transition hover:bg-violet-50">
+                                                Ver comprobante
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     @endif
@@ -530,14 +609,18 @@
                     <button type="button" wire:click="backToCart" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
                         Ir al carro ({{ count($saleForm['cart']) }})
                     </button>
+                @elseif ($drawerStep === 'service-professional')
+                    <button type="button" wire:click="backToItemPicker" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                        Volver a servicios
+                    </button>
                 @elseif ($drawerStep === 'client-create')
                     <button type="button" wire:click="saveInlineClient" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
                         Guardar cliente
                     </button>
                 @elseif ($drawerStep === 'payment')
-                    <button type="button" wire:click="finalizeSale" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
-                        Confirmar pago
-                    </button>
+                    <div class="flex h-12 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-600">
+                        Selecciona un método de pago para registrar la venta
+                    </div>
                 @elseif ($drawerStep === 'success')
                     <button type="button" wire:click="closeDrawer" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
                         Cerrar

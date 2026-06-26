@@ -4,21 +4,21 @@
             <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                 <div class="space-y-4 p-4">
                     <div>
-                        <flux:badge color="sky" size="sm" inset="left">Commissions</flux:badge>
-                        <flux:heading size="lg" class="mt-3">Commission Hub</flux:heading>
+                        <flux:badge color="sky" size="sm" inset="left">Comisiones</flux:badge>
+                        <flux:heading size="lg" class="mt-3">Centro de comisiones</flux:heading>
                         <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                            Motor enterprise para reglas, liquidaciones, pagos y auditoría.
+                            Motor empresarial para reglas, liquidaciones, pagos y auditoría.
                         </flux:text>
                     </div>
 
                     <div class="space-y-2">
                         @foreach ([
-                            ['dashboard', 'Dashboard', 'home'],
-                            ['commissions', 'Commissions', 'banknotes'],
-                            ['rules', 'Rules', 'adjustments-horizontal'],
-                            ['settlements', 'Settlements', 'queue-list'],
-                            ['reports', 'Reports', 'chart-bar'],
-                            ['audit', 'Audit Logs', 'clipboard-document-list'],
+                            ['dashboard', 'Panel', 'home'],
+                            ['commissions', 'Comisiones', 'banknotes'],
+                            ['rules', 'Reglas', 'adjustments-horizontal'],
+                            ['settlements', 'Liquidaciones', 'queue-list'],
+                            ['reports', 'Reportes', 'chart-bar'],
+                            ['audit', 'Bitácora', 'clipboard-document-list'],
                         ] as [$section, $label, $icon])
                             <button
                                 type="button"
@@ -39,20 +39,20 @@
 
             <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                 <div class="space-y-3 p-4">
-                    <flux:heading size="sm">Top Performers</flux:heading>
+                    <flux:heading size="sm">Mejores resultados</flux:heading>
                     <div class="space-y-2">
                         @forelse ($this->topPerformers as $performer)
                             <div class="rounded-2xl border border-zinc-200/70 p-3 dark:border-zinc-700">
                                 <div class="flex items-center justify-between">
                                     <div class="min-w-0">
                                         <div class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $performer['name'] }}</div>
-                                        <div class="text-xs text-zinc-500">{{ $performer['completed'] }} completed</div>
+                                        <div class="text-xs text-zinc-500">{{ $performer['completed'] }} completadas</div>
                                     </div>
                                     <div class="text-right text-sm font-semibold text-sky-400">S/ {{ number_format($performer['commissions'], 2) }}</div>
                                 </div>
                             </div>
                         @empty
-                            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">No performance data yet.</flux:text>
+                            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Aún no hay datos de rendimiento.</flux:text>
                         @endforelse
                     </div>
                 </div>
@@ -62,83 +62,83 @@
         <main class="space-y-6">
             <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div class="min-w-0">
-                    <flux:badge color="sky" size="sm" inset="left">Enterprise Commission Engine</flux:badge>
-                    <flux:heading size="xl" class="mt-3">Commission Management</flux:heading>
+                    <flux:badge color="sky" size="sm" inset="left">Motor empresarial de comisiones</flux:badge>
+                    <flux:heading size="xl" class="mt-3">Gestión de comisiones</flux:heading>
                     <flux:text class="mt-2 max-w-3xl text-sm text-zinc-500 dark:text-zinc-400">
-                        Track revenue, approvals, settlements, audit history and professional performance across branches with rule-driven calculations.
+                        Gestiona ingresos, aprobaciones, liquidaciones, historial de auditoría y rendimiento profesional por sucursal con cálculos basados en reglas.
                     </flux:text>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
-                    <flux:button variant="ghost" icon="arrow-path" wire:click="$refresh">Refresh</flux:button>
+                    <flux:button variant="ghost" icon="arrow-path" wire:click="$refresh">Actualizar</flux:button>
                     <flux:button variant="ghost" icon="arrow-down-tray" wire:click="exportReport('csv')">CSV</flux:button>
                     <flux:button variant="ghost" icon="table-cells" wire:click="exportReport('excel')">Excel</flux:button>
                     <flux:button variant="ghost" icon="document-text" wire:click="exportReport('pdf')">PDF</flux:button>
-                    <flux:button variant="ghost" icon="plus" wire:click="openRuleModal">Create Rule</flux:button>
-                    <flux:button variant="primary" icon="queue-list" wire:click="openSettlementModal">Generate Settlement</flux:button>
+                    <flux:button variant="ghost" icon="plus" wire:click="openRuleModal">Crear regla</flux:button>
+                    <flux:button variant="primary" icon="queue-list" wire:click="openSettlementModal">Generar liquidación</flux:button>
                 </div>
             </div>
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                    <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Total Commissions</flux:text>
+                    <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Comisiones totales</flux:text>
                     <flux:heading size="xl" class="mt-2">S/ {{ number_format($this->dashboardMetrics['total_commissions'], 2) }}</flux:heading>
                 </flux:card>
                 <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                    <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Pending</flux:text>
+                    <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Pendientes</flux:text>
                     <flux:heading size="xl" class="mt-2">S/ {{ number_format($this->dashboardMetrics['pending_commissions'], 2) }}</flux:heading>
                 </flux:card>
                 <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                    <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Approved</flux:text>
+                    <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Aprobadas</flux:text>
                     <flux:heading size="xl" class="mt-2">S/ {{ number_format($this->dashboardMetrics['approved_commissions'], 2) }}</flux:heading>
                 </flux:card>
                 <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                    <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Paid</flux:text>
+                    <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Pagadas</flux:text>
                     <flux:heading size="xl" class="mt-2">S/ {{ number_format($this->dashboardMetrics['paid_commissions'], 2) }}</flux:heading>
                 </flux:card>
                 <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                    <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Revenue</flux:text>
+                    <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Ingresos</flux:text>
                     <flux:heading size="xl" class="mt-2">S/ {{ number_format($this->dashboardMetrics['revenue_generated'], 2) }}</flux:heading>
                 </flux:card>
             </div>
 
             <flux:card class="overflow-hidden border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                 <div class="flex flex-col gap-4 border-b border-zinc-200/80 px-5 py-4 dark:border-zinc-700 xl:grid xl:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_12rem] xl:items-center">
-                    <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" clearable placeholder="Search commissions, professionals or branches" />
+                        <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" clearable placeholder="Buscar comisiones, profesionales o sucursales" />
                     <flux:select wire:model.live="branchFilter">
-                        <option value="">All branches</option>
+                        <option value="">Todas las sucursales</option>
                         @foreach ($this->branches as $branch)
                             <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                         @endforeach
                     </flux:select>
                     <flux:select wire:model.live="professionalFilter">
-                        <option value="">All professionals</option>
+                        <option value="">Todos los profesionales</option>
                         @foreach ($this->professionals as $professional)
                             <option value="{{ $professional->id }}">{{ $professional->fullName() }}</option>
                         @endforeach
                     </flux:select>
                     <flux:select wire:model.live="statusFilter">
-                        <option value="">All statuses</option>
+                        <option value="">Todos los estados</option>
                         @foreach ([\App\Services\Commissions\CommissionStatusCatalog::GENERATED, \App\Services\Commissions\CommissionStatusCatalog::PENDING_REVIEW, \App\Services\Commissions\CommissionStatusCatalog::APPROVED, \App\Services\Commissions\CommissionStatusCatalog::PAID, \App\Services\Commissions\CommissionStatusCatalog::REJECTED, \App\Services\Commissions\CommissionStatusCatalog::CANCELLED] as $status)
                             <option value="{{ $status }}">{{ \Illuminate\Support\Str::headline($status) }}</option>
                         @endforeach
                     </flux:select>
                     <flux:select wire:model.live="perPage">
-                        <option value="10">10 / page</option>
-                        <option value="25">25 / page</option>
-                        <option value="50">50 / page</option>
+                        <option value="10">10 / página</option>
+                        <option value="25">25 / página</option>
+                        <option value="50">50 / página</option>
                     </flux:select>
                 </div>
 
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 px-5 py-3 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                     <div class="flex flex-wrap items-center gap-2">
-                        <span>From</span>
+                        <span>Desde</span>
                         <flux:input wire:model.live="dateFrom" type="date" class="w-auto" />
-                        <span>to</span>
+                        <span>hasta</span>
                         <flux:input wire:model.live="dateTo" type="date" class="w-auto" />
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <flux:button size="sm" variant="ghost" icon="arrow-path" wire:click="clearFilters">Reset</flux:button>
+                        <flux:button size="sm" variant="ghost" icon="arrow-path" wire:click="clearFilters">Restablecer</flux:button>
                     </div>
                 </div>
 
@@ -146,12 +146,12 @@
                     <div class="overflow-x-auto">
                         <flux:table>
                             <flux:table.columns>
-                                <flux:table.column>Professional</flux:table.column>
-                                <flux:table.column>Source</flux:table.column>
-                                <flux:table.column>Revenue</flux:table.column>
-                                <flux:table.column>Commission</flux:table.column>
-                                <flux:table.column>Status</flux:table.column>
-                                <flux:table.column class="text-right">Options</flux:table.column>
+                                <flux:table.column>Profesional</flux:table.column>
+                                <flux:table.column>Origen</flux:table.column>
+                                <flux:table.column>Ingresos</flux:table.column>
+                                <flux:table.column>Comisión</flux:table.column>
+                                <flux:table.column>Estado</flux:table.column>
+                                <flux:table.column class="text-right">Opciones</flux:table.column>
                             </flux:table.columns>
                             <flux:table.rows>
                                 @forelse ($this->commissions as $commission)
@@ -159,7 +159,7 @@
                                         <flux:table.cell>
                                             <button type="button" class="text-left" wire:click="$set('selectedCommissionId', {{ $commission->id }})">
                                                 <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $commission->professional?->fullName() ?? 'Unknown' }}</div>
-                                                <div class="text-xs text-zinc-500">{{ $commission->branch?->name ?? 'No branch' }}</div>
+                                                <div class="text-xs text-zinc-500">{{ $commission->branch?->name ?? 'Sin sucursal' }}</div>
                                             </button>
                                         </flux:table.cell>
                                         <flux:table.cell>
@@ -175,9 +175,9 @@
                                         </flux:table.cell>
                                         <flux:table.cell>
                                             <div class="flex items-center justify-end gap-2">
-                                                <flux:button size="sm" variant="ghost" icon="eye" wire:click="$set('selectedCommissionId', {{ $commission->id }})">Detail</flux:button>
-                                                <flux:button size="sm" variant="ghost" icon="check-circle" wire:click="approveSelectedCommission">Approve</flux:button>
-                                                <flux:button size="sm" variant="ghost" icon="x-circle" wire:click="rejectSelectedCommission">Reject</flux:button>
+                                                <flux:button size="sm" variant="ghost" icon="eye" wire:click="$set('selectedCommissionId', {{ $commission->id }})">Detalle</flux:button>
+                                                <flux:button size="sm" variant="ghost" icon="check-circle" wire:click="approveSelectedCommission">Aprobar</flux:button>
+                                                <flux:button size="sm" variant="ghost" icon="x-circle" wire:click="rejectSelectedCommission">Rechazar</flux:button>
                                             </div>
                                         </flux:table.cell>
                                     </flux:table.row>
@@ -185,8 +185,8 @@
                                     <flux:table.row>
                                         <flux:table.cell colspan="6">
                                             <div class="py-12 text-center">
-                                                <flux:heading size="lg">No commissions found</flux:heading>
-                                                <flux:text class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Adjust filters or generate commissions from agenda and sales events.</flux:text>
+                                                <flux:heading size="lg">No se encontraron comisiones</flux:heading>
+                                                <flux:text class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Ajusta los filtros o genera comisiones desde la agenda y ventas.</flux:text>
                                             </div>
                                         </flux:table.cell>
                                     </flux:table.row>
@@ -206,8 +206,8 @@
                                 <flux:table.column>Scope</flux:table.column>
                                 <flux:table.column>Type</flux:table.column>
                                 <flux:table.column>Priority</flux:table.column>
-                                <flux:table.column>Status</flux:table.column>
-                                <flux:table.column class="text-right">Options</flux:table.column>
+                        <flux:table.column>Estado</flux:table.column>
+                        <flux:table.column class="text-right">Opciones</flux:table.column>
                             </flux:table.columns>
                             <flux:table.rows>
                                 @forelse ($this->rules as $rule)
@@ -224,7 +224,7 @@
                                         <flux:table.cell><flux:badge :color="$rule->is_active ? 'emerald' : 'zinc'">{{ $rule->is_active ? 'Active' : 'Inactive' }}</flux:badge></flux:table.cell>
                                         <flux:table.cell>
                                             <div class="flex items-center justify-end gap-2">
-                                                <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="openEditRuleModal({{ $rule->id }})">Edit</flux:button>
+                                                <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="openEditRuleModal({{ $rule->id }})">Editar</flux:button>
                                             </div>
                                         </flux:table.cell>
                                     </flux:table.row>
@@ -245,11 +245,11 @@
                     <div class="overflow-x-auto">
                         <flux:table>
                             <flux:table.columns>
-                                <flux:table.column>Settlement</flux:table.column>
-                                <flux:table.column>Period</flux:table.column>
+                                <flux:table.column>Liquidación</flux:table.column>
+                                <flux:table.column>Período</flux:table.column>
                                 <flux:table.column>Total</flux:table.column>
-                                <flux:table.column>Status</flux:table.column>
-                                <flux:table.column class="text-right">Options</flux:table.column>
+                                <flux:table.column>Estado</flux:table.column>
+                                <flux:table.column class="text-right">Opciones</flux:table.column>
                             </flux:table.columns>
                             <flux:table.rows>
                                 @forelse ($this->settlements as $settlement)
@@ -257,7 +257,7 @@
                                         <flux:table.cell>
                                             <button type="button" class="text-left" wire:click="$set('selectedSettlementId', {{ $settlement->id }})">
                                                 <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $settlement->settlement_number }}</div>
-                                                <div class="text-xs text-zinc-500">{{ $settlement->branch?->name ?? 'All branches' }}</div>
+                                                <div class="text-xs text-zinc-500">{{ $settlement->branch?->name ?? 'Todas las sucursales' }}</div>
                                             </button>
                                         </flux:table.cell>
                                         <flux:table.cell>{{ $settlement->starts_at?->format('d M Y') }} - {{ $settlement->ends_at?->format('d M Y') }}</flux:table.cell>
@@ -265,7 +265,7 @@
                                         <flux:table.cell><flux:badge :color="$settlement->status === 'approved' ? 'emerald' : ($settlement->status === 'paid' ? 'sky' : 'amber')">{{ \Illuminate\Support\Str::headline($settlement->status) }}</flux:badge></flux:table.cell>
                                         <flux:table.cell>
                                             <div class="flex items-center justify-end gap-2">
-                                                <flux:button size="sm" variant="ghost" icon="check-circle" wire:click="$set('selectedSettlementId', {{ $settlement->id }})">Open</flux:button>
+                                                <flux:button size="sm" variant="ghost" icon="check-circle" wire:click="$set('selectedSettlementId', {{ $settlement->id }})">Abrir</flux:button>
                                             </div>
                                         </flux:table.cell>
                                     </flux:table.row>
@@ -273,8 +273,8 @@
                                     <flux:table.row>
                                         <flux:table.cell colspan="5">
                                             <div class="py-12 text-center">
-                                                <flux:heading size="lg">No settlements yet</flux:heading>
-                                                <flux:text class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Generate daily, weekly or monthly batches from approved commissions.</flux:text>
+                                                <flux:heading size="lg">Aún no hay liquidaciones</flux:heading>
+                                                <flux:text class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Genera lotes diarios, semanales o mensuales a partir de comisiones aprobadas.</flux:text>
                                             </div>
                                         </flux:table.cell>
                                     </flux:table.row>
@@ -286,7 +286,7 @@
                     <div class="grid gap-4 xl:grid-cols-2">
                         <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                             <div class="space-y-4 p-4">
-                                <flux:heading size="sm">Monthly Commission Trends</flux:heading>
+                                <flux:heading size="sm">Tendencia mensual de comisiones</flux:heading>
                                 <div class="space-y-3">
                                     @foreach ($this->topPerformers as $performer)
                                         <div>
@@ -304,7 +304,7 @@
                         </flux:card>
                         <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                             <div class="space-y-4 p-4">
-                                <flux:heading size="sm">Best Selling Services</flux:heading>
+                                <flux:heading size="sm">Servicios más vendidos</flux:heading>
                                 <div class="space-y-3">
                                     @forelse ($this->bestSellingServices as $service)
                                         <div class="flex items-center justify-between rounded-2xl border border-zinc-200/70 p-3 dark:border-zinc-700">
@@ -312,7 +312,7 @@
                                             <span class="text-sm font-semibold text-emerald-400">S/ {{ number_format($service['total'], 2) }}</span>
                                         </div>
                                     @empty
-                                        <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">No service revenue yet.</flux:text>
+                                        <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Aún no hay ingresos por servicios.</flux:text>
                                     @endforelse
                                 </div>
                             </div>
@@ -361,7 +361,7 @@
                                 <flux:badge :color="$this->selectedCommission->status === 'approved' ? 'emerald' : ($this->selectedCommission->status === 'paid' ? 'sky' : 'amber')">
                                     {{ \Illuminate\Support\Str::headline($this->selectedCommission->status) }}
                                 </flux:badge>
-                                <flux:heading size="lg" class="mt-2">{{ $this->selectedCommission->professional?->fullName() ?? 'Unknown professional' }}</flux:heading>
+                                <flux:heading size="lg" class="mt-2">{{ $this->selectedCommission->professional?->fullName() ?? 'Profesional desconocido' }}</flux:heading>
                                 <flux:text class="text-sm text-zinc-500">{{ $this->selectedCommission->source_type }} · {{ $this->selectedCommission->source_reference }}</flux:text>
                             </div>
                             <flux:button variant="ghost" size="sm" icon="x-mark" wire:click="$set('selectedCommissionId', null)" />
@@ -370,11 +370,11 @@
                         <div class="grid gap-3 rounded-2xl border border-zinc-200/70 p-3 dark:border-zinc-700">
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <div class="text-xs uppercase tracking-wide text-zinc-400">Revenue</div>
+                                <div class="text-xs uppercase tracking-wide text-zinc-400">Ingresos</div>
                                     <div class="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">S/ {{ number_format((float) $this->selectedCommission->revenue_amount, 2) }}</div>
                                 </div>
                                 <div>
-                                    <div class="text-xs uppercase tracking-wide text-zinc-400">Commission</div>
+                                <div class="text-xs uppercase tracking-wide text-zinc-400">Comisión</div>
                                     <div class="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">S/ {{ number_format((float) $this->selectedCommission->commission_amount, 2) }}</div>
                                 </div>
                                 <div>
@@ -382,16 +382,16 @@
                                     <div class="mt-1 text-sm text-zinc-900 dark:text-zinc-100">{{ $this->selectedCommission->branch?->name ?? '—' }}</div>
                                 </div>
                                 <div>
-                                    <div class="text-xs uppercase tracking-wide text-zinc-400">Generated</div>
+                                    <div class="text-xs uppercase tracking-wide text-zinc-400">Generado</div>
                                     <div class="mt-1 text-sm text-zinc-900 dark:text-zinc-100">{{ $this->selectedCommission->generated_at?->format('d M Y H:i') ?? '—' }}</div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-2">
-                            <flux:button variant="primary" icon="check-circle" wire:click="approveSelectedCommission">Approve</flux:button>
-                            <flux:button variant="ghost" icon="x-circle" wire:click="rejectSelectedCommission">Reject</flux:button>
-                            <flux:button variant="ghost" icon="arrow-path" wire:click="reverseSelectedCommission">Reverse</flux:button>
+                            <flux:button variant="primary" icon="check-circle" wire:click="approveSelectedCommission">Aprobar</flux:button>
+                            <flux:button variant="ghost" icon="x-circle" wire:click="rejectSelectedCommission">Rechazar</flux:button>
+                            <flux:button variant="ghost" icon="arrow-path" wire:click="reverseSelectedCommission">Revertir</flux:button>
                         </div>
                     </div>
                 </flux:card>
@@ -419,8 +419,8 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-2">
-                            <flux:button variant="primary" icon="check-circle" wire:click="approveSettlement">Approve</flux:button>
-                            <flux:button variant="ghost" icon="banknotes" wire:click="markSettlementPaid">Mark Paid</flux:button>
+                            <flux:button variant="primary" icon="check-circle" wire:click="approveSettlement">Aprobar</flux:button>
+                            <flux:button variant="ghost" icon="banknotes" wire:click="markSettlementPaid">Marcar como pagada</flux:button>
                         </div>
                     </div>
                 </flux:card>
@@ -431,7 +431,7 @@
                         <flux:text class="text-sm text-zinc-500">{{ $this->selectedRule->notes ?? 'No notes available.' }}</flux:text>
                         <div class="grid grid-cols-2 gap-3 rounded-2xl border border-zinc-200/70 p-3 dark:border-zinc-700">
                             <div>
-                                <div class="text-xs uppercase tracking-wide text-zinc-400">Source</div>
+                                <div class="text-xs uppercase tracking-wide text-zinc-400">Origen</div>
                                 <div class="mt-1 text-sm text-zinc-900 dark:text-zinc-100">{{ $this->selectedRule->source_type ?? 'All' }}</div>
                             </div>
                             <div>
@@ -444,9 +444,9 @@
             @else
                 <flux:card class="border border-zinc-200/80 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
                     <div class="space-y-3 p-4">
-                        <flux:heading size="sm">Detail Drawer</flux:heading>
+                            <flux:heading size="sm">Panel de detalle</flux:heading>
                         <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
-                            Select a commission, rule or settlement to inspect professional information, revenue details, commission history, notes and audit timeline.
+                            Selecciona una comisión, regla o liquidación para revisar información del profesional, detalles de ingresos, historial de comisiones, notas y línea de auditoría.
                         </flux:text>
                     </div>
                 </flux:card>
@@ -457,20 +457,20 @@
     <flux:modal name="commission-rule" wire:close="closeRuleModal" wire:cancel="closeRuleModal" class="w-full max-w-5xl">
         <form wire:submit="saveRule" class="space-y-6">
             <div>
-                <flux:heading size="lg">{{ $ruleForm->commissionRuleId ? 'Edit Rule' : 'New Rule' }}</flux:heading>
+                <flux:heading size="lg">{{ $ruleForm->commissionRuleId ? 'Editar regla' : 'Nueva regla' }}</flux:heading>
                 <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Define rule priority, source scope and formula behavior.</flux:text>
             </div>
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <flux:input wire:model="ruleForm.name" label="Name *" type="text" />
                 <flux:input wire:model="ruleForm.slug" label="Slug" type="text" />
-                <flux:select wire:model="ruleForm.commission_type_id" label="Commission Type *">
+                <flux:select wire:model="ruleForm.commission_type_id" label="Tipo de comisión *">
                     <option value="">Select</option>
                     @foreach (\App\Models\CommissionType::query()->orderBy('name')->get() as $type)
                         <option value="{{ $type->id }}">{{ $type->name }}</option>
                     @endforeach
                 </flux:select>
-                <flux:select wire:model="ruleForm.source_type" label="Source Type *">
+                <flux:select wire:model="ruleForm.source_type" label="Tipo de origen *">
                     @foreach ([
                         \App\Services\Commissions\CommissionSourceCatalog::APPOINTMENT,
                         \App\Services\Commissions\CommissionSourceCatalog::SERVICE_SALE,
@@ -495,7 +495,7 @@
                 </flux:select>
                 <flux:input wire:model="ruleForm.percentage" label="Percentage" type="number" min="0" max="100" step="0.01" />
                 <flux:input wire:model="ruleForm.fixed_amount" label="Fixed Amount" type="number" min="0" step="0.01" />
-                <flux:input wire:model="ruleForm.min_revenue" label="Min Revenue" type="number" min="0" step="0.01" />
+                <flux:input wire:model="ruleForm.min_revenue" label="Ingreso mínimo" type="number" min="0" step="0.01" />
                 <flux:input wire:model="ruleForm.min_quantity" label="Min Quantity" type="number" min="1" />
                 <flux:switch wire:model.live="ruleForm.is_active" label="Active" align="left" />
                 <flux:input wire:model="ruleForm.branch_id" label="Branch ID" type="number" min="1" />
@@ -507,8 +507,8 @@
             </div>
 
             <div class="flex justify-end gap-3">
-                <flux:button variant="ghost" type="button" wire:click="closeRuleModal">Cancel</flux:button>
-                <flux:button variant="primary" type="submit">Save Rule</flux:button>
+                <flux:button variant="ghost" type="button" wire:click="closeRuleModal">Cancelar</flux:button>
+                <flux:button variant="primary" type="submit">Guardar regla</flux:button>
             </div>
         </form>
     </flux:modal>
@@ -516,8 +516,8 @@
     <flux:modal name="commission-settlement" wire:close="closeSettlementModal" wire:cancel="closeSettlementModal" class="w-full max-w-4xl">
         <form wire:submit="saveSettlement" class="space-y-6">
             <div>
-                <flux:heading size="lg">Generate Settlement</flux:heading>
-                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Create daily, weekly, biweekly, monthly or custom batches.</flux:text>
+                <flux:heading size="lg">Generar liquidación</flux:heading>
+                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Crea lotes diarios, semanales, quincenales, mensuales o personalizados.</flux:text>
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">
@@ -526,7 +526,7 @@
                     <option value="weekly">Weekly</option>
                     <option value="biweekly">Biweekly</option>
                     <option value="monthly">Monthly</option>
-                    <option value="custom">Custom Date Range</option>
+                    <option value="custom">Rango de fechas personalizado</option>
                 </flux:select>
                 <flux:input wire:model="settlementForm.branch_id" label="Branch ID" type="number" min="1" />
                 <flux:input wire:model="settlementForm.starts_at" label="Starts At" type="date" />
@@ -537,8 +537,8 @@
             </div>
 
             <div class="flex justify-end gap-3">
-                <flux:button variant="ghost" type="button" wire:click="closeSettlementModal">Cancel</flux:button>
-                <flux:button variant="primary" type="submit">Generate</flux:button>
+                <flux:button variant="ghost" type="button" wire:click="closeSettlementModal">Cancelar</flux:button>
+                <flux:button variant="primary" type="submit">Generar</flux:button>
             </div>
         </form>
     </flux:modal>

@@ -24,9 +24,17 @@
             <div class="section">
                 <strong>Detalle de la venta</strong>
                 @foreach ($sale->items as $item)
-                    <div class="row">
-                        <span>{{ $item->item_name }} x{{ rtrim(rtrim((string) $item->quantity, '0'), '.') }}</span>
-                        <span>S/{{ number_format((float) $item->subtotal, 2) }}</span>
+                    <div style="margin-top:10px;">
+                        <div class="row">
+                            <span>{{ $item->item_name }} x{{ rtrim(rtrim((string) $item->quantity, '0'), '.') }}</span>
+                            <span>S/{{ number_format((float) $item->subtotal, 2) }}</span>
+                        </div>
+                        @if ($item->item_detail)
+                            <div class="muted">{{ $item->item_detail }}</div>
+                        @endif
+                        @if ($item->item_type === 'service' && data_get($item->meta, 'professional_name'))
+                            <div class="muted">Profesional: {{ data_get($item->meta, 'professional_name') }}</div>
+                        @endif
                     </div>
                 @endforeach
             </div>

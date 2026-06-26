@@ -70,6 +70,20 @@ final class CreateSaleAction
                     $service = Service::query()->findOrFail((int) $itemData['service_id']);
                     $serviceId = $service->id;
                     $itemName = $service->name;
+
+                    $professionalId = data_get($itemData, 'meta.professional_id');
+
+                    if ($professionalId !== null) {
+                        $professional = $service->professionalProfiles()->whereKey((int) $professionalId)->first();
+
+                        if ($professional === null) {
+                            throw ValidationException::withMessages([
+                                'items' => 'El profesional seleccionado no pertenece al servicio.',
+                            ]);
+                        }
+
+                        $itemData['meta']['professional_name'] = $professional->displayName();
+                    }
                 }
 
                 if ($itemType === 'product' && isset($itemData['product_id'])) {

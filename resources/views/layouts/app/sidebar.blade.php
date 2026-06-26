@@ -11,7 +11,7 @@
             <div class="flex h-full flex-col">
                 <div class="border-b border-zinc-200/80 px-4 py-4 dark:border-zinc-800">
                     <div class="flex items-center justify-between gap-3">
-                        <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3">
+                        <a href="{{ route('sales.index') }}" wire:navigate class="flex items-center gap-3">
                             <img
                                 src="{{ asset('images/trendbelleza-favicon.png') }}"
                                 alt="Trend Belleza"
@@ -19,7 +19,7 @@
                             />
                             <div class="grid leading-tight">
                                 <span class="text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">Trend Belleza</span>
-                                <span class="text-xs text-zinc-500 dark:text-zinc-400">Agencia & CRM Suite</span>
+                                <span class="text-xs text-zinc-500 dark:text-zinc-400">Agencia y CRM</span>
                             </div>
                         </a>
 
@@ -29,7 +29,7 @@
                     <div class="mt-4">
                         <flux:input
                             type="search"
-                            placeholder="Search"
+                            placeholder="{{ __('Search') }}"
                             icon="magnifying-glass"
                             class="h-11 rounded-2xl bg-zinc-50 dark:bg-zinc-900"
                         />
@@ -39,24 +39,24 @@
                 <div class="flex-1 overflow-y-auto px-3 py-4">
                     <flux:sidebar.nav>
                         <flux:sidebar.group :heading="__('Platform')" class="grid gap-1">
-                            <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
+                            {{-- <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                                 {{ __('Dashboard') }}
-                            </flux:sidebar.item>
+                            </flux:sidebar.item> --}}
 
                             @if ($isTenantContext)
                                 <flux:sidebar.item icon="shopping-bag" :href="route('sales.index')" :current="request()->routeIs('sales.*')" wire:navigate>
                                     {{ __('Ventas') }}
                                 </flux:sidebar.item>
-                                <flux:sidebar.item icon="calendar-days" :href="route('agenda.index')" :current="request()->routeIs('agenda.*')" wire:navigate>
+                                {{-- <flux:sidebar.item icon="calendar-days" :href="route('agenda.index')" :current="request()->routeIs('agenda.*')" wire:navigate>
                                     {{ __('Calendar') }}
-                                </flux:sidebar.item>
+                                </flux:sidebar.item> --}}
                                 <flux:sidebar.item icon="users" :href="route('clientes.index')" :current="request()->routeIs('clientes.*')" wire:navigate>
                                     {{ __('Clients') }}
                                 </flux:sidebar.item>
                             @endif
                         </flux:sidebar.group>
 
-                        <flux:sidebar.group heading="Administration" class="mt-6 grid gap-1">
+                        <flux:sidebar.group :heading="__('Administration')" class="mt-6 grid gap-1">
                             @if ($isTenantContext)
                                 <flux:sidebar.item icon="building-storefront" :href="route('locales.index')" :current="request()->routeIs('locales.*')" wire:navigate>
                                     {{ __('Branches') }}
@@ -72,7 +72,7 @@
                                 </flux:sidebar.item>
                                 <div class="mt-4 space-y-1">
                                     <div class="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                                        Productos
+                                        {{ __('Products') }}
                                     </div>
 
                                     <flux:sidebar.item icon="cube" :href="route('products.index')" :current="request()->routeIs('products.index')" wire:navigate>
@@ -87,7 +87,7 @@
                                 </div>
                                 <div class="mt-4 space-y-1">
                                     <div class="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                                        Configuración
+                                        {{ __('Settings') }}
                                     </div>
 
                                     <flux:sidebar.item icon="shield-check" :href="route('administracion.usuarios.index')" :current="request()->routeIs('administracion.usuarios.*')" wire:navigate>
@@ -109,9 +109,9 @@
                 <div class="border-t border-zinc-200/80 p-3 dark:border-zinc-800">
                     <flux:sidebar.nav>
                         {{--
-                        <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                            {{ __('Repository') }}
-                        </flux:sidebar.item>
+                    <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
+                        {{ __('Repository') }}
+                    </flux:sidebar.item>
 
                         <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
                             {{ __('Documentation') }}

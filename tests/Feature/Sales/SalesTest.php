@@ -99,8 +99,7 @@ test('puede registrar una venta mixta desde livewire y descontar stock del produ
         ->call('addProductToCart', $product->id)
         ->call('addServiceToCart', $service->id)
         ->call('proceedToPayment')
-        ->call('selectPaymentMethod', SalePaymentMethodCatalog::BANK_TRANSFER)
-        ->call('finalizeSale')
+        ->call('completeSale', SalePaymentMethodCatalog::BANK_TRANSFER)
         ->assertHasNoErrors()
         ->assertSet('drawerStep', 'success');
 
@@ -125,6 +124,19 @@ test('puede registrar una venta mixta desde livewire y descontar stock del produ
         'branch_id' => $branch->id,
         'current_stock' => 4,
     ]);
+});
+
+test('continuar sin cliente abre la busqueda de clientes', function () {
+    actingAs(salesAdmin());
+
+    ['branch' => $branch, 'service' => $service] = createSalesFixtures();
+
+    Livewire::test(SalesIndex::class)
+        ->call('openCreateSale')
+        ->set('saleForm.branch_id', $branch->id)
+        ->call('addServiceToCart', $service->id)
+        ->call('proceedToPayment')
+        ->assertSet('drawerStep', 'client-search');
 });
 
 test('eliminar una venta repone el stock del producto', function () {

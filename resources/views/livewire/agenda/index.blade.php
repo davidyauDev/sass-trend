@@ -8,7 +8,7 @@
     <div class="space-y-6">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div class="min-w-0">
-                <flux:badge color="sky" size="sm" inset="left">Agenda Enterprise</flux:badge>
+                <flux:badge color="sky" size="sm" inset="left">Agenda empresarial</flux:badge>
                 <flux:heading size="xl" level="1" class="mt-3">Agenda de citas</flux:heading>
                 <flux:subheading size="lg" class="mt-2 max-w-4xl">
                     Gestiona reservas multi-sede, profesionales, recursos, bloqueos y estados con una vista inspirada en AgendaPro, Google Calendar y Calendly.
@@ -17,42 +17,42 @@
 
             <div class="flex flex-wrap items-center gap-2">
                 <flux:button variant="ghost" icon="arrow-path" wire:click="$refresh">
-                    Refresh
+                    Actualizar
                 </flux:button>
 
                 <flux:button variant="ghost" icon="arrows-pointing-out" wire:click="toggleFullscreen">
-                    Fullscreen
+                    Pantalla completa
                 </flux:button>
 
                 <flux:button variant="primary" icon="plus" wire:click="openCreateModal">
-                    New Appointment
+                    Nueva cita
                 </flux:button>
             </div>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Appointments today</flux:text>
+                <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Citas de hoy</flux:text>
                 <flux:heading size="xl" class="mt-2">{{ $this->dashboardStats['appointments_today'] }}</flux:heading>
             </flux:card>
 
             <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Confirmed</flux:text>
+                <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Confirmadas</flux:text>
                 <flux:heading size="xl" class="mt-2">{{ $this->dashboardStats['confirmed_appointments'] }}</flux:heading>
             </flux:card>
 
             <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Cancelled</flux:text>
+                <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Canceladas</flux:text>
                 <flux:heading size="xl" class="mt-2">{{ $this->dashboardStats['cancelled_appointments'] }}</flux:heading>
             </flux:card>
 
             <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Revenue today</flux:text>
+                <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Ingresos de hoy</flux:text>
                 <flux:heading size="xl" class="mt-2">S/ {{ number_format($this->dashboardStats['revenue_today'], 2) }}</flux:heading>
             </flux:card>
 
             <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Occupancy</flux:text>
+                <flux:text class="text-xs uppercase tracking-wide text-zinc-400">Ocupación</flux:text>
                 <div class="mt-2 flex items-end gap-3">
                     <flux:heading size="xl">{{ $this->dashboardStats['occupancy_percentage'] }}%</flux:heading>
                 </div>
@@ -68,8 +68,8 @@
                     <div class="space-y-4 p-4">
                         <div class="flex items-center justify-between">
                             <div>
-                                <flux:heading size="sm">Filters</flux:heading>
-                                <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">Focus on branch, professional or resource.</flux:text>
+                                <flux:heading size="sm">Filtros</flux:heading>
+                                <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">Filtra por sucursal, profesional o recurso.</flux:text>
                             </div>
 
                             <flux:button size="sm" variant="ghost" icon="arrow-path" wire:click="clearFilters">
@@ -79,9 +79,9 @@
 
                         <div class="space-y-3">
                             <div>
-                                <flux:label>Branch</flux:label>
+                                <flux:label>Sucursal</flux:label>
                                 <flux:select wire:model.live="branchFilterId" class="mt-2">
-                                    <option value="">All branches</option>
+                                    <option value="">Todas las sucursales</option>
                                     @foreach ($this->branches as $branch)
                                         <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                                     @endforeach
@@ -89,9 +89,9 @@
                             </div>
 
                             <div>
-                                <flux:label>Professional</flux:label>
+                                <flux:label>Profesional</flux:label>
                                 <flux:select wire:model.live="professionalFilterId" class="mt-2">
-                                    <option value="">All professionals</option>
+                                    <option value="">Todos los profesionales</option>
                                     @foreach ($this->professionalsCatalog as $professional)
                                         <option value="{{ $professional->id }}">{{ $professional->fullName() }}</option>
                                     @endforeach
@@ -99,9 +99,9 @@
                             </div>
 
                             <div>
-                                <flux:label>Resource</flux:label>
+                                <flux:label>Recurso</flux:label>
                                 <flux:select wire:model.live="resourceFilterId" class="mt-2">
-                                    <option value="">All resources</option>
+                                    <option value="">Todos los recursos</option>
                                     @foreach ($this->resourcesCatalog as $resource)
                                         <option value="{{ $resource->id }}">{{ $resource->name }} ({{ $resource->type }})</option>
                                     @endforeach
@@ -110,8 +110,8 @@
 
                             <flux:switch
                                 wire:model.live="onlyAvailable"
-                                label="Only available"
-                                description="Hide terminal appointments and highlight open capacity."
+                                label="Solo disponibles"
+                                description="Oculta las citas finalizadas y resalta la capacidad disponible."
                                 align="left"
                             />
                         </div>
@@ -123,7 +123,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <flux:heading size="sm">{{ \Carbon\CarbonImmutable::parse($this->selectedDate)->translatedFormat('F Y') }}</flux:heading>
-                                <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">Mini calendar navigator</flux:text>
+                                <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">Navegador de calendario</flux:text>
                             </div>
 
                             <div class="flex gap-1">
@@ -169,15 +169,15 @@
                 <flux:card class="border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                     <div class="space-y-4 p-4">
                         <div>
-                            <flux:heading size="sm">Search available slots</flux:heading>
-                            <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">Find the next opening by day, branch and resource.</flux:text>
+                            <flux:heading size="sm">Buscar horarios disponibles</flux:heading>
+                            <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">Encuentra el siguiente espacio libre por día, sucursal y recurso.</flux:text>
                         </div>
 
                         <div class="grid gap-3">
-                            <flux:input wire:model="slotSearchDate" label="Date" type="date" />
-                            <flux:input wire:model="slotSearchDuration" label="Duration (minutes)" type="number" min="15" step="15" />
+                            <flux:input wire:model="slotSearchDate" label="Fecha" type="date" />
+                            <flux:input wire:model="slotSearchDuration" label="Duración (minutos)" type="number" min="15" step="15" />
                             <flux:button variant="primary" icon="magnifying-glass" wire:click="searchAvailableSlots">
-                                Search available slots
+                                Buscar horarios disponibles
                             </flux:button>
                         </div>
 
@@ -209,13 +209,13 @@
                     <div class="flex flex-col gap-4 border-b border-zinc-200/80 p-4 dark:border-zinc-700 lg:flex-row lg:items-center lg:justify-between">
                         <div class="flex flex-wrap items-center gap-2">
                             <flux:button variant="ghost" icon="chevron-left" wire:click="previous">
-                                Previous
+                                Anterior
                             </flux:button>
                             <flux:button variant="ghost" icon="calendar-days" wire:click="today">
-                                Today
+                                Hoy
                             </flux:button>
                             <flux:button variant="ghost" icon="chevron-right" wire:click="next">
-                                Next
+                                Siguiente
                             </flux:button>
                         </div>
 
@@ -241,10 +241,10 @@
 
                         <div class="flex items-center gap-2">
                             <flux:button variant="ghost" icon="arrow-path" wire:click="$refresh">
-                                Refresh
+                                Actualizar
                             </flux:button>
                             <flux:button variant="primary" icon="plus" wire:click="openCreateModal">
-                                New Appointment
+                                Nueva cita
                             </flux:button>
                         </div>
                     </div>
@@ -253,14 +253,14 @@
                         <div class="overflow-x-auto">
                             <flux:table>
                                 <flux:table.columns>
-                                    <flux:table.column>Date</flux:table.column>
-                                    <flux:table.column>Client</flux:table.column>
-                                    <flux:table.column>Service</flux:table.column>
-                                    <flux:table.column>Branch</flux:table.column>
-                                    <flux:table.column>Resource</flux:table.column>
-                                    <flux:table.column>Status</flux:table.column>
-                                    <flux:table.column>Amount</flux:table.column>
-                                    <flux:table.column class="text-right">Actions</flux:table.column>
+                                    <flux:table.column>Fecha</flux:table.column>
+                                    <flux:table.column>Cliente</flux:table.column>
+                                    <flux:table.column>Servicio</flux:table.column>
+                                    <flux:table.column>Sucursal</flux:table.column>
+                                    <flux:table.column>Recurso</flux:table.column>
+                                    <flux:table.column>Estado</flux:table.column>
+                                    <flux:table.column>Importe</flux:table.column>
+                                    <flux:table.column class="text-right">Acciones</flux:table.column>
                                 </flux:table.columns>
 
                                 <flux:table.rows>
@@ -286,8 +286,8 @@
                                             <flux:table.cell>S/ {{ number_format((float) $appointment->price, 2) }}</flux:table.cell>
                                             <flux:table.cell>
                                                 <div class="flex items-center justify-end gap-2">
-                                                    <flux:button size="sm" variant="ghost" icon="eye" wire:click="openDrawer({{ $appointment->id }})">View</flux:button>
-                                                    <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="openEditModal({{ $appointment->id }})">Edit</flux:button>
+                                                    <flux:button size="sm" variant="ghost" icon="eye" wire:click="openDrawer({{ $appointment->id }})">Ver</flux:button>
+                                                    <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="openEditModal({{ $appointment->id }})">Editar</flux:button>
                                                 </div>
                                             </flux:table.cell>
                                         </flux:table.row>
@@ -295,9 +295,9 @@
                                         <flux:table.row>
                                             <flux:table.cell colspan="8">
                                                 <div class="py-12 text-center">
-                                                    <flux:heading size="lg">No appointments found</flux:heading>
+                                                    <flux:heading size="lg">No se encontraron citas</flux:heading>
                                                     <flux:text class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                                                        Try changing the filters or create a new appointment to start filling the agenda.
+                                                        Prueba cambiando los filtros o crea una nueva cita para empezar a llenar la agenda.
                                                     </flux:text>
                                                 </div>
                                             </flux:table.cell>
@@ -308,7 +308,7 @@
                         </div>
                     @elseif ($this->viewMode === 'month')
                         <div class="grid grid-cols-7 gap-px overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-200/80 dark:border-zinc-700 dark:bg-zinc-700">
-                            @foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $weekday)
+                            @foreach (['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] as $weekday)
                                 <div class="bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:bg-zinc-900">{{ $weekday }}</div>
                             @endforeach
 
@@ -325,7 +325,7 @@
                                     <div class="flex items-center justify-between">
                                         <span @class(['text-sm font-semibold', 'text-sky-400' => $cell['is_today'], 'text-zinc-900 dark:text-zinc-100' => ! $cell['is_today']])>{{ $cell['day'] }}</span>
                                         @if (count($cell['blocks']) > 0)
-                                            <flux:badge color="amber" size="sm">{{ count($cell['blocks']) }} blocks</flux:badge>
+                                            <flux:badge color="amber" size="sm">{{ count($cell['blocks']) }} bloqueos</flux:badge>
                                         @endif
                                     </div>
 
@@ -349,7 +349,7 @@
                                         @endforeach
 
                                         @if (count($cell['appointments']) > 3)
-                                            <div class="text-xs text-zinc-500">+{{ count($cell['appointments']) - 3 }} more</div>
+                                            <div class="text-xs text-zinc-500">+{{ count($cell['appointments']) - 3 }} más</div>
                                         @endif
                                     </div>
                                 </button>
@@ -367,12 +367,12 @@
                                             <div>
                                                 <flux:heading size="sm">{{ $day['label'] }}</flux:heading>
                                                 <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">
-                                                    {{ count($day['appointments']) }} appointments
+                                                    {{ count($day['appointments']) }} citas
                                                 </flux:text>
                                             </div>
 
                                             @if ($day['is_today'])
-                                                <flux:badge color="sky">Today</flux:badge>
+                                                <flux:badge color="sky">Hoy</flux:badge>
                                             @endif
                                         </div>
                                     </div>
@@ -424,8 +424,8 @@
                                                     </flux:select>
 
                                                     <div class="flex flex-wrap gap-2">
-                                                        <flux:button size="sm" variant="ghost" icon="eye" wire:click="openDrawer({{ $appointment->id }})">Open</flux:button>
-                                                        <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="openEditModal({{ $appointment->id }})">Edit</flux:button>
+                                                        <flux:button size="sm" variant="ghost" icon="eye" wire:click="openDrawer({{ $appointment->id }})">Abrir</flux:button>
+                                                        <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="openEditModal({{ $appointment->id }})">Editar</flux:button>
                                                     </div>
                                                 </div>
                                             </article>
@@ -495,7 +495,7 @@
                             <div class="space-y-3">
                                 <div class="flex items-center justify-between">
                                     <flux:heading size="sm">Quick actions</flux:heading>
-                                    <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="openEditModal({{ $this->selectedAppointment->id }})">Edit</flux:button>
+                                    <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="openEditModal({{ $this->selectedAppointment->id }})">Editar</flux:button>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-2">
@@ -513,13 +513,13 @@
                                     </flux:button>
                                 </div>
 
-                                <flux:input wire:model="statusReason" label="Cancellation reason" type="text" />
+                                <flux:input wire:model="statusReason" label="Motivo de cancelación" type="text" />
                             </div>
 
                             <div class="space-y-3">
                                 <flux:heading size="sm">Notes</flux:heading>
                                 <flux:textarea wire:model="noteDraft" rows="3" placeholder="Add an internal note..." />
-                                <flux:button variant="primary" icon="plus" wire:click="addNote">Add note</flux:button>
+                                <flux:button variant="primary" icon="plus" wire:click="addNote">Agregar nota</flux:button>
 
                                 <div class="space-y-2">
                                     @forelse ($this->selectedAppointment->notes as $note)
@@ -537,7 +537,7 @@
                             </div>
 
                             <div class="space-y-3">
-                                <flux:heading size="sm">Payment history</flux:heading>
+                                <flux:heading size="sm">Historial de pagos</flux:heading>
                                 <div class="space-y-2">
                                     @forelse ($this->selectedAppointment->payments as $payment)
                                         <div class="rounded-2xl border border-zinc-200/70 p-3 dark:border-zinc-700">
@@ -589,7 +589,7 @@
     >
         <div class="space-y-6">
             <div>
-                <flux:heading size="lg">{{ $form->appointmentId ? 'Edit Appointment' : 'New Appointment' }}</flux:heading>
+                <flux:heading size="lg">{{ $form->appointmentId ? 'Editar cita' : 'Nueva cita' }}</flux:heading>
                 <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                     Create, update or reschedule an appointment with branch, resource and professional constraints.
                 </flux:text>
@@ -632,7 +632,7 @@
                         @endforeach
                     </flux:select>
 
-                    <flux:select wire:model="form.status_slug" label="Status *">
+                    <flux:select wire:model="form.status_slug" label="Estado *">
                         @foreach ($this->appointmentStatuses as $status)
                             <option value="{{ $status->slug }}">{{ $status->name }}</option>
                         @endforeach
@@ -651,13 +651,13 @@
                     </div>
 
                     <div class="md:col-span-2 xl:col-span-3">
-                        <flux:input wire:model="form.cancellation_reason" label="Cancellation reason" type="text" />
+                        <flux:input wire:model="form.cancellation_reason" label="Motivo de cancelación" type="text" />
                     </div>
                 </div>
 
                 <div class="flex flex-col-reverse gap-3 border-t border-zinc-200/80 pt-4 dark:border-zinc-700 sm:flex-row sm:items-center sm:justify-end">
                     <flux:modal.close>
-                        <flux:button variant="ghost" type="button" wire:click="closeModal">Cancel</flux:button>
+                        <flux:button variant="ghost" type="button" wire:click="closeModal">Cancelar</flux:button>
                     </flux:modal.close>
 
                     <flux:button variant="primary" type="submit">

@@ -7,6 +7,7 @@ use App\Actions\Sales\CreateSaleAction;
 use App\Actions\Sales\DeleteSaleAction;
 use App\Models\Branch;
 use App\Models\Client;
+use App\Models\Professional;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -62,6 +63,10 @@ class Index extends Component
 
     /** @var 'recent'|'services'|'products'|'giftcards' */
     public string $itemPickerTab = 'recent';
+
+    public ?int $serviceProfessionalPickerServiceId = null;
+
+    public ?int $serviceProfessionalPickerProfessionalId = null;
 
     public string $itemSearch = '';
 
@@ -149,6 +154,8 @@ class Index extends Component
         $this->resetClientCreateForm();
         $this->drawerStep = 'cart';
         $this->itemPickerTab = 'recent';
+        $this->serviceProfessionalPickerServiceId = null;
+        $this->serviceProfessionalPickerProfessionalId = null;
         $this->itemSearch = '';
         $this->clientSearch = '';
         $this->selectedSaleId = null;
@@ -163,6 +170,8 @@ class Index extends Component
         $this->isDrawerOpen = false;
         $this->drawerStep = 'cart';
         $this->itemPickerTab = 'recent';
+        $this->serviceProfessionalPickerServiceId = null;
+        $this->serviceProfessionalPickerProfessionalId = null;
         $this->itemSearch = '';
         $this->saleSummaryMode = 'success';
         $this->resetSaleForm();
@@ -191,6 +200,17 @@ class Index extends Component
     public function backToCart(): void
     {
         $this->drawerStep = 'cart';
+        $this->serviceProfessionalPickerServiceId = null;
+        $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetValidation();
+        $this->resetErrorBag();
+    }
+
+    public function backToItemPicker(): void
+    {
+        $this->drawerStep = 'item-picker';
+        $this->serviceProfessionalPickerServiceId = null;
+        $this->serviceProfessionalPickerProfessionalId = null;
         $this->resetValidation();
         $this->resetErrorBag();
     }
@@ -200,6 +220,8 @@ class Index extends Component
         $this->drawerStep = 'item-picker';
         $this->itemPickerTab = in_array($tab, ['recent', 'services', 'products', 'giftcards'], true) ? $tab : 'recent';
         $this->itemSearch = '';
+        $this->serviceProfessionalPickerServiceId = null;
+        $this->serviceProfessionalPickerProfessionalId = null;
     }
 
     public function setItemPickerTab(string $tab): void
@@ -211,28 +233,94 @@ class Index extends Component
         $this->itemPickerTab = $tab;
     }
 
-    public function addServiceToCart(int $serviceId): void
+    public function openServiceProfessionalPicker(int $serviceId): void
     {
-        $service = Service::query()->findOrFail($serviceId);
-        $key = 'service:'.$service->id;
+        $service = Service::query()
+            ->with(['professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name')])
+            ->findOrFail($serviceId);
+
+        if ($service->professionalProfiles->isEmpty()) {
+            Flux::toast(variant: 'danger', text: 'Este servicio aún no tiene profesionales asignados.');
+
+            return;
+        }
+
+        $this->serviceProfessionalPickerServiceId = $service->id;
+        $this->serviceProfessionalPickerProfessionalId = $service->professionalProfiles->count() === 1
+            ? $service->professionalProfiles->first()?->id
+            : null;
+        $this->drawerStep = 'service-professional';
+        $this->resetValidation();
+        $this->resetErrorBag();
+    }
+
+    public function selectServiceProfessional(int $professionalId): void
+    {
+        if ($this->serviceProfessionalPickerServiceId === null) {
+            return;
+        }
+
+        $service = Service::query()
+            ->with(['professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name')])
+            ->findOrFail($this->serviceProfessionalPickerServiceId);
+
+        $professional = $service->professionalProfiles->firstWhere('id', $professionalId);
+
+        if (! $professional instanceof Professional) {
+            return;
+        }
+
+        $this->serviceProfessionalPickerProfessionalId = $professional->id;
+        $this->addServiceToCart($service, $professional);
+        $this->drawerStep = 'cart';
+        $this->serviceProfessionalPickerServiceId = null;
+        $this->serviceProfessionalPickerProfessionalId = null;
+    }
+
+    public function addServiceToCart(Service|int $service, Professional|int|null $professional = null): void
+    {
+        $service = $service instanceof Service
+            ? $service
+            : Service::query()
+                ->with(['professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name')])
+                ->findOrFail($service);
+
+        $professionalModel = null;
+
+        if ($professional instanceof Professional) {
+            $professionalModel = $professional;
+        } elseif (is_int($professional)) {
+            $professionalModel = $service->professionalProfiles->firstWhere('id', $professional);
+        } elseif ($service->professionalProfiles->count() === 1) {
+            $professionalModel = $service->professionalProfiles->first();
+        }
+
+        $key = $professionalModel instanceof Professional
+            ? 'service:'.$service->id.':professional:'.$professionalModel->id
+            : 'service:'.$service->id;
 
         if (isset($this->saleForm['cart'][$key])) {
             $this->saleForm['cart'][$key]['quantity'] = (string) ((float) $this->saleForm['cart'][$key]['quantity'] + 1);
             $this->saleForm['cart'][$key]['subtotal'] = round((float) $this->saleForm['cart'][$key]['quantity'] * (float) $this->saleForm['cart'][$key]['unit_price'], 2);
-        } else {
-            $this->saleForm['cart'][$key] = [
-                'key' => $key,
-                'item_type' => 'service',
-                'service_id' => $service->id,
-                'product_id' => null,
-                'item_name' => $service->name,
-                'item_detail' => $service->duration_minutes.' min',
-                'quantity' => '1',
-                'unit_price' => (string) $service->price,
-                'subtotal' => (float) $service->price,
-                'meta' => null,
-            ];
+
+            return;
         }
+
+        $this->saleForm['cart'][$key] = [
+            'key' => $key,
+            'item_type' => 'service',
+            'service_id' => $service->id,
+            'product_id' => null,
+            'item_name' => $service->name,
+            'item_detail' => $service->duration_minutes.' min',
+            'quantity' => '1',
+            'unit_price' => (string) $service->price,
+            'subtotal' => (float) $service->price,
+            'meta' => [
+                'professional_id' => $professionalModel?->id,
+                'professional_name' => $professionalModel?->displayName(),
+            ],
+        ];
     }
 
     public function addProductToCart(int $productId): void
@@ -240,11 +328,10 @@ class Index extends Component
         $product = Product::query()->with(['brand', 'presentation'])->findOrFail($productId);
         $key = 'product:'.$product->id;
 
-        if (isset($this->saleForm['cart'][$key])) {
-            $this->saleForm['cart'][$key]['quantity'] = (string) ((float) $this->saleForm['cart'][$key]['quantity'] + 1);
-            $this->saleForm['cart'][$key]['subtotal'] = round((float) $this->saleForm['cart'][$key]['quantity'] * (float) $this->saleForm['cart'][$key]['unit_price'], 2);
-        } else {
-            $this->saleForm['cart'][$key] = [
+        $this->adjustCartItemQuantity(
+            $key,
+            1,
+            [
                 'key' => $key,
                 'item_type' => 'product',
                 'service_id' => null,
@@ -258,13 +345,75 @@ class Index extends Component
                 'unit_price' => (string) $product->public_sale_price,
                 'subtotal' => (float) $product->public_sale_price,
                 'meta' => null,
-            ];
-        }
+            ]
+        );
+    }
+
+    public function decreaseProductToCart(int $productId): void
+    {
+        $key = 'product:'.$productId;
+
+        $this->adjustCartItemQuantity($key, -1);
+    }
+
+    public function cartQuantityForProduct(int $productId): int
+    {
+        $cartItem = collect($this->saleForm['cart'] ?? [])
+            ->first(function (array $item) use ($productId): bool {
+                return ($item['item_type'] ?? null) === 'product'
+                    && (int) ($item['product_id'] ?? 0) === $productId;
+            });
+
+        return (int) round((float) ($cartItem['quantity'] ?? 0));
+    }
+
+    public function cartQuantityForService(int $serviceId): int
+    {
+        return (int) round(collect($this->saleForm['cart'] ?? [])
+            ->filter(function (array $item) use ($serviceId): bool {
+                return ($item['item_type'] ?? null) === 'service'
+                    && (int) ($item['service_id'] ?? 0) === $serviceId;
+            })
+            ->sum(fn (array $item): float => (float) ($item['quantity'] ?? 0)));
     }
 
     public function removeCartItem(string $key): void
     {
         unset($this->saleForm['cart'][$key]);
+    }
+
+    public function decreaseCartItem(string $key): void
+    {
+        $this->adjustCartItemQuantity($key, -1);
+    }
+
+    public function increaseCartItem(string $key): void
+    {
+        $this->adjustCartItemQuantity($key, 1);
+    }
+
+    private function adjustCartItemQuantity(string $key, int $delta, ?array $defaultItem = null): void
+    {
+        if (! isset($this->saleForm['cart'][$key])) {
+            if ($delta > 0 && $defaultItem !== null) {
+                $this->saleForm['cart'][$key] = $defaultItem;
+            }
+
+            return;
+        }
+
+        $currentQuantity = (float) ($this->saleForm['cart'][$key]['quantity'] ?? 0);
+        $newQuantity = round($currentQuantity + $delta, 2);
+
+        if ($newQuantity <= 0) {
+            unset($this->saleForm['cart'][$key]);
+
+            return;
+        }
+
+        $unitPrice = (float) ($this->saleForm['cart'][$key]['unit_price'] ?? 0);
+        $this->saleForm['cart'][$key]['quantity'] = (string) $newQuantity;
+        $this->saleForm['cart'][$key]['subtotal'] = round($newQuantity * $unitPrice, 2);
     }
 
     public function selectClient(int $clientId): void
@@ -310,6 +459,12 @@ class Index extends Component
             ]);
         }
 
+        if ($this->saleForm['client_id'] === null) {
+            $this->openClientSearch();
+
+            return;
+        }
+
         $this->drawerStep = 'payment';
     }
 
@@ -320,63 +475,26 @@ class Index extends Component
         }
 
         $this->saleForm['selected_payment_method'] = $method;
-
-        if ($this->saleForm['payment_option'] === 'single') {
-            $this->saleForm['payments'] = [[
-                'method' => $method,
-                'amount' => (string) $this->cartTotal(),
-                'reference' => null,
-            ]];
-        }
-    }
-
-    public function enablePaymentOption(string $option): void
-    {
-        if (! in_array($option, ['single', 'split', 'partial'], true)) {
-            return;
-        }
-
-        $this->saleForm['payment_option'] = $option;
-
-        if ($option === 'single') {
-            $this->saleForm['payments'] = [[
-                'method' => $this->saleForm['selected_payment_method'],
-                'amount' => (string) $this->cartTotal(),
-                'reference' => null,
-            ]];
-        } elseif ($option === 'partial') {
-            $this->saleForm['payments'] = [[
-                'method' => $this->saleForm['selected_payment_method'],
-                'amount' => (string) round($this->cartTotal() / 2, 2),
-                'reference' => null,
-            ]];
-        } else {
-            $half = round($this->cartTotal() / 2, 2);
-            $remaining = round($this->cartTotal() - $half, 2);
-            $this->saleForm['payments'] = [
-                ['method' => $this->saleForm['selected_payment_method'], 'amount' => (string) $half, 'reference' => null],
-                ['method' => SalePaymentMethodCatalog::CASH, 'amount' => (string) $remaining, 'reference' => null],
-            ];
-        }
-    }
-
-    public function addSplitPayment(): void
-    {
-        $this->saleForm['payments'][] = [
-            'method' => SalePaymentMethodCatalog::CASH,
-            'amount' => '0.00',
+        $this->saleForm['payments'] = [[
+            'method' => $method,
+            'amount' => (string) $this->cartTotal(),
             'reference' => null,
-        ];
+        ]];
     }
 
-    public function removeSplitPayment(int $index): void
+    public function completeSale(string $method, CreateSaleAction $createSale): void
     {
-        if (($this->saleForm['payments'] ?? []) === []) {
-            return;
-        }
+        $this->selectPaymentMethod($method);
 
-        unset($this->saleForm['payments'][$index]);
-        $this->saleForm['payments'] = array_values($this->saleForm['payments']);
+        try {
+            $sale = $createSale->handle($this->authUser(), $this->salePayloadForAction(SaleStatusCatalog::PAID));
+            $this->selectedSaleId = $sale->id;
+            $this->saleSummaryMode = 'success';
+            $this->drawerStep = 'success';
+        } catch (\Throwable $throwable) {
+            Flux::toast(variant: 'danger', text: 'No se pudo registrar la venta. Revisa los datos e inténtalo otra vez.');
+            report($throwable);
+        }
     }
 
     public function saveDraft(CreateSaleAction $createSale): void
@@ -387,15 +505,6 @@ class Index extends Component
         Flux::toast(variant: 'success', text: 'Carrito guardado como borrador.');
 
         $this->closeDrawer();
-    }
-
-    public function finalizeSale(CreateSaleAction $createSale): void
-    {
-        $status = $this->saleForm['payment_option'] === 'partial' ? SaleStatusCatalog::PARTIAL : SaleStatusCatalog::PAID;
-        $sale = $createSale->handle($this->authUser(), $this->salePayloadForAction($status));
-        $this->selectedSaleId = $sale->id;
-        $this->saleSummaryMode = 'success';
-        $this->drawerStep = 'success';
     }
 
     public function openSaleDetail(int $saleId): void
@@ -497,6 +606,7 @@ class Index extends Component
     public function servicesCatalog(): Collection
     {
         return Service::query()
+            ->with(['professionalProfiles'])
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -522,12 +632,16 @@ class Index extends Component
     public function recentItems(): Collection
     {
         $items = SaleItem::query()
-            ->with(['product.brand', 'product.presentation', 'service'])
+            ->with(['product.brand', 'product.presentation', 'service.professionalProfiles'])
             ->latest()
             ->limit(12)
             ->get();
 
-        return $items->unique(fn ($item) => $item->item_type.':'.($item->service_id ?? $item->product_id))->values();
+        return $items->unique(function (SaleItem $item): string {
+            $professionalId = data_get($item->meta, 'professional_id');
+
+            return $item->item_type.':'.($item->service_id ?? $item->product_id).':'.($professionalId ?? '');
+        })->values();
     }
 
     /**
@@ -537,6 +651,7 @@ class Index extends Component
     public function filteredServicesCatalog(): Collection
     {
         return Service::query()
+            ->with(['professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name')])
             ->where('is_active', true)
             ->search(trim($this->itemSearch))
             ->orderBy('name')
@@ -588,6 +703,27 @@ class Index extends Component
     public function paymentMethods(): array
     {
         return SalePaymentMethodCatalog::options();
+    }
+
+    #[Computed]
+    public function serviceProfessionalPickerService(): ?Service
+    {
+        if ($this->serviceProfessionalPickerServiceId === null) {
+            return null;
+        }
+
+        return Service::query()
+            ->with(['professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name')])
+            ->find($this->serviceProfessionalPickerServiceId);
+    }
+
+    /**
+     * @return Collection<int, Professional>
+     */
+    #[Computed]
+    public function serviceProfessionalPickerProfessionals(): Collection
+    {
+        return $this->serviceProfessionalPickerService()?->professionalProfiles ?? collect();
     }
 
     #[Computed]
@@ -743,7 +879,6 @@ class Index extends Component
             'notes' => '',
             'cart' => [],
             'selected_payment_method' => $defaultMethod,
-            'payment_option' => 'single',
             'payments' => [[
                 'method' => $defaultMethod,
                 'amount' => '0.00',

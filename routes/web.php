@@ -10,25 +10,17 @@ use App\Livewire\Administracion\Servicios\Index as ServicesIndex;
 use App\Livewire\Administracion\Tenants\Index as TenantsIndex;
 use App\Livewire\Administracion\Usuarios\Index as UsersIndex;
 use App\Livewire\Administracion\Comisiones\Index as CommissionsIndex;
-use App\Livewire\Agenda\Index as AgendaIndex;
 use App\Livewire\Clients\Index as ClientsIndex;
 use App\Livewire\Sales\Index as SalesIndex;
 use App\Livewire\SitioWeb\Booking as PublicBooking;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
-use Illuminate\View\View;
 
-Route::get('/', function (): View|RedirectResponse {
-    if (auth()->check()) {
-        return redirect()->route('dashboard');
-    }
-
-    return view('welcome');
-})->name('home');
+Route::redirect('/', '/login')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
-    Route::get('dashboard', function (): View {
-        return view('dashboard');
+    Route::get('dashboard', function (): RedirectResponse {
+        return redirect()->route('sales.index');
     })->name('dashboard');
 
     Route::get('administracion/tenants', TenantsIndex::class)->name('administracion.tenants.index');
@@ -41,7 +33,6 @@ Route::prefix('negocios/{tenant:slug}')
     });
 
 Route::middleware(['auth', 'verified', EnsureTenantIsActive::class])->group(function (): void {
-    Route::get('agenda', AgendaIndex::class)->name('agenda.index');
     Route::get('ventas', SalesIndex::class)->name('sales.index');
     Route::get('ventas/export', [SaleReceiptController::class, 'export'])->name('sales.export');
     Route::get('ventas/{sale}/comprobante', [SaleReceiptController::class, 'show'])->whereNumber('sale')->name('sales.receipt.show');
