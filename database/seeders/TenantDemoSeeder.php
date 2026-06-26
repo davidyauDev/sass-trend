@@ -670,5 +670,12 @@ final class TenantDemoSeeder extends Seeder
                 'tenant_id' => $tenantId,
                 'is_primary_admin' => true,
             ]);
+
+        DB::table('users')
+            ->where('email', self::CENTRAL_ADMIN_EMAIL)
+            ->update([
+                'tenant_id' => null,
+                'is_primary_admin' => false,
+            ]);
     }
 }
