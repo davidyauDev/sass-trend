@@ -227,6 +227,7 @@
                     @foreach ($professionalTabs as $tabKey => $label)
                         <button
                             type="button"
+                            wire:key="professional-tab-{{ $tabKey }}"
                             wire:click="setProfessionalModalTab('{{ $tabKey }}')"
                             class="{{ $professionalModalTab === $tabKey ? 'border-violet-500 bg-white text-violet-600' : 'border-transparent bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300' }} rounded-t-2xl border border-b-0 px-4 py-3 text-sm font-semibold transition"
                         >
@@ -236,7 +237,7 @@
                 </div>
             </div>
 
-            <form wire:submit="save" class="space-y-6">
+            <form wire:submit="save" class="space-y-6" wire:key="professional-form-{{ $form->professionalId ?? 'new' }}-{{ $professionalModalTab }}">
                 @if ($professionalModalTab === 'basic')
                     <div class="space-y-5 rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-700">
                         <div class="grid gap-4">
@@ -280,6 +281,7 @@
                                     <div class="grid gap-3 px-4 py-4 md:grid-cols-2">
                                         @foreach ($category->services as $service)
                                             <flux:checkbox
+                                                wire:key="professional-service-{{ $category->id }}-{{ $service->id }}"
                                                 wire:model.live="form.service_ids"
                                                 value="{{ $service->id }}"
                                                 :label="$service->name"
@@ -306,7 +308,7 @@
                                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                                     @foreach ($form->schedules as $index => $schedule)
                                         @php($isWorking = (bool) data_get($form->schedules, "{$index}.is_working"))
-                                        <tr>
+                                        <tr wire:key="professional-schedule-{{ $schedule['day_of_week'] }}">
                                             <td class="px-4 py-4 font-medium">{{ $schedule['label'] }}</td>
                                             <td class="px-4 py-4">
                                                 <flux:switch wire:model.live="form.schedules.{{ $index }}.is_working" align="left" />
@@ -341,7 +343,7 @@
                                                         </div>
 
                                                         @forelse ($schedule['breaks'] as $breakIndex => $break)
-                                                            <div class="flex flex-wrap items-center gap-2">
+                                                            <div class="flex flex-wrap items-center gap-2" wire:key="professional-schedule-break-{{ $schedule['day_of_week'] }}-{{ $breakIndex }}">
                                                                 <flux:input wire:model="form.schedules.{{ $index }}.breaks.{{ $breakIndex }}.starts_at" type="time" />
                                                                 <span class="text-sm text-zinc-500">a</span>
                                                                 <flux:input wire:model="form.schedules.{{ $index }}.breaks.{{ $breakIndex }}.ends_at" type="time" />
@@ -432,7 +434,7 @@
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @foreach ($schedulePreviewProfessional->schedules as $schedule)
-                                <tr>
+                                <tr wire:key="schedule-preview-{{ $schedule->day_of_week }}">
                                     <td class="px-4 py-4">{{ \App\Livewire\Forms\ProfessionalForm::dayLabels()[$schedule->day_of_week] }}</td>
                                     <td class="px-4 py-4">{{ $schedule->is_working ? 'Activo' : 'Cerrado' }}</td>
                                     <td class="px-4 py-4">{{ $schedule->starts_at ?? 'Local cerrado' }}</td>
@@ -470,21 +472,22 @@
 
                         <flux:select wire:model.live="groupForm.location_id" label="Selecciona un local *">
                             <option value="">Selecciona una sucursal</option>
-                            @foreach ($this->locationsCatalog as $location)
-                                <option value="{{ $location->id }}">{{ $location->name }}</option>
-                            @endforeach
-                        </flux:select>
+                        @foreach ($this->locationsCatalog as $location)
+                            <option value="{{ $location->id }}">{{ $location->name }}</option>
+                        @endforeach
+                    </flux:select>
 
-                        @if ($isGroupEditing && $groupForm->location_id)
+                    @if ($isGroupEditing && $groupForm->location_id)
                             <div class="space-y-3 rounded-2xl border border-zinc-200/70 p-4 dark:border-zinc-700">
                                 <div class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Profesionales del grupo</div>
                                 <div class="grid gap-3 md:grid-cols-2">
-                                    @forelse ($this->eligibleProfessionalsForGroup as $professional)
-                                        <flux:checkbox
-                                            wire:model.live="groupForm.member_ids"
-                                            value="{{ $professional->id }}"
-                                            :label="$professional->displayName()"
-                                        />
+                                        @forelse ($this->eligibleProfessionalsForGroup as $professional)
+                                            <flux:checkbox
+                                                wire:key="group-member-{{ $professional->id }}"
+                                                wire:model.live="groupForm.member_ids"
+                                                value="{{ $professional->id }}"
+                                                :label="$professional->displayName()"
+                                            />
                                     @empty
                                         <div class="text-sm text-zinc-500">No hay profesionales disponibles para este local.</div>
                                     @endforelse

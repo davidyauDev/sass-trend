@@ -195,7 +195,7 @@
         {{ $slot }}
 
         @persist('toast')
-            <flux:toast.group>
+            <flux:toast.group class="bottom-24 sm:bottom-8">
                 <flux:toast />
             </flux:toast.group>
         @endpersist

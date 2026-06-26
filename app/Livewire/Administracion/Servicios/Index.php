@@ -17,6 +17,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -47,6 +48,10 @@ class Index extends Component
     public bool $isEditing = false;
 
     public ?int $serviceIdPendingDeletion = null;
+
+    public bool $showCategoryModal = false;
+
+    public string $categoryName = '';
 
     public function mount(): void
     {
@@ -85,6 +90,8 @@ class Index extends Component
 
         $this->form->resetForm();
         $this->isEditing = false;
+        $this->showCategoryModal = false;
+        $this->categoryName = '';
         $this->resetValidation();
         $this->resetErrorBag();
 
@@ -101,6 +108,8 @@ class Index extends Component
 
         $this->form->fillFromService($service);
         $this->isEditing = true;
+        $this->showCategoryModal = false;
+        $this->categoryName = '';
         $this->resetValidation();
         $this->resetErrorBag();
 
@@ -111,6 +120,8 @@ class Index extends Component
     {
         $this->form->resetForm();
         $this->isEditing = false;
+        $this->showCategoryModal = false;
+        $this->categoryName = '';
         $this->resetValidation();
         $this->resetErrorBag();
     }
@@ -122,6 +133,55 @@ class Index extends Component
             ->map(fn (mixed $id): int => (int) $id)
             ->values()
             ->all();
+    }
+
+    public function openCategoryModal(): void
+    {
+        $this->categoryName = '';
+        $this->resetValidation('categoryName');
+        $this->resetErrorBag('categoryName');
+        $this->showCategoryModal = true;
+
+        $this->modal('create-service-category')->show();
+    }
+
+    public function closeCategoryModal(): void
+    {
+        $this->showCategoryModal = false;
+        $this->categoryName = '';
+        $this->resetValidation('categoryName');
+        $this->resetErrorBag('categoryName');
+
+        $this->modal('create-service-category')->close();
+    }
+
+    public function saveCategory(): void
+    {
+        $this->validate([
+            'categoryName' => ['required', 'string', 'max:255'],
+        ]);
+
+        $name = trim($this->categoryName);
+        $slugBase = Str::slug($name);
+        $slug = $slugBase;
+        $suffix = 2;
+
+        while (ServiceCategory::query()->where('slug', $slug)->exists()) {
+            $slug = "{$slugBase}-{$suffix}";
+            $suffix++;
+        }
+
+        $category = ServiceCategory::query()->create([
+            'name' => $name,
+            'slug' => $slug,
+            'is_active' => true,
+        ]);
+
+        $this->form->service_category_id = $category->id;
+        $this->form->new_category_name = '';
+        $this->closeCategoryModal();
+
+        Flux::toast(variant: 'success', text: 'Categoría creada correctamente.');
     }
 
     public function save(CreateServiceAction $createService, UpdateServiceAction $updateService): void

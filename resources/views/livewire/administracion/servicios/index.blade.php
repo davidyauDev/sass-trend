@@ -167,7 +167,7 @@
             <div>
                 <flux:heading size="lg">{{ $isEditing ? 'Editar servicio' : 'Nuevo servicio' }}</flux:heading>
                 <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    Configura datos básicos, profesionales, sitio web, pago online y horarios especiales del servicio.
+                    Configura por ahora solo los datos básicos del servicio.
                 </flux:text>
             </div>
 
@@ -185,7 +185,11 @@
                                 <option value="{{ $category->id }}">{{ $category->name }}</option>
                             @endforeach
                         </flux:select>
-                        <flux:input wire:model="form.new_category_name" label="Nueva categoría" type="text" />
+                        <div class="flex items-end">
+                            <flux:button type="button" variant="ghost" icon="plus" class="w-full justify-center" wire:click="openCategoryModal">
+                                Nueva categoría
+                            </flux:button>
+                        </div>
                         <flux:input wire:model="form.price" label="Precio *" type="number" step="0.01" min="0" required />
                         <flux:input wire:model="form.duration_minutes" label="Duración en minutos *" type="number" min="1" required />
 
@@ -198,44 +202,8 @@
                     </div>
                 </div>
 
-                <div class="rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-700">
-                    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <flux:heading size="base">Profesionales</flux:heading>
-                            <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                                Selecciona usuarios activos que atenderán este servicio. Puedes filtrarlos por local.
-                            </flux:text>
-                        </div>
-
-                        <div class="flex flex-wrap items-center gap-2">
-                            <flux:select wire:model.live="form.professional_location_filter_id">
-                                <option value="">Todos los locales</option>
-                                @foreach ($this->locationsCatalog as $location)
-                                    <option value="{{ $location->id }}">{{ $location->name }}</option>
-                                @endforeach
-                            </flux:select>
-
-                            <flux:button type="button" variant="ghost" icon="check-badge" wire:click="selectAllProfessionals">
-                                Seleccionar todos
-                            </flux:button>
-                        </div>
-                    </div>
-
-                    <div class="grid gap-3 rounded-2xl border border-zinc-200/70 p-4 dark:border-zinc-700 sm:grid-cols-2 xl:grid-cols-3">
-                        @forelse ($this->professionalsCatalog as $professional)
-                            <flux:checkbox
-                                wire:model.live="form.professional_ids"
-                                value="{{ $professional->id }}"
-                                :label="$professional->fullName()"
-                                :description="$professional->locations->pluck('name')->join(', ') ?: 'Sin local asignado'"
-                            />
-                        @empty
-                            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
-                                No hay profesionales disponibles con el filtro actual.
-                            </flux:text>
-                        @endforelse
-                    </div>
-                </div>
+                @if (false)
+                {{-- Por ahora se oculta la asignación de profesionales en el alta de servicios. --}}
 
                 <div class="rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-700">
                     <div class="mb-4">
@@ -339,6 +307,7 @@
                         </div>
                     @endif
                 </div>
+                @endif
 
                 <div class="flex flex-col-reverse gap-3 border-t border-zinc-200/80 pt-4 dark:border-zinc-700 sm:flex-row sm:items-center sm:justify-end">
                     <flux:modal.close>
@@ -352,6 +321,38 @@
                     </flux:button>
                 </div>
             </form>
+        </div>
+    </flux:modal>
+
+    <flux:modal
+        name="create-service-category"
+        wire:close="closeCategoryModal"
+        wire:cancel="closeCategoryModal"
+        class="w-full max-w-lg"
+    >
+        <div class="space-y-5">
+            <div>
+                <flux:heading size="lg">Nueva categoría</flux:heading>
+                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    Crea una categoría nueva y quedará seleccionada automáticamente en el servicio.
+                </flux:text>
+            </div>
+
+            <div class="space-y-4">
+                <flux:input wire:model="categoryName" label="Nombre de la categoría" type="text" required />
+            </div>
+
+            <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <flux:modal.close>
+                    <flux:button variant="ghost" type="button" wire:click="closeCategoryModal">
+                        Cancelar
+                    </flux:button>
+                </flux:modal.close>
+
+                <flux:button variant="primary" type="button" wire:click="saveCategory">
+                    Guardar categoría
+                </flux:button>
+            </div>
         </div>
     </flux:modal>
 
