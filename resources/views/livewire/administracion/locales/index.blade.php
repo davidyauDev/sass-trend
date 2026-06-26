@@ -230,12 +230,6 @@
                                 <flux:input wire:model="form.address" label="Dirección *" type="text" required />
                                 <flux:input wire:model="form.phone" label="Teléfono" type="text" />
                                 <flux:input wire:model="form.email" label="Email" type="email" />
-                                <flux:select wire:model.live="form.branch_id" label="Sede conectada a agenda">
-                                    <option value="">Sin vincular todavía</option>
-                                    @foreach ($this->branchesCatalog as $branch)
-                                        <option value="{{ $branch->id }}">{{ $branch->name }}</option>
-                                    @endforeach
-                                </flux:select>
 
                                 <div class="md:col-span-2">
                                     <flux:input
@@ -256,6 +250,10 @@
                                         Puedes escribirla manualmente o elegir una sugerencia.
                                     </flux:text>
                                 </div>
+                            </div>
+
+                            <div class="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300">
+                                La sede se creará automáticamente al guardar el local.
                             </div>
                         @elseif ($modalTab === 'schedule')
                             <div class="flex flex-col gap-3 border-b border-zinc-200/80 pb-4 dark:border-zinc-700 sm:flex-row sm:items-center sm:justify-between">

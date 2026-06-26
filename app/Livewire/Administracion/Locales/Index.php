@@ -6,13 +6,11 @@ use App\Actions\Locations\CreateLocationAction;
 use App\Actions\Locations\DeleteLocationAction;
 use App\Actions\Locations\UpdateLocationAction;
 use App\Livewire\Forms\LocationForm;
-use App\Models\Branch;
 use App\Models\Location;
 use App\Services\Locations\LocationLimitService;
 use DateTimeZone;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -74,7 +72,7 @@ class Index extends Component
     public function openEditModal(int $locationId): void
     {
         $location = Location::query()
-            ->with('schedules')
+            ->with(['schedules', 'branch'])
             ->findOrFail($locationId);
 
         $this->isEditing = true;
@@ -188,18 +186,6 @@ class Index extends Component
     public function timezoneSuggestions(): array
     {
         return timezone_identifiers_list(DateTimeZone::ALL_WITH_BC);
-    }
-
-    /**
-     * @return Collection<int, Branch>
-     */
-    #[Computed]
-    public function branchesCatalog(): Collection
-    {
-        return Branch::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
     }
 
     #[Computed]

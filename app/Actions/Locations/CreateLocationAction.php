@@ -12,6 +12,7 @@ final class CreateLocationAction
 {
     public function __construct(
         private readonly LocationLimitService $locationLimitService,
+        private readonly UpsertLocationBranchAction $upsertLocationBranch,
         private readonly SaveLocationSchedulesAction $saveLocationSchedules,
     ) {}
 
@@ -23,6 +24,7 @@ final class CreateLocationAction
         $this->locationLimitService->ensureCanCreate(Auth::user());
 
         return DB::transaction(function () use ($data): Location {
+            $branch = $this->upsertLocationBranch->handle($data);
             $logoPath = ($data['logo'] ?? null) instanceof UploadedFile
                 ? $data['logo']->store('locations/logos', 'public')
                 : null;
@@ -39,7 +41,7 @@ final class CreateLocationAction
                 'phone' => $data['phone'],
                 'email' => $data['email'],
                 'timezone' => $data['timezone'],
-                'branch_id' => $data['branch_id'],
+                'branch_id' => $branch->id,
                 'description' => $data['description'],
                 'logo_path' => $logoPath,
                 'hero_image_path' => $heroImagePath,

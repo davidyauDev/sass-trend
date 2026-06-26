@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 final class UpdateLocationAction
 {
     public function __construct(
+        private readonly UpsertLocationBranchAction $upsertLocationBranch,
         private readonly SaveLocationSchedulesAction $saveLocationSchedules,
     ) {}
 
@@ -21,6 +22,7 @@ final class UpdateLocationAction
         return DB::transaction(function () use ($location, $data): Location {
             $logoPath = $location->logo_path;
             $heroImagePath = $location->hero_image_path;
+            $branch = $this->upsertLocationBranch->handle($data, $location->branch);
 
             if (($data['logo'] ?? null) instanceof UploadedFile) {
                 $newLogoPath = $data['logo']->store('locations/logos', 'public');
@@ -50,7 +52,7 @@ final class UpdateLocationAction
                 'phone' => $data['phone'],
                 'email' => $data['email'],
                 'timezone' => $data['timezone'],
-                'branch_id' => $data['branch_id'],
+                'branch_id' => $branch->id,
                 'description' => $data['description'],
                 'logo_path' => $logoPath,
                 'hero_image_path' => $heroImagePath,
