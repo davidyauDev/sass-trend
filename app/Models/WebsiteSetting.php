@@ -19,9 +19,9 @@ use Illuminate\Support\Facades\Storage;
  * @property string|null $contact_phone
  * @property string|null $contact_email
  * @property string|null $whatsapp_phone
-  * @property string|null $instagram_url
-  * @property string|null $facebook_url
-  * @property string|null $tiktok_url
+ * @property string|null $instagram_url
+ * @property string|null $facebook_url
+ * @property string|null $tiktok_url
  * @property string|null $website_url
  * @property string|null $youtube_url
  * @property string $booking_button_label

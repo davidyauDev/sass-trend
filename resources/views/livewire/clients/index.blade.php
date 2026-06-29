@@ -3,19 +3,12 @@
         <div class="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)] xl:items-end">
             <div class="min-w-0">
                 <flux:heading size="xl" level="1">Clientes</flux:heading>
-                <flux:subheading size="lg" class="mt-2">
-                    Gestiona tu base de clientes, crea nuevos registros y trabaja con audiencias desde un mismo listado.
-                </flux:subheading>
             </div>
 
             <div class="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
-                <flux:button variant="ghost" icon="arrow-up-tray" wire:click="notifyPendingFeature('Cargar clientes')">
-                    Cargar clientes
-                </flux:button>
 
-                <flux:button variant="ghost" icon="user-group" wire:click="notifyPendingFeature('Crear una audiencia con este listado')">
-                    Crear una audiencia con este listado
-                </flux:button>
+
+
 
                 <flux:dropdown position="bottom" align="end">
                     <flux:button variant="ghost" icon="ellipsis-horizontal">

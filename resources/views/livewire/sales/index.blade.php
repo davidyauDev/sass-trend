@@ -12,33 +12,33 @@
 
 <section class="w-full px-4 py-6 sm:px-6 lg:px-8">
     <div class="space-y-6">
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <flux:heading size="xl">Ventas</flux:heading>
             </div>
 
-            <flux:button variant="primary" icon="plus" wire:click="openCreateSale">
+            <flux:button variant="primary" icon="plus" wire:click="openCreateSale" class="w-full sm:w-auto">
                 Nueva venta
             </flux:button>
         </div>
 
         <div class="rounded-[28px] border border-zinc-200/80 bg-white p-4 shadow-sm">
-            <div class="grid gap-4 lg:grid-cols-3">
-                <div class="rounded-[22px] border border-zinc-200 bg-zinc-50 px-6 py-8 text-center">
-                    <div class="text-sm uppercase tracking-wide text-zinc-500">Todas las ventas</div>
-                    <div class="mt-3 text-4xl font-semibold text-zinc-900">{{ $this->metrics['all'] }}</div>
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="rounded-[22px] border border-zinc-200 bg-zinc-50 px-4 py-6 text-center sm:px-6 sm:py-8">
+                    <div class="text-xs uppercase tracking-wide text-zinc-500 sm:text-sm">Todas las ventas</div>
+                    <div class="mt-2 text-3xl font-semibold text-zinc-900 sm:mt-3 sm:text-4xl">{{ $this->metrics['all'] }}</div>
                 </div>
-                <div class="rounded-[22px] border border-zinc-200 bg-white px-6 py-8 text-center">
-                    <div class="text-sm uppercase tracking-wide text-zinc-500">Pagos parciales</div>
-                    <div class="mt-3 text-4xl font-semibold text-zinc-900">{{ $this->metrics['partial'] }}</div>
+                <div class="rounded-[22px] border border-zinc-200 bg-white px-4 py-6 text-center sm:px-6 sm:py-8">
+                    <div class="text-xs uppercase tracking-wide text-zinc-500 sm:text-sm">Pagos parciales</div>
+                    <div class="mt-2 text-3xl font-semibold text-zinc-900 sm:mt-3 sm:text-4xl">{{ $this->metrics['partial'] }}</div>
                 </div>
-                <div class="rounded-[22px] border border-zinc-200 bg-white px-6 py-8 text-center">
-                    <div class="text-sm uppercase tracking-wide text-zinc-500">Eliminadas</div>
-                    <div class="mt-3 text-4xl font-semibold text-zinc-900">{{ $this->metrics['deleted'] }}</div>
+                <div class="rounded-[22px] border border-zinc-200 bg-white px-4 py-6 text-center sm:px-6 sm:py-8 sm:col-span-2 lg:col-span-1">
+                    <div class="text-xs uppercase tracking-wide text-zinc-500 sm:text-sm">Eliminadas</div>
+                    <div class="mt-2 text-3xl font-semibold text-zinc-900 sm:mt-3 sm:text-4xl">{{ $this->metrics['deleted'] }}</div>
                 </div>
             </div>
 
-            <div class="mt-4 grid gap-3 lg:grid-cols-5">
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <flux:select wire:model.live="periodFilter">
                     <option value="7">Período 7 días</option>
                     <option value="30">Período 30 días</option>
@@ -78,18 +78,18 @@
         </div>
 
         <div class="rounded-[28px] border border-zinc-200/80 bg-white p-4 shadow-sm">
-            <div class="flex items-center justify-end gap-3 pb-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3 pb-4">
                 <button type="button" wire:click="sortColumnsToggle" class="text-sm font-medium text-zinc-700 underline underline-offset-4">
                     Editar columnas
                 </button>
-                <a href="{{ route('sales.export', request()->query()) }}" class="inline-flex h-10 items-center rounded-xl border border-zinc-200 px-4 text-sm font-medium text-zinc-700 shadow-sm">
+                <a href="{{ route('sales.export', request()->query()) }}" class="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 px-4 text-sm font-medium text-zinc-700 shadow-sm">
                     Exportar
                 </a>
             </div>
 
             @if ($showColumnEditor)
                 <div class="mb-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                    <div class="grid gap-3 md:grid-cols-3">
+                    <div class="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                         @foreach ($visibleColumns as $column => $visible)
                             <flux:checkbox wire:model.live="visibleColumns.{{ $column }}" :label="ucfirst($column)" />
                         @endforeach
@@ -100,28 +100,28 @@
             <div class="overflow-x-auto rounded-[20px] border border-zinc-200">
                 <table class="min-w-full divide-y divide-zinc-200">
                     <thead class="bg-white">
-                        <tr class="text-left text-sm font-semibold text-zinc-700">
-                            @if ($visibleColumns['id']) <th class="px-5 py-4">ID</th> @endif
-                            @if ($visibleColumns['date']) <th class="px-5 py-4">Fecha</th> @endif
-                            @if ($visibleColumns['amount']) <th class="px-5 py-4">Monto</th> @endif
-                            @if ($visibleColumns['client']) <th class="px-5 py-4">Cliente</th> @endif
-                            @if ($visibleColumns['branch']) <th class="px-5 py-4">Local</th> @endif
-                            @if ($visibleColumns['status']) <th class="px-5 py-4">Estado</th> @endif
-                            <th class="px-5 py-4 text-right">Acciones</th>
+                        <tr class="text-left text-xs sm:text-sm font-semibold text-zinc-700">
+                            @if ($visibleColumns['id']) <th class="px-3 sm:px-5 py-4">ID</th> @endif
+                            @if ($visibleColumns['date']) <th class="hidden sm:table-cell px-3 sm:px-5 py-4">Fecha</th> @endif
+                            @if ($visibleColumns['amount']) <th class="px-3 sm:px-5 py-4">Monto</th> @endif
+                            @if ($visibleColumns['client']) <th class="hidden md:table-cell px-3 sm:px-5 py-4">Cliente</th> @endif
+                            @if ($visibleColumns['branch']) <th class="hidden lg:table-cell px-3 sm:px-5 py-4">Local</th> @endif
+                            @if ($visibleColumns['status']) <th class="hidden xl:table-cell px-3 sm:px-5 py-4">Estado</th> @endif
+                            <th class="px-3 sm:px-5 py-4 text-right">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-200 bg-white text-sm text-zinc-700">
+                    <tbody class="divide-y divide-zinc-200 bg-white text-xs sm:text-sm text-zinc-700">
                         @forelse ($sales as $sale)
                             <tr>
-                                @if ($visibleColumns['id']) <td class="px-5 py-5">#{{ $sale->sale_number ?? $sale->id }}</td> @endif
-                                @if ($visibleColumns['date']) <td class="px-5 py-5">{{ $sale->sold_at?->format('d/m/Y - h:i a') }}</td> @endif
-                                @if ($visibleColumns['amount']) <td class="px-5 py-5">S/{{ number_format((float) $sale->total, 0) }}</td> @endif
-                                @if ($visibleColumns['client']) <td class="px-5 py-5">{{ $sale->client?->fullName() ?? 'Consumidor final' }}</td> @endif
-                                @if ($visibleColumns['branch']) <td class="px-5 py-5">{{ $sale->branch?->name ?? 'N/A' }}</td> @endif
-                                @if ($visibleColumns['status']) <td class="px-5 py-5">{{ $sale->status }}</td> @endif
-                                <td class="px-5 py-5">
+                                @if ($visibleColumns['id']) <td class="px-3 sm:px-5 py-4 sm:py-5">#{{ $sale->sale_number ?? $sale->id }}</td> @endif
+                                @if ($visibleColumns['date']) <td class="hidden sm:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->sold_at?->format('d/m/Y - h:i a') }}</td> @endif
+                                @if ($visibleColumns['amount']) <td class="px-3 sm:px-5 py-4 sm:py-5 font-medium">S/{{ number_format((float) $sale->total, 0) }}</td> @endif
+                                @if ($visibleColumns['client']) <td class="hidden md:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->client?->fullName() ?? 'Consumidor final' }}</td> @endif
+                                @if ($visibleColumns['branch']) <td class="hidden lg:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->branch?->name ?? 'N/A' }}</td> @endif
+                                @if ($visibleColumns['status']) <td class="hidden xl:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->status }}</td> @endif
+                                <td class="px-3 sm:px-5 py-4 sm:py-5">
                                     <div class="flex items-center justify-end gap-2">
-                                        <button type="button" wire:click="openSaleDetail({{ $sale->id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
+                                        <button type="button" wire:click="openSaleDetail({{ $sale->id }})" class="inline-flex size-8 sm:size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
                                             <flux:icon.eye class="size-4" />
                                         </button>
 
@@ -159,7 +159,7 @@
     @if ($isDrawerOpen)
         <div class="fixed inset-0 z-[70] bg-zinc-950/30" wire:click="closeDrawer"></div>
         <aside class="fixed inset-y-0 right-0 z-[71] flex w-full max-w-[420px] flex-col bg-white shadow-[0_0_40px_rgba(15,23,42,0.2)]">
-            <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+            <div class="flex items-center justify-between border-b border-zinc-200 px-4 sm:px-5 py-4">
                 <div class="flex items-center gap-3">
                     @if ($drawerStep !== 'cart' && $drawerStep !== 'success')
                         @if (in_array($drawerStep, ['service-professional', 'product-config'], true))
@@ -192,12 +192,12 @@
 
                 @if ($drawerStep !== 'success')
                     <button type="button" wire:click="closeDrawer" class="text-zinc-500">
-                        <flux:icon.x-mark class="size-6" />
+                        <flux:icon.x-mark class="size-5 sm:size-6" />
                     </button>
                 @endif
             </div>
 
-            <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+            <div class="min-h-0 flex-1 overflow-y-auto px-3 sm:px-4 py-4">
                 @if ($drawerStep === 'cart')
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
@@ -239,26 +239,26 @@
                             @endif
 
                             @forelse ($saleForm['cart'] as $item)
-                                <div class="flex items-start justify-between rounded-2xl border border-zinc-200 px-4 py-4">
-                                    <div>
+                                <div class="flex items-start justify-between gap-3 rounded-2xl border border-zinc-200 px-3 sm:px-4 py-3 sm:py-4">
+                                    <div class="min-w-0 flex-1">
                                         <div class="font-medium text-zinc-900">
                                             {{ $item['item_name'] }}
-                                            <span class="text-sm text-zinc-400">x{{ rtrim(rtrim((string) $item['quantity'], '0'), '.') }}</span>
+                                            <span class="text-xs sm:text-sm text-zinc-400">x{{ rtrim(rtrim((string) $item['quantity'], '0'), '.') }}</span>
                                         </div>
 
                                         @if (($item['meta']['professional_name'] ?? null) || $item['item_detail'])
-                                            <div class="mt-1 text-sm text-zinc-500">{{ $item['item_detail'] }}</div>
+                                            <div class="mt-1 text-xs sm:text-sm text-zinc-500">{{ $item['item_detail'] }}</div>
                                         @endif
 
                                         @if ($item['item_type'] === 'product' && ($item['meta']['professional_name'] ?? null))
-                                            <div class="mt-1 inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
+                                            <div class="mt-1 inline-flex items-center gap-1 sm:gap-2 rounded-full bg-violet-50 px-2 sm:px-3 py-1 text-xs font-medium text-violet-700">
                                                 <span>Vendedor</span>
                                                 <span>{{ $item['meta']['professional_name'] }}</span>
                                             </div>
                                         @endif
 
                                         @if ($item['item_type'] === 'service' && ($item['meta']['professional_name'] ?? null))
-                                            <div class="mt-1 inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
+                                            <div class="mt-1 inline-flex items-center gap-1 sm:gap-2 rounded-full bg-violet-50 px-2 sm:px-3 py-1 text-xs font-medium text-violet-700">
                                                 <span>Profesional</span>
                                                 <span>{{ $item['meta']['professional_name'] }}</span>
                                             </div>
@@ -266,13 +266,13 @@
 
                                         @if (($item['meta']['discount_amount'] ?? 0) > 0)
                                             <div class="mt-1 text-xs text-emerald-600">
-                                                Descuento aplicado: S/{{ number_format((float) $item['meta']['discount_amount'], 2) }}
+                                                Descuento: S/{{ number_format((float) $item['meta']['discount_amount'], 2) }}
                                             </div>
                                         @endif
                                     </div>
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-1 sm:gap-2">
                                         <div class="text-right">
-                                            <div class="font-semibold text-zinc-900">S/{{ number_format((float) $item['subtotal'], 2) }}</div>
+                                            <div class="font-semibold text-zinc-900 text-xs sm:text-sm">S/{{ number_format((float) $item['subtotal'], 2) }}</div>
                                             @if (($item['meta']['discount_amount'] ?? 0) > 0)
                                                 <div class="text-xs text-zinc-400">Antes S/{{ number_format(((float) $item['quantity'] * (float) $item['unit_price']), 2) }}</div>
                                             @endif
@@ -282,20 +282,20 @@
                                                 type="button"
                                                 wire:click="decreaseCartItem('{{ $item['key'] }}')"
                                                 @disabled((float) $item['quantity'] <= 1)
-                                                class="inline-flex size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                                                class="inline-flex size-7 sm:size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
                                             >
-                                                <flux:icon.minus class="size-4" />
+                                                <flux:icon.minus class="size-3 sm:size-4" />
                                             </button>
                                             <button
                                                 type="button"
                                                 wire:click="increaseCartItem('{{ $item['key'] }}')"
-                                                class="inline-flex size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-sm"
+                                                class="inline-flex size-7 sm:size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-sm"
                                             >
-                                                <flux:icon.plus class="size-4" />
+                                                <flux:icon.plus class="size-3 sm:size-4" />
                                             </button>
                                         </div>
-                                        <button type="button" wire:click="removeCartItem('{{ $item['key'] }}')" class="rounded-xl border border-zinc-200 p-2 text-rose-500 shadow-sm">
-                                            <flux:icon.trash class="size-4" />
+                                        <button type="button" wire:click="removeCartItem('{{ $item['key'] }}')" class="rounded-xl border border-zinc-200 p-1.5 sm:p-2 text-rose-500 shadow-sm">
+                                            <flux:icon.trash class="size-3 sm:size-4" />
                                         </button>
                                     </div>
                                 </div>
@@ -603,12 +603,12 @@
                     </div>
                 @elseif ($drawerStep === 'payment')
                     <div class="space-y-6">
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-2 gap-2 sm:gap-3">
                             @foreach ($this->paymentMethods as $key => $label)
                                 <button
                                     type="button"
                                     wire:click="completeSale('{{ $key }}')"
-                                    class="{{ $saleForm['selected_payment_method'] === $key ? 'border-violet-400 ring-2 ring-violet-100' : 'border-zinc-200' }} rounded-2xl border px-4 py-6 text-center text-sm font-medium text-zinc-700"
+                                    class="{{ $saleForm['selected_payment_method'] === $key ? 'border-violet-400 ring-2 ring-violet-100' : 'border-zinc-200' }} rounded-2xl border px-3 sm:px-4 py-4 sm:py-6 text-center text-xs sm:text-sm font-medium text-zinc-700"
                                 >
                                     {{ $label }}
                                 </button>
@@ -620,22 +620,22 @@
                     </div>
                 @elseif ($drawerStep === 'success')
                     @if ($selectedSale)
-                        <div class="space-y-6 pb-6">
+                        <div class="space-y-4 sm:space-y-6 pb-6">
                             <div class="rounded-[28px] border border-zinc-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-                                <div class="border-b border-zinc-200/80 px-5 py-4 text-center">
-                                    <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_10px_25px_rgba(16,185,129,0.3)]">
-                                        <flux:icon.check class="size-8" />
+                                <div class="border-b border-zinc-200/80 px-4 sm:px-5 py-4 text-center">
+                                    <div class="mx-auto flex size-12 sm:size-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_10px_25px_rgba(16,185,129,0.3)]">
+                                        <flux:icon.check class="size-6 sm:size-8" />
                                     </div>
 
-                                    <div class="mt-5 text-2xl font-semibold text-zinc-800">
+                                    <div class="mt-4 sm:mt-5 text-xl sm:text-2xl font-semibold text-zinc-800">
                                         El pago se realizó con éxito
                                     </div>
-                                    <div class="mt-1 text-sm text-zinc-500">
+                                    <div class="mt-1 text-xs sm:text-sm text-zinc-500">
                                         Venta #{{ $selectedSale->ticket_number }}
                                     </div>
                                 </div>
 
-                                <div class="space-y-5 px-5 py-5">
+                                <div class="space-y-4 sm:space-y-5 px-4 sm:px-5 py-4 sm:py-5">
                                     <div>
                                         <div class="text-sm text-zinc-400">Cliente</div>
                                         <div class="mt-2 text-base font-semibold text-zinc-900">
@@ -706,38 +706,38 @@
                 @endif
             </div>
 
-            <div class="border-t border-zinc-200 bg-white px-5 py-4">
+            <div class="border-t border-zinc-200 bg-white px-4 sm:px-5 py-4">
                 <div class="mb-3 flex items-center justify-between">
-                    <div class="text-2xl font-semibold text-zinc-800">Total:</div>
-                    <div class="text-2xl font-semibold text-zinc-800">S/{{ number_format($drawerStep === 'success' && $selectedSale ? (float) $selectedSale->total : collect($saleForm['cart'])->sum(fn ($item) => (float) $item['subtotal']), 0) }}</div>
+                    <div class="text-xl sm:text-2xl font-semibold text-zinc-800">Total:</div>
+                    <div class="text-xl sm:text-2xl font-semibold text-zinc-800">S/{{ number_format($drawerStep === 'success' && $selectedSale ? (float) $selectedSale->total : collect($saleForm['cart'])->sum(fn ($item) => (float) $item['subtotal']), 0) }}</div>
                 </div>
 
                 @if ($drawerStep === 'cart')
-                    <button type="button" wire:click="proceedToPayment" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white disabled:opacity-50">
+                    <button type="button" wire:click="proceedToPayment" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white disabled:opacity-50">
                         Continuar
                     </button>
                 @elseif ($drawerStep === 'item-picker')
-                    <button type="button" wire:click="backToCart" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                    <button type="button" wire:click="backToCart" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
                         Ir al carro ({{ count($saleForm['cart']) }})
                     </button>
                 @elseif ($drawerStep === 'service-professional')
-                    <button type="button" wire:click="backToItemPicker" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                    <button type="button" wire:click="backToItemPicker" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
                         Volver a servicios
                     </button>
                 @elseif ($drawerStep === 'product-config')
-                    <button type="button" wire:click="saveProductConfiguration" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                    <button type="button" wire:click="saveProductConfiguration" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
                         Agregar al carro
                     </button>
                 @elseif ($drawerStep === 'client-create')
-                    <button type="button" wire:click="saveInlineClient" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                    <button type="button" wire:click="saveInlineClient" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
                         Guardar cliente
                     </button>
                 @elseif ($drawerStep === 'payment')
-                    <div class="flex h-12 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-600">
+                    <div class="flex h-11 sm:h-12 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-600">
                         Selecciona un método de pago para registrar la venta
                     </div>
                 @elseif ($drawerStep === 'success')
-                    <button type="button" wire:click="closeDrawer" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                    <button type="button" wire:click="closeDrawer" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
                         Cerrar
                     </button>
                 @endif

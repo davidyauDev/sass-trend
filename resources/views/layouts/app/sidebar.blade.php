@@ -58,9 +58,6 @@
 
                         <flux:sidebar.group :heading="__('Administration')" class="mt-6 grid gap-1">
                             @if ($isTenantContext)
-                                <flux:sidebar.item icon="building-storefront" :href="route('locales.index')" :current="request()->routeIs('locales.*')" wire:navigate>
-                                    {{ __('Branches') }}
-                                </flux:sidebar.item>
                                 <flux:sidebar.item icon="banknotes" :href="route('administracion.comisiones.index')" :current="request()->routeIs('administracion.comisiones.*')" wire:navigate>
                                     {{ __('Commissions') }}
                                 </flux:sidebar.item>
@@ -95,6 +92,9 @@
                                     </flux:sidebar.item>
                                     <flux:sidebar.item icon="building-office-2" :href="route('administracion.empresa')" :current="request()->routeIs('administracion.empresa') || request()->routeIs('administracion.sitio-web')" wire:navigate>
                                         {{ __('Empresa') }}
+                                    </flux:sidebar.item>
+                                    <flux:sidebar.item icon="building-storefront" :href="route('locales.index')" :current="request()->routeIs('locales.*')" wire:navigate>
+                                        {{ __('Branches') }}
                                     </flux:sidebar.item>
                                 </div>
                             @else

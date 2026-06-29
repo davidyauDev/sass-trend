@@ -37,23 +37,23 @@
 
         <div class="space-y-6">
             <div class="rounded-[26px] bg-white px-4 py-5 shadow-sm ring-1 ring-zinc-200/70 sm:px-6">
-                <form method="GET" action="{{ route('products.sales.index') }}" class="grid gap-4 xl:grid-cols-3">
+                <form method="GET" action="{{ route('products.sales.index') }}" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <input type="hidden" name="detail" value="{{ $detailTab }}">
 
                     <div class="space-y-2">
                         <label class="text-sm font-semibold text-slate-900">Periodo de tiempo</label>
-                        <div class="grid grid-cols-2 gap-3 rounded-2xl border border-zinc-300 bg-white p-3 shadow-sm">
+                        <div class="grid grid-cols-2 gap-2 sm:gap-3 rounded-2xl border border-zinc-300 bg-white p-3 shadow-sm">
                             <input
                                 type="date"
                                 name="from"
                                 value="{{ $from }}"
-                                class="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                                class="h-10 sm:h-11 rounded-xl border border-zinc-200 px-2 sm:px-3 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                             />
                             <input
                                 type="date"
                                 name="to"
                                 value="{{ $to }}"
-                                class="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                                class="h-10 sm:h-11 rounded-xl border border-zinc-200 px-2 sm:px-3 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                             />
                         </div>
                     </div>
@@ -62,7 +62,7 @@
                         <label class="text-sm font-semibold text-slate-900">Estado del producto</label>
                         <select
                             name="product_status"
-                            class="h-[68px] w-full rounded-2xl border border-zinc-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                            class="h-12 sm:h-[60px] w-full rounded-2xl border border-zinc-300 bg-white px-4 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                         >
                             <option value="active" @selected($productStatus === 'active')>Activo</option>
                             <option value="inactive" @selected($productStatus === 'inactive')>Inactivo</option>
@@ -74,7 +74,7 @@
                         <label class="text-sm font-semibold text-slate-900">Productos</label>
                         <select
                             name="product_id"
-                            class="h-[68px] w-full rounded-2xl border border-zinc-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                            class="h-12 sm:h-[60px] w-full rounded-2xl border border-zinc-300 bg-white px-4 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                         >
                             <option value="">Todos</option>
                             @foreach ($products as $product)
@@ -83,7 +83,7 @@
                         </select>
                     </div>
 
-                    <div class="xl:col-span-3 flex flex-wrap items-center justify-end gap-2">
+                    <div class="sm:col-span-2 lg:col-span-3 flex flex-wrap items-center justify-end gap-2">
                         <flux:button type="submit" variant="primary" icon="magnifying-glass">
                             Aplicar filtros
                         </flux:button>
@@ -101,52 +101,52 @@
                 </form>
             </div>
 
-            <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_460px_460px]">
-                <div class="flex min-h-[214px] items-center justify-center rounded-[18px] bg-[#263039] px-6 py-8 text-center text-white shadow-[0_18px_40px_rgba(21,30,39,0.15)]">
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div class="flex min-h-[160px] sm:min-h-[214px] items-center justify-center rounded-[18px] bg-[#263039] px-4 sm:px-6 py-6 sm:py-8 text-center text-white shadow-[0_18px_40px_rgba(21,30,39,0.15)]">
                     <div>
-                        <div class="text-5xl font-semibold leading-none">S/{{ $formatAmount($salesSummary['revenue']) }}</div>
-                        <div class="mt-4 text-lg uppercase tracking-wide text-slate-300">Recaudacion total</div>
+                        <div class="text-3xl sm:text-5xl font-semibold leading-none">S/{{ $formatAmount($salesSummary['revenue']) }}</div>
+                        <div class="mt-3 sm:mt-4 text-sm sm:text-lg uppercase tracking-wide text-slate-300">Recaudacion</div>
                     </div>
                 </div>
 
-                <div class="flex min-h-[214px] items-center justify-center rounded-[18px] bg-[#263039] px-6 py-8 text-center text-white shadow-[0_18px_40px_rgba(21,30,39,0.15)]">
+                <div class="flex min-h-[160px] sm:min-h-[214px] items-center justify-center rounded-[18px] bg-[#263039] px-4 sm:px-6 py-6 sm:py-8 text-center text-white shadow-[0_18px_40px_rgba(21,30,39,0.15)]">
                     <div>
-                        <div class="text-5xl font-semibold leading-none">{{ $formatAmount($salesSummary['units_sold']) }}</div>
-                        <div class="mt-4 text-lg uppercase tracking-wide text-slate-300">Unidades vendidas</div>
+                        <div class="text-3xl sm:text-5xl font-semibold leading-none">{{ $formatAmount($salesSummary['units_sold']) }}</div>
+                        <div class="mt-3 sm:mt-4 text-sm sm:text-lg uppercase tracking-wide text-slate-300">Unidades</div>
                     </div>
                 </div>
 
-                <div class="rounded-[18px] bg-white px-5 py-4 shadow-sm ring-1 ring-zinc-200/70">
+                <div class="rounded-[18px] bg-white px-4 sm:px-5 py-4 shadow-sm ring-1 ring-zinc-200/70 sm:col-span-2 xl:col-span-1">
                     <div class="flex items-start justify-between gap-4">
-                        <h2 class="text-[20px] font-semibold text-slate-900">Mayor ingreso</h2>
-                        <span class="inline-flex size-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                            <flux:icon name="arrow-up" class="size-4" />
+                        <h2 class="text-base sm:text-[20px] font-semibold text-slate-900">Mayor ingreso</h2>
+                        <span class="inline-flex size-6 sm:size-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                            <flux:icon name="arrow-up" class="size-3 sm:size-4" />
                         </span>
                     </div>
 
-                    <div class="mt-5 space-y-5">
-                        <div class="border-t border-zinc-200 pt-5">
-                            <div class="text-[15px] text-slate-900">{{ $highestProduct['product_name'] ?? 'Sin registros' }}</div>
-                            <div class="mt-1 text-[14px] text-slate-500">{{ $highestProduct['presentation_name'] ?? 'Sin formato' }}</div>
+                    <div class="mt-4 sm:mt-5 space-y-4 sm:space-y-5">
+                        <div class="border-t border-zinc-200 pt-4 sm:pt-5">
+                            <div class="text-sm sm:text-[15px] text-slate-900">{{ $highestProduct['product_name'] ?? 'Sin registros' }}</div>
+                            <div class="mt-1 text-xs sm:text-[14px] text-slate-500">{{ $highestProduct['presentation_name'] ?? 'Sin formato' }}</div>
                             <div class="mt-2 flex items-end justify-between gap-4">
-                                <div class="text-[24px] font-semibold leading-none text-slate-900">
+                                <div class="text-xl sm:text-[24px] font-semibold leading-none text-slate-900">
                                     S/{{ $formatAmount($highestProduct['revenue'] ?? 0) }}
                                 </div>
-                                <div class="text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
+                                <div class="text-xs sm:text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
                                     {{ $formatAmount($highestProduct['units_sold'] ?? 0) }} {{ ($highestProduct['units_sold'] ?? 0) == 1.0 ? 'Unidad' : 'Unidades' }}
                                 </div>
                             </div>
                         </div>
 
-                        <div class="border-t border-zinc-200 pt-5">
-                            <div class="text-[15px] font-medium text-slate-900">
+                        <div class="border-t border-zinc-200 pt-4 sm:pt-5">
+                            <div class="text-sm sm:text-[15px] font-medium text-slate-900">
                                 Vendedor: {{ $highestSeller['seller_name'] ?? 'Sin registros' }}
                             </div>
                             <div class="mt-2 flex items-end justify-between gap-4">
-                                <div class="text-[24px] font-semibold leading-none text-slate-900">
+                                <div class="text-xl sm:text-[24px] font-semibold leading-none text-slate-900">
                                     S/{{ $formatAmount($highestSeller['revenue'] ?? 0) }}
                                 </div>
-                                <div class="text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
+                                <div class="text-xs sm:text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
                                     {{ $formatAmount($highestSeller['units_sold'] ?? 0) }} {{ ($highestSeller['units_sold'] ?? 0) == 1.0 ? 'Unidad' : 'Unidades' }}
                                 </div>
                             </div>
@@ -154,37 +154,37 @@
                     </div>
                 </div>
 
-                <div class="rounded-[18px] bg-white px-5 py-4 shadow-sm ring-1 ring-zinc-200/70">
+                <div class="rounded-[18px] bg-white px-4 sm:px-5 py-4 shadow-sm ring-1 ring-zinc-200/70">
                     <div class="flex items-start justify-between gap-4">
-                        <h2 class="text-[20px] font-semibold text-slate-900">Menor ingreso</h2>
-                        <span class="inline-flex size-7 items-center justify-center rounded-full bg-rose-100 text-rose-500">
-                            <flux:icon name="arrow-down" class="size-4" />
+                        <h2 class="text-base sm:text-[20px] font-semibold text-slate-900">Menor ingreso</h2>
+                        <span class="inline-flex size-6 sm:size-7 items-center justify-center rounded-full bg-rose-100 text-rose-500">
+                            <flux:icon name="arrow-down" class="size-3 sm:size-4" />
                         </span>
                     </div>
 
-                    <div class="mt-5 space-y-5">
-                        <div class="border-t border-zinc-200 pt-5">
-                            <div class="text-[15px] text-slate-900">{{ $lowestProduct['product_name'] ?? 'Sin registros' }}</div>
-                            <div class="mt-1 text-[14px] text-slate-500">{{ $lowestProduct['presentation_name'] ?? 'Sin formato' }}</div>
+                    <div class="mt-4 sm:mt-5 space-y-4 sm:space-y-5">
+                        <div class="border-t border-zinc-200 pt-4 sm:pt-5">
+                            <div class="text-sm sm:text-[15px] text-slate-900">{{ $lowestProduct['product_name'] ?? 'Sin registros' }}</div>
+                            <div class="mt-1 text-xs sm:text-[14px] text-slate-500">{{ $lowestProduct['presentation_name'] ?? 'Sin formato' }}</div>
                             <div class="mt-2 flex items-end justify-between gap-4">
-                                <div class="text-[24px] font-semibold leading-none text-slate-900">
+                                <div class="text-xl sm:text-[24px] font-semibold leading-none text-slate-900">
                                     S/{{ $formatAmount($lowestProduct['revenue'] ?? 0) }}
                                 </div>
-                                <div class="text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
+                                <div class="text-xs sm:text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
                                     {{ $formatAmount($lowestProduct['units_sold'] ?? 0) }} {{ ($lowestProduct['units_sold'] ?? 0) == 1.0 ? 'Unidad' : 'Unidades' }}
                                 </div>
                             </div>
                         </div>
 
-                        <div class="border-t border-zinc-200 pt-5">
-                            <div class="text-[15px] font-medium text-slate-900">
+                        <div class="border-t border-zinc-200 pt-4 sm:pt-5">
+                            <div class="text-sm sm:text-[15px] font-medium text-slate-900">
                                 Vendedor: {{ $lowestSeller['seller_name'] ?? 'Sin registros' }}
                             </div>
                             <div class="mt-2 flex items-end justify-between gap-4">
-                                <div class="text-[24px] font-semibold leading-none text-slate-900">
+                                <div class="text-xl sm:text-[24px] font-semibold leading-none text-slate-900">
                                     S/{{ $formatAmount($lowestSeller['revenue'] ?? 0) }}
                                 </div>
-                                <div class="text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
+                                <div class="text-xs sm:text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
                                     {{ $formatAmount($lowestSeller['units_sold'] ?? 0) }} {{ ($lowestSeller['units_sold'] ?? 0) == 1.0 ? 'Unidad' : 'Unidades' }}
                                 </div>
                             </div>
@@ -193,11 +193,11 @@
                 </div>
             </div>
 
-            <div id="sales-detail" class="rounded-[18px] bg-white px-5 py-5 shadow-sm ring-1 ring-zinc-200/70">
-                <div class="text-[18px] font-semibold text-slate-900">Detalle de la venta</div>
+            <div id="sales-detail" class="rounded-[18px] bg-white px-4 sm:px-5 py-4 sm:py-5 shadow-sm ring-1 ring-zinc-200/70">
+                <div class="text-base sm:text-[18px] font-semibold text-slate-900">Detalle de la venta</div>
 
                 <div class="mt-6 flex flex-col gap-4 border-b border-zinc-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div class="flex items-center gap-8 text-[15px]">
+                    <div class="flex items-center gap-6 sm:gap-8 text-sm sm:text-[15px]">
                         <a
                             href="{{ route('products.sales.index', array_merge($detailBaseQuery, ['detail' => 'products'])) }}"
                             class="relative pb-3 font-medium {{ $detailTab === 'products' ? 'text-violet-600' : 'text-slate-900' }}"
@@ -255,28 +255,32 @@
                     <div class="mt-4 overflow-x-auto rounded-[16px] border border-zinc-200/80">
                         <table class="min-w-full divide-y divide-zinc-200 text-left">
                             <thead class="bg-white">
-                                <tr class="text-[14px] font-semibold text-slate-700">
-                                    <th class="px-4 py-4">Producto</th>
-                                    <th class="px-4 py-4">Formato/ Presentacion</th>
-                                    <th class="px-4 py-4">Unidades vendidas</th>
-                                    <th class="px-4 py-4">Recaudacion</th>
-                                    <th class="px-4 py-4 text-right"></th>
+                                <tr class="text-xs sm:text-[14px] font-semibold text-slate-700">
+                                    <th class="px-3 sm:px-4 py-4">Producto</th>
+                                    <th class="hidden sm:table-cell px-3 sm:px-4 py-4">Formato</th>
+                                    <th class="px-3 sm:px-4 py-4">Unidades</th>
+                                    <th class="px-3 sm:px-4 py-4">Recaudacion</th>
+                                    <th class="px-3 sm:px-4 py-4 text-right"></th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-zinc-100 bg-white text-[15px] text-slate-800">
+                            <tbody class="divide-y divide-zinc-100 bg-white text-xs sm:text-[15px] text-slate-800">
                                 @foreach ($productBreakdown as $row)
                                     <tr>
-                                        <td class="px-4 py-5">{{ $row['product_name'] }}</td>
-                                        <td class="px-4 py-5">{{ $row['presentation_name'] }}</td>
-                                        <td class="px-4 py-5">{{ $formatAmount($row['units_sold']) }}</td>
-                                        <td class="px-4 py-5">S/{{ $formatAmount($row['revenue']) }}</td>
-                                        <td class="px-4 py-5 text-right">
+                                        <td class="px-3 sm:px-4 py-4 sm:py-5">
+                                            <div>{{ $row['product_name'] }}</div>
+                                            <div class="sm:hidden mt-0.5 text-xs text-slate-500">{{ $row['presentation_name'] }}</div>
+                                        </td>
+                                        <td class="hidden sm:table-cell px-3 sm:px-4 py-4 sm:py-5">{{ $row['presentation_name'] }}</td>
+                                        <td class="px-3 sm:px-4 py-4 sm:py-5">{{ $formatAmount($row['units_sold']) }}</td>
+                                        <td class="px-3 sm:px-4 py-4 sm:py-5 font-medium">S/{{ $formatAmount($row['revenue']) }}</td>
+                                        <td class="px-3 sm:px-4 py-4 sm:py-5 text-right">
                                             <a
                                                 href="{{ route('products.sales.index', array_merge($detailBaseQuery, ['detail' => 'products', 'product_id' => $row['product_id']])) }}#sales-detail"
-                                                class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-violet-600 shadow-sm transition hover:border-violet-200 hover:bg-violet-50"
+                                                class="inline-flex items-center gap-1 sm:gap-2 rounded-xl border border-zinc-200 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-violet-600 shadow-sm transition hover:border-violet-200 hover:bg-violet-50"
                                             >
-                                                <flux:icon name="eye" class="size-4" />
-                                                <span>Ver detalles</span>
+                                                <flux:icon name="eye" class="size-3 sm:size-4" />
+                                                <span class="hidden sm:inline">Ver detalles</span>
+                                                <span class="sm:hidden">Ver</span>
                                             </a>
                                         </td>
                                     </tr>
@@ -288,28 +292,29 @@
                     <div class="mt-4 overflow-x-auto rounded-[16px] border border-zinc-200/80">
                         <table class="min-w-full divide-y divide-zinc-200 text-left">
                             <thead class="bg-white">
-                                <tr class="text-[14px] font-semibold text-slate-700">
-                                    <th class="px-4 py-4">Vendedor</th>
-                                    <th class="px-4 py-4">Tipo de usuario</th>
-                                    <th class="px-4 py-4">Unidades vendidas</th>
-                                    <th class="px-4 py-4">Recaudacion</th>
-                                    <th class="px-4 py-4 text-right"></th>
+                                <tr class="text-xs sm:text-[14px] font-semibold text-slate-700">
+                                    <th class="px-3 sm:px-4 py-4">Vendedor</th>
+                                    <th class="hidden md:table-cell px-3 sm:px-4 py-4">Tipo</th>
+                                    <th class="px-3 sm:px-4 py-4">Unidades</th>
+                                    <th class="px-3 sm:px-4 py-4">Recaudacion</th>
+                                    <th class="px-3 sm:px-4 py-4 text-right"></th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-zinc-100 bg-white text-[15px] text-slate-800">
+                            <tbody class="divide-y divide-zinc-100 bg-white text-xs sm:text-[15px] text-slate-800">
                                 @foreach ($sellerBreakdown as $row)
                                     <tr>
-                                        <td class="px-4 py-5">{{ $row['seller_name'] }}</td>
-                                        <td class="px-4 py-5">{{ $row['user_type'] }}</td>
-                                        <td class="px-4 py-5">{{ $formatAmount($row['units_sold']) }}</td>
-                                        <td class="px-4 py-5">S/{{ $formatAmount($row['revenue']) }}</td>
-                                        <td class="px-4 py-5 text-right">
+                                        <td class="px-3 sm:px-4 py-4 sm:py-5">{{ $row['seller_name'] }}</td>
+                                        <td class="hidden md:table-cell px-3 sm:px-4 py-4 sm:py-5">{{ $row['user_type'] }}</td>
+                                        <td class="px-3 sm:px-4 py-4 sm:py-5">{{ $formatAmount($row['units_sold']) }}</td>
+                                        <td class="px-3 sm:px-4 py-4 sm:py-5 font-medium">S/{{ $formatAmount($row['revenue']) }}</td>
+                                        <td class="px-3 sm:px-4 py-4 sm:py-5 text-right">
                                             <a
                                                 href="{{ route('products.sales.index', array_merge($detailBaseQuery, ['detail' => 'vendors', 'seller_key' => $row['seller_key']])) }}#sales-detail"
-                                                class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-violet-600 shadow-sm transition hover:border-violet-200 hover:bg-violet-50"
+                                                class="inline-flex items-center gap-1 sm:gap-2 rounded-xl border border-zinc-200 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-violet-600 shadow-sm transition hover:border-violet-200 hover:bg-violet-50"
                                             >
-                                                <flux:icon name="eye" class="size-4" />
-                                                <span>Ver detalles</span>
+                                                <flux:icon name="eye" class="size-3 sm:size-4" />
+                                                <span class="hidden sm:inline">Ver detalles</span>
+                                                <span class="sm:hidden">Ver</span>
                                             </a>
                                         </td>
                                     </tr>
@@ -328,29 +333,29 @@
             @keydown.escape.window="closeModal()"
             @click.self="closeModal()"
         >
-            <div class="relative flex w-full max-w-4xl max-h-[92vh] flex-col overflow-hidden rounded-[30px] bg-white shadow-[0_30px_100px_rgba(0,0,0,0.25)] ring-1 ring-violet-200">
-                <div class="flex items-start justify-between gap-4 border-b border-violet-100 px-6 py-5">
+            <div class="relative flex w-full max-w-2xl sm:max-w-4xl max-h-[92vh] flex-col overflow-hidden rounded-[20px] sm:rounded-[30px] bg-white shadow-[0_30px_100px_rgba(0,0,0,0.25)] ring-1 ring-violet-200">
+                <div class="flex items-start justify-between gap-4 border-b border-violet-100 px-4 sm:px-6 py-4 sm:py-5">
                     <div>
                         <flux:heading size="lg">Registrar venta</flux:heading>
-                        <flux:text class="mt-1 text-sm text-zinc-500">
+                        <flux:text class="mt-1 text-xs sm:text-sm text-zinc-500">
                             Selecciona el local y el producto para descontar stock automaticamente.
                         </flux:text>
                     </div>
 
                     <button
                         type="button"
-                        class="rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+                        class="rounded-full p-1.5 sm:p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
                         @click="closeModal()"
                         aria-label="Cerrar modal"
                     >
-                        <flux:icon name="x-mark" class="size-6" />
+                        <flux:icon name="x-mark" class="size-5 sm:size-6" />
                     </button>
                 </div>
 
                 <form @submit.prevent="saveSale" class="flex min-h-0 flex-1 flex-col">
-                    <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-                        <div class="rounded-[24px] border border-zinc-200/80 p-5">
-                            <div class="grid gap-4 lg:grid-cols-2">
+                    <div class="min-h-0 flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
+                        <div class="rounded-[20px] sm:rounded-[24px] border border-zinc-200/80 p-4 sm:p-5">
+                            <div class="grid gap-3 sm:gap-4 sm:grid-cols-2">
                                 <div class="space-y-1.5">
                                     <flux:select x-model="form.branch_id" label="Local *" class="rounded-2xl">
                                         <option value="">Selecciona un local</option>
@@ -398,15 +403,15 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div class="text-sm text-zinc-500">
+                    <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 bg-zinc-50 px-4 sm:px-6 py-3 sm:py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="text-xs sm:text-sm text-zinc-500">
                             La venta descuenta stock del local seleccionado en tiempo real.
                         </div>
 
                         <div class="flex items-center gap-3">
                             <button
                                 type="button"
-                                class="inline-flex h-10 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-200"
+                                class="inline-flex h-9 sm:h-10 items-center justify-center rounded-xl bg-zinc-100 px-3 sm:px-4 text-xs sm:text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-200"
                                 @click="closeModal()"
                             >
                                 Cancelar
@@ -414,7 +419,7 @@
 
                             <button
                                 type="submit"
-                                class="inline-flex h-10 items-center justify-center rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                class="inline-flex h-9 sm:h-10 items-center justify-center rounded-xl bg-violet-600 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
                                 x-bind:disabled="saving"
                             >
                                 <span x-text="submitLabel()"></span>

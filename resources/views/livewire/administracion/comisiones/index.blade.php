@@ -1,13 +1,13 @@
 <section class="w-full px-4 py-6 sm:px-6 lg:px-8">
     <div class="mx-auto max-w-7xl space-y-6">
         <div class="rounded-[28px] border border-zinc-200/80 bg-white p-3 shadow-sm">
-            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div class="grid gap-2">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex gap-2">
                     <button
                         type="button"
                         wire:click="showServices"
                         @class([
-                            'rounded-2xl border px-4 py-4 text-left transition',
+                            'flex-1 sm:flex-none rounded-2xl border px-4 py-3 text-left transition',
                             'border-zinc-200 bg-white text-zinc-900 shadow-sm' => $section === 'services',
                             'border-transparent bg-zinc-100 text-zinc-400' => $section !== 'services',
                         ])
@@ -19,7 +19,7 @@
                         type="button"
                         wire:click="showProducts"
                         @class([
-                            'rounded-2xl border px-4 py-4 text-left transition',
+                            'flex-1 sm:flex-none rounded-2xl border px-4 py-3 text-left transition',
                             'border-zinc-200 bg-white text-zinc-900 shadow-sm' => $section === 'products',
                             'border-transparent bg-zinc-100 text-zinc-400' => $section !== 'products',
                         ])
@@ -48,13 +48,13 @@
                     </div>
                 </div>
 
-                <div class="mt-8 grid gap-4">
+                <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     @forelse ($this->professionals as $professional)
                         <div class="rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-4 shadow-sm">
-                            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div class="min-w-0">
                                     <div class="text-lg font-semibold text-cyan-800">{{ $professional->public_name }}</div>
-                                    <div class="text-sm text-zinc-600">Número de servicios {{ (int) $professional->services_count }}</div>
+                                    <div class="text-sm text-zinc-600">{{ (int) $professional->services_count }} servicios</div>
                                 </div>
 
                                 <div class="flex flex-wrap gap-2">
@@ -71,13 +71,13 @@
                                         wire:click="openProfessionalDefaultModal({{ $professional->id }})"
                                         class="inline-flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
                                     >
-                                        Editar Por Defecto
+                                        Comisión
                                     </button>
                                 </div>
                             </div>
                         </div>
                     @empty
-                        <div class="rounded-2xl border border-dashed border-zinc-200 p-8 text-center text-sm text-zinc-500">
+                        <div class="rounded-2xl border border-dashed border-zinc-200 p-8 text-center text-sm text-zinc-500 sm:col-span-2 xl:col-span-3">
                             No hay profesionales activos para mostrar.
                         </div>
                     @endforelse
@@ -100,14 +100,13 @@
                     </div>
                 </div>
 
-                <div class="mt-8 grid gap-4 md:grid-cols-2">
+                <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     @forelse ($this->products as $product)
                         <div class="rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-4 shadow-sm">
                             <div class="flex items-center justify-between gap-4">
                                 <div class="min-w-0">
                                     <div class="text-lg font-semibold text-cyan-800">{{ $product->name }}</div>
                                     <div class="text-sm text-zinc-600">
-                                        Comisión Por Defecto:
                                         {{ $this->commissionBadge((float) $product->sale_commission, $product->commission_type) }}
                                     </div>
                                 </div>
@@ -122,7 +121,7 @@
                             </div>
                         </div>
                     @empty
-                        <div class="rounded-2xl border border-dashed border-zinc-200 p-8 text-center text-sm text-zinc-500 md:col-span-2">
+                        <div class="rounded-2xl border border-dashed border-zinc-200 p-8 text-center text-sm text-zinc-500 sm:col-span-2 lg:col-span-3">
                             No se encontraron productos.
                         </div>
                     @endforelse
@@ -131,21 +130,22 @@
         @endif
     </div>
 
-    <flux:modal name="professional-services" wire:close="closeProfessionalServicesModal" wire:cancel="closeProfessionalServicesModal" class="w-full max-w-5xl">
+    <flux:modal name="professional-services" wire:close="closeProfessionalServicesModal" wire:cancel="closeProfessionalServicesModal" class="w-full max-w-5xl mx-4 sm:mx-6">
         <form wire:submit.prevent="saveProfessionalServices" class="space-y-6">
             <div>
                 <flux:heading size="lg">
-                    Editando comisiones para {{ $this->selectedProfessional?->public_name ?? 'Profesional' }}
+                    {{ $this->selectedProfessional?->public_name ?? 'Profesional' }}
                 </flux:heading>
+                <flux:text class="mt-1 text-sm text-zinc-500">Editar comisiones por servicio</flux:text>
             </div>
 
             @if ($this->selectedProfessional && $this->selectedProfessional->services->isNotEmpty())
-                <div class="grid gap-4 md:grid-cols-2">
+                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     @foreach ($professionalServiceForm->rows as $index => $row)
                         <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
                             <div class="text-sm font-semibold text-zinc-800">{{ $row['service_name'] }}</div>
 
-                            <div class="mt-3 grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+                            <div class="mt-3 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_5rem] gap-2">
                                 <flux:input
                                     wire:model="professionalServiceForm.rows.{{ $index }}.sale_commission"
                                     type="number"
@@ -155,7 +155,7 @@
                                 />
                                 <flux:select
                                     wire:model="professionalServiceForm.rows.{{ $index }}.commission_type"
-                                    label="&nbsp;"
+                                    label="Tipo"
                                 >
                                     <option value="percent">%</option>
                                     <option value="amount">$</option>
@@ -170,21 +170,22 @@
                 </div>
             @endif
 
-            <div class="flex justify-end gap-3">
-                <flux:button variant="ghost" type="button" wire:click="closeProfessionalServicesModal">Cancelar</flux:button>
-                <flux:button variant="primary" type="submit">Guardar</flux:button>
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <flux:button variant="ghost" type="button" wire:click="closeProfessionalServicesModal" class="w-full sm:w-auto">Cancelar</flux:button>
+                <flux:button variant="primary" type="submit" class="w-full sm:w-auto">Guardar</flux:button>
             </div>
         </form>
     </flux:modal>
 
-    <flux:modal name="professional-default-commission" wire:close="closeProfessionalDefaultModal" wire:cancel="closeProfessionalDefaultModal" class="w-full max-w-2xl">
+    <flux:modal name="professional-default-commission" wire:close="closeProfessionalDefaultModal" wire:cancel="closeProfessionalDefaultModal" class="w-full max-w-lg mx-4 sm:mx-6">
         <form wire:submit.prevent="saveProfessionalDefaultCommission" class="space-y-6">
             <div>
-                <flux:heading size="lg">Editando comisión por defecto</flux:heading>
+                <flux:heading size="lg">Comisión por defecto</flux:heading>
+                <flux:text class="mt-1 text-sm text-zinc-500">Configura la comisión general del profesional</flux:text>
             </div>
 
             <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-                <div class="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_5rem] gap-2">
                     <flux:input
                         wire:model="professionalDefaultForm.sale_commission"
                         type="number"
@@ -192,28 +193,29 @@
                         step="0.01"
                         label="Comisión por defecto"
                     />
-                    <flux:select wire:model="professionalDefaultForm.commission_type" label="Unidad">
+                    <flux:select wire:model="professionalDefaultForm.commission_type" label="Tipo">
                         <option value="percent">%</option>
                         <option value="amount">$</option>
                     </flux:select>
                 </div>
             </div>
 
-            <div class="flex justify-end gap-3">
-                <flux:button variant="ghost" type="button" wire:click="closeProfessionalDefaultModal">Cancelar</flux:button>
-                <flux:button variant="primary" type="submit">Guardar</flux:button>
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <flux:button variant="ghost" type="button" wire:click="closeProfessionalDefaultModal" class="w-full sm:w-auto">Cancelar</flux:button>
+                <flux:button variant="primary" type="submit" class="w-full sm:w-auto">Guardar</flux:button>
             </div>
         </form>
     </flux:modal>
 
-    <flux:modal name="product-commission" wire:close="closeProductModal" wire:cancel="closeProductModal" class="w-full max-w-2xl">
+    <flux:modal name="product-commission" wire:close="closeProductModal" wire:cancel="closeProductModal" class="w-full max-w-lg mx-4 sm:mx-6">
         <form wire:submit.prevent="saveProductCommission" class="space-y-6">
             <div>
-                <flux:heading size="lg">Editando comisión por defecto</flux:heading>
+                <flux:heading size="lg">Comisión del producto</flux:heading>
+                <flux:text class="mt-1 text-sm text-zinc-500">Configura la comisión por defecto de este producto</flux:text>
             </div>
 
             <div class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-                <div class="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_5rem] gap-2">
                     <flux:input
                         wire:model="productForm.sale_commission"
                         type="number"
@@ -221,16 +223,16 @@
                         step="0.01"
                         label="Comisión por defecto"
                     />
-                    <flux:select wire:model="productForm.commission_type" label="Unidad">
+                    <flux:select wire:model="productForm.commission_type" label="Tipo">
                         <option value="percent">%</option>
                         <option value="amount">$</option>
                     </flux:select>
                 </div>
             </div>
 
-            <div class="flex justify-end gap-3">
-                <flux:button variant="ghost" type="button" wire:click="closeProductModal">Cancelar</flux:button>
-                <flux:button variant="primary" type="submit">Guardar</flux:button>
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <flux:button variant="ghost" type="button" wire:click="closeProductModal" class="w-full sm:w-auto">Cancelar</flux:button>
+                <flux:button variant="primary" type="submit" class="w-full sm:w-auto">Guardar</flux:button>
             </div>
         </form>
     </flux:modal>
