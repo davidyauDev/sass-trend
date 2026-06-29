@@ -2,11 +2,8 @@
     <div class="flex w-full flex-col gap-6">
         <div class="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,1fr)] xl:items-end">
             <div class="min-w-0">
-                <flux:badge color="sky" size="sm" inset="left">Administración</flux:badge>
                 <flux:heading size="xl" level="1" class="mt-3">Servicios</flux:heading>
-                <flux:subheading size="lg" class="mt-2">
-                    Gestiona los servicios disponibles para reservas, profesionales asignados, cobros online y horarios especiales.
-                </flux:subheading>
+
             </div>
 
             <div class="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
@@ -112,8 +109,32 @@
                                 <flux:table.cell>{{ $service->category->name }}</flux:table.cell>
                                 <flux:table.cell>S/ {{ number_format((float) $service->price, 2) }}</flux:table.cell>
                                 <flux:table.cell>{{ $service->duration_minutes }} min</flux:table.cell>
-                                <flux:table.cell>
-                                    {{ $service->professionals->pluck('name')->join(', ') ?: 'Sin profesionales' }}
+                                <flux:table.cell class="max-w-[28rem]">
+                                    @php
+                                        $professionalNames = $service->professionalProfiles->isNotEmpty()
+                                            ? $service->professionalProfiles->pluck('public_name')
+                                            : $service->professionals->pluck('name');
+                                        $visibleNames = $professionalNames->take(3);
+                                        $remainingCount = max(0, $professionalNames->count() - $visibleNames->count());
+                                    @endphp
+
+                                    @if ($professionalNames->isEmpty())
+                                        Sin profesionales
+                                    @else
+                                        <div class="flex flex-wrap gap-2">
+                                            @foreach ($visibleNames as $name)
+                                                <span class="inline-flex max-w-full items-center rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:ring-zinc-700">
+                                                    <span class="truncate">{{ $name }}</span>
+                                                </span>
+                                            @endforeach
+
+                                            @if ($remainingCount > 0)
+                                                <span class="inline-flex items-center rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700 ring-1 ring-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:ring-cyan-900">
+                                                    +{{ $remainingCount }} más
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </flux:table.cell>
                                 <flux:table.cell>
                                     <flux:badge :color="$service->is_bookable_online ? 'sky' : 'amber'">
@@ -202,112 +223,74 @@
                     </div>
                 </div>
 
-                @if (false)
-                {{-- Por ahora se oculta la asignación de profesionales en el alta de servicios. --}}
-
                 <div class="rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-700">
                     <div class="mb-4">
-                        <flux:heading size="base">Sitio web</flux:heading>
-                    </div>
+                        <div class="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <flux:heading size="base">Selecciona qué profesionales realizarán el servicio</flux:heading>
+                                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                    Asigna uno o varios profesionales para que puedan ofrecer este servicio.
+                                </flux:text>
+                            </div>
 
-                    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        <flux:switch
-                            wire:model.live="form.is_bookable_online"
-                            label="Reservable online"
-                            description="Controla si el servicio aparece disponible para reservas web."
-                            align="left"
-                        />
-
-                        <flux:input wire:model="form.image" label="Imagen" type="file" accept="image/*" />
-
-                        <div class="md:col-span-2 xl:col-span-3">
-                            <flux:textarea wire:model="form.description" label="Descripción pública" rows="4" />
-                        </div>
-
-                        <div class="md:col-span-2 xl:col-span-3">
-                            @if ($form->image)
-                                <div class="space-y-3 rounded-2xl border border-dashed border-zinc-300 p-4 dark:border-zinc-600">
-                                    <flux:text class="text-sm font-medium">Vista previa de la nueva imagen</flux:text>
-                                    <img src="{{ $form->image->temporaryUrl() }}" alt="Vista previa del servicio" class="h-48 w-full rounded-2xl object-cover">
-                                </div>
-                            @elseif ($form->existingImagePath)
-                                <div class="space-y-3 rounded-2xl border border-dashed border-zinc-300 p-4 dark:border-zinc-600">
-                                    <flux:text class="text-sm font-medium">Imagen actual</flux:text>
-                                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($form->existingImagePath) }}" alt="Imagen actual del servicio" class="h-48 w-full rounded-2xl object-cover">
-                                </div>
-                            @endif
+                            <button
+                                type="button"
+                                wire:click="$toggle('showProfessionalPicker')"
+                                class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                aria-label="Mostrar u ocultar selección de profesionales"
+                            >
+                                <span class="text-zinc-400">({{ count($form->professional_ids) }})</span>
+                                <flux:icon.chevron-up class="size-4 transition-transform duration-200 {{ $showProfessionalPicker ? '' : 'rotate-180' }}" />
+                            </button>
                         </div>
                     </div>
-                </div>
 
-                <div class="rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-700">
-                    <div class="mb-4">
-                        <flux:heading size="base">Pago online</flux:heading>
-                    </div>
+                    @if ($showProfessionalPicker)
+                        <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-950/30">
+                            <div class="space-y-4">
+                                <label class="flex items-center gap-3 text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+                                    <input
+                                        type="checkbox"
+                                        class="size-4 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-500 dark:border-zinc-600 dark:bg-zinc-900"
+                                        wire:click="selectAllProfessionals"
+                                        @checked($this->professionalsCatalog->isNotEmpty() && count($form->professional_ids) === $this->professionalsCatalog->count())
+                                    >
+                                    <span>Seleccionar todo</span>
+                                </label>
 
-                    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        <flux:select wire:model.live="form.online_payment_type" label="Tipo">
-                            @foreach ($this->paymentTypeOptions as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </flux:select>
-                        <flux:input wire:model="form.deposit_amount" label="Monto de abono" type="number" step="0.01" min="0" />
-                        <flux:input wire:model="form.deposit_percentage" label="Porcentaje de abono" type="number" min="0" max="100" />
-                    </div>
-                </div>
-
-                <div class="rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-700">
-                    <div class="mb-4">
-                        <flux:heading size="base">Opciones avanzadas</flux:heading>
-                    </div>
-
-                    <div class="grid gap-4 xl:grid-cols-3">
-                        <flux:switch wire:model.live="form.is_video_conference" label="Videoconferencia" align="left" />
-                        <flux:switch wire:model.live="form.is_home_service" label="Servicio a domicilio" align="left" />
-                        <flux:switch wire:model.live="form.has_special_schedule" label="Horario especial" align="left" />
-                    </div>
-
-                    @if ($form->has_special_schedule)
-                        <div class="mt-6 space-y-3">
-                            @foreach ($form->schedules as $index => $schedule)
-                                @php
-                                    $isActive = (bool) data_get($form->schedules, "{$index}.is_active");
-                                @endphp
-                                <div class="grid gap-4 rounded-2xl border border-zinc-200/70 p-4 dark:border-zinc-700 lg:grid-cols-[1.4fr,1fr,1fr]">
-                                    <div class="flex items-center justify-between gap-4">
-                                        <div>
-                                            <flux:heading size="sm">{{ $schedule['label'] }}</flux:heading>
-                                            <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                                                {{ $isActive ? 'Horario activo' : 'Sin horario este día' }}
-                                            </flux:text>
-                                        </div>
-
-                                        <flux:switch
-                                            wire:model.live="form.schedules.{{ $index }}.is_active"
-                                            label="Activo"
-                                            align="left"
-                                        />
+                                @if ($form->professional_ids !== [])
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach ($this->professionalsCatalog->whereIn('id', $form->professional_ids) as $selectedProfessional)
+                                            <span class="inline-flex items-center rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 ring-1 ring-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:ring-cyan-900">
+                                                {{ $selectedProfessional->public_name }}
+                                            </span>
+                                        @endforeach
                                     </div>
+                                @endif
 
-                                    <flux:input
-                                        wire:model="form.schedules.{{ $index }}.starts_at"
-                                        label="Hora inicio"
-                                        type="time"
-                                        :disabled="! $isActive"
-                                    />
-
-                                    <flux:input
-                                        wire:model="form.schedules.{{ $index }}.ends_at"
-                                        label="Hora fin"
-                                        type="time"
-                                        :disabled="! $isActive"
-                                    />
-                                </div>
-                            @endforeach
+                                @if ($this->professionalsCatalog->isEmpty())
+                                    <div class="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                                        No hay profesionales activos disponibles.
+                                    </div>
+                                @else
+                                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                        @foreach ($this->professionalsCatalog as $professional)
+                                            <label wire:key="professional-option-{{ $professional->id }}" class="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-700 shadow-sm transition hover:border-cyan-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+                                                <input
+                                                    type="checkbox"
+                                                    class="size-4 rounded border-zinc-300 text-cyan-600 focus:ring-cyan-500 dark:border-zinc-600 dark:bg-zinc-900"
+                                                    value="{{ $professional->id }}"
+                                                    wire:model.live="form.professional_ids"
+                                                >
+                                                <span class="truncate">{{ $professional->public_name }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     @endif
                 </div>
-                @endif
 
                 <div class="flex flex-col-reverse gap-3 border-t border-zinc-200/80 pt-4 dark:border-zinc-700 sm:flex-row sm:items-center sm:justify-end">
                     <flux:modal.close>

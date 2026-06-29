@@ -8,6 +8,7 @@ use App\Actions\Services\ToggleServiceStatusAction;
 use App\Actions\Services\UpdateServiceAction;
 use App\Livewire\Forms\ServiceForm;
 use App\Models\Location;
+use App\Models\Professional;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\User;
@@ -46,6 +47,8 @@ class Index extends Component
     public int $perPage = 10;
 
     public bool $isEditing = false;
+
+    public bool $showProfessionalPicker = true;
 
     public ?int $serviceIdPendingDeletion = null;
 
@@ -90,8 +93,7 @@ class Index extends Component
 
         $this->form->resetForm();
         $this->isEditing = false;
-        $this->showCategoryModal = false;
-        $this->categoryName = '';
+        $this->showProfessionalPicker = true;
         $this->resetValidation();
         $this->resetErrorBag();
 
@@ -101,15 +103,14 @@ class Index extends Component
     public function openEditModal(int $serviceId): void
     {
         $service = Service::query()
-            ->with(['category', 'professionals.locations', 'schedules'])
+            ->with(['category', 'professionalProfiles', 'professionals.professionalProfile', 'schedules'])
             ->findOrFail($serviceId);
 
         $this->authorize('update', $service);
 
         $this->form->fillFromService($service);
         $this->isEditing = true;
-        $this->showCategoryModal = false;
-        $this->categoryName = '';
+        $this->showProfessionalPicker = true;
         $this->resetValidation();
         $this->resetErrorBag();
 
@@ -120,23 +121,32 @@ class Index extends Component
     {
         $this->form->resetForm();
         $this->isEditing = false;
-        $this->showCategoryModal = false;
-        $this->categoryName = '';
+        $this->showProfessionalPicker = true;
         $this->resetValidation();
         $this->resetErrorBag();
     }
 
     public function selectAllProfessionals(): void
     {
-        $this->form->professional_ids = $this->professionalsCatalog()
+        $professionalIds = $this->professionalsCatalog()
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
             ->values()
             ->all();
+
+        if ($this->form->professional_ids === $professionalIds) {
+            $this->form->professional_ids = [];
+
+            return;
+        }
+
+        $this->form->professional_ids = $professionalIds;
     }
 
     public function openCategoryModal(): void
     {
+        $this->authorize('create', Service::class);
+
         $this->categoryName = '';
         $this->resetValidation('categoryName');
         $this->resetErrorBag('categoryName');
@@ -281,9 +291,8 @@ class Index extends Component
     #[Computed]
     public function professionalsCatalog(): Collection
     {
-        return User::query()
-            ->with('locations')
-            ->where('is_active', true)
+        return Professional::query()
+            ->with(['user', 'locations'])
             ->when(
                 $this->form->professional_location_filter_id !== null,
                 fn (Builder $query): Builder => $query->whereHas(
@@ -291,7 +300,7 @@ class Index extends Component
                     fn (Builder $locationQuery): Builder => $locationQuery->whereKey($this->form->professional_location_filter_id),
                 ),
             )
-            ->orderBy('name')
+            ->orderBy('public_name')
             ->get();
     }
 
@@ -337,7 +346,7 @@ class Index extends Component
     private function services(): LengthAwarePaginator
     {
         return Service::query()
-            ->with(['category', 'professionals'])
+            ->with(['category', 'professionalProfiles', 'professionals.professionalProfile'])
             ->search($this->search)
             ->when($this->categoryFilter !== '', fn (Builder $query): Builder => $query->where('service_category_id', (int) $this->categoryFilter))
             ->when(

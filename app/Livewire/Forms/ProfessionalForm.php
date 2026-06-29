@@ -13,9 +13,9 @@ class ProfessionalForm extends Form
 
     public string $public_name = '';
 
-    public bool $accepts_online_bookings = true;
+    public bool $accepts_online_bookings = false;
 
-    public bool $has_system_access = true;
+    public bool $has_system_access = false;
 
     public string $email = '';
 
@@ -37,8 +37,8 @@ class ProfessionalForm extends Form
     {
         $this->professionalId = null;
         $this->public_name = '';
-        $this->accepts_online_bookings = true;
-        $this->has_system_access = true;
+        $this->accepts_online_bookings = false;
+        $this->has_system_access = false;
         $this->email = '';
         $this->bio = '';
         $this->photo = null;

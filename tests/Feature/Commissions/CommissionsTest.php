@@ -1,20 +1,12 @@
 <?php
 
-use App\Actions\Agenda\ChangeAppointmentStatusAction;
-use App\Livewire\Commissions\Index as CommissionsIndex;
-use App\Models\Appointment;
-use App\Models\AppointmentStatus;
-use App\Models\Branch;
-use App\Models\Client;
-use App\Models\CommissionRule;
-use App\Models\CommissionType;
+use App\Livewire\Administracion\Comisiones\Index as CommissionsIndex;
+use App\Models\Product;
+use App\Models\Professional;
 use App\Models\Role;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\User;
-use App\Services\Agenda\AppointmentStatusCatalog;
-use App\Services\Commissions\CommissionSourceCatalog;
-use App\Services\Commissions\CommissionTypeCatalog;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,12 +28,14 @@ function commissionsAdmin(): User
     return User::factory()->administratorGeneral()->create();
 }
 
-test('puede listar el modulo de comisiones', function () {
+test('puede listar el modulo de comisiones simplificado', function () {
     actingAs(commissionsAdmin());
 
-    $this->get(route('comisiones.index'))
+    $this->get(route('administracion.comisiones.index'))
         ->assertOk()
-        ->assertSee('Commission Management');
+        ->assertSee('Servicios')
+        ->assertSee('Productos')
+        ->assertDontSee('Planes');
 });
 
 test('solo administradores pueden acceder al modulo de comisiones', function () {
@@ -52,143 +46,82 @@ test('solo administradores pueden acceder al modulo de comisiones', function () 
         'is_active' => true,
     ]));
 
-    $this->get(route('comisiones.index'))->assertForbidden();
+    $this->get(route('administracion.comisiones.index'))->assertForbidden();
 
     Livewire::test(CommissionsIndex::class)
         ->assertForbidden();
 });
 
-test('puede crear una regla de comision', function () {
+test('puede actualizar la comision por defecto de un profesional', function () {
     actingAs(commissionsAdmin());
 
-    $type = CommissionType::factory()->create([
-        'slug' => CommissionTypeCatalog::PERCENTAGE,
+    $professional = Professional::factory()->create([
+        'sale_commission' => 10,
+        'commission_type' => 'percent',
     ]);
 
     Livewire::test(CommissionsIndex::class)
-        ->call('openRuleModal')
-        ->set('ruleForm.name', 'Cita completada 10%')
-        ->set('ruleForm.commission_type_id', $type->id)
-        ->set('ruleForm.source_type', CommissionSourceCatalog::APPOINTMENT)
-        ->set('ruleForm.priority', '10')
-        ->set('ruleForm.calculation_mode', 'percentage')
-        ->set('ruleForm.percentage', '10')
-        ->call('saveRule')
+        ->call('openProfessionalDefaultModal', $professional->id)
+        ->set('professionalDefaultForm.sale_commission', '15')
+        ->set('professionalDefaultForm.commission_type', 'amount')
+        ->call('saveProfessionalDefaultCommission')
         ->assertHasNoErrors();
 
-    $this->assertDatabaseHas('commission_rules', [
-        'name' => 'Cita completada 10%',
-        'percentage' => 10,
+    $this->assertDatabaseHas('professionals', [
+        'id' => $professional->id,
+        'sale_commission' => 15,
+        'commission_type' => 'amount',
     ]);
 });
 
-test('completar una cita genera comision', function () {
+test('puede actualizar la comision de un servicio por profesional', function () {
     actingAs(commissionsAdmin());
 
-    $branch = Branch::query()->create([
-        'name' => 'Miraflores',
-        'slug' => 'miraflores',
-        'address' => 'Av. Larco 1234',
-        'timezone' => 'America/Lima',
-        'color' => 'sky',
-        'is_active' => true,
-    ]);
-
-    $category = ServiceCategory::query()->create([
-        'name' => 'Faciales',
-        'slug' => 'faciales',
-        'is_active' => true,
-    ]);
-
-    $service = Service::query()->create([
+    $category = ServiceCategory::factory()->create();
+    $service = Service::factory()->create([
         'service_category_id' => $category->id,
         'name' => 'Limpieza facial premium',
-        'price' => 200,
-        'duration_minutes' => 60,
-        'is_active' => true,
-        'is_bookable_online' => true,
-        'description' => null,
-        'image_path' => null,
-        'online_payment_type' => null,
-        'deposit_amount' => null,
-        'deposit_percentage' => null,
-        'is_video_conference' => false,
-        'is_home_service' => false,
-        'has_special_schedule' => false,
     ]);
 
-    $professional = User::factory()->create();
-    $professional->services()->attach($service->id);
-
-    $type = CommissionType::query()->create([
-        'name' => 'Percentage Commission',
-        'slug' => CommissionTypeCatalog::PERCENTAGE,
-        'calculation_basis' => 'percentage',
-        'is_active' => true,
+    $professional = Professional::factory()->create();
+    $professional->services()->attach($service->id, [
+        'sale_commission' => 0,
+        'commission_type' => 'percent',
     ]);
 
-    CommissionRule::query()->create([
-        'branch_id' => $branch->id,
-        'service_id' => $service->id,
-        'service_category_id' => $category->id,
-        'commission_type_id' => $type->id,
-        'name' => 'Default appointment commission',
-        'slug' => 'default-appointment-commission',
-        'priority' => 10,
-        'source_type' => CommissionSourceCatalog::APPOINTMENT,
-        'calculation_mode' => 'percentage',
-        'percentage' => 10,
-        'fixed_amount' => null,
-        'min_revenue' => null,
-        'min_quantity' => null,
-        'condition_json' => null,
-        'is_active' => true,
-    ]);
+    Livewire::test(CommissionsIndex::class)
+        ->call('openProfessionalServicesModal', $professional->id)
+        ->set('professionalServiceForm.rows.0.sale_commission', '12.5')
+        ->set('professionalServiceForm.rows.0.commission_type', 'amount')
+        ->call('saveProfessionalServices')
+        ->assertHasNoErrors();
 
-    $client = Client::factory()->create();
-    $statusPending = AppointmentStatus::query()->create([
-        'name' => 'Pending',
-        'slug' => AppointmentStatusCatalog::PENDING,
-        'color' => 'zinc',
-        'sort_order' => 1,
-        'is_terminal' => false,
-    ]);
-
-    $appointment = Appointment::query()->create([
-        'reference_code' => 'APT-1000',
-        'branch_id' => $branch->id,
-        'client_id' => $client->id,
-        'service_id' => $service->id,
-        'resource_id' => null,
+    $this->assertDatabaseHas('professional_service_assignments', [
         'professional_id' => $professional->id,
-        'appointment_status_id' => $statusPending->id,
-        'title' => 'Cita demo',
-        'starts_at' => now()->addHour(),
-        'ends_at' => now()->addHours(2),
-        'duration_minutes' => 60,
-        'timezone' => 'America/Lima',
-        'price' => 200,
-        'currency' => 'PEN',
+        'service_id' => $service->id,
+        'sale_commission' => 12.5,
+        'commission_type' => 'amount',
+    ]);
+});
+
+test('puede actualizar la comision de un producto', function () {
+    actingAs(commissionsAdmin());
+
+    $product = Product::factory()->create([
+        'sale_commission' => 5,
+        'commission_type' => 'percent',
     ]);
 
-    $statusCompleted = AppointmentStatus::query()->create([
-        'name' => 'Completed',
-        'slug' => AppointmentStatusCatalog::COMPLETED,
-        'color' => 'emerald',
-        'sort_order' => 2,
-        'is_terminal' => false,
-    ]);
+    Livewire::test(CommissionsIndex::class)
+        ->call('openProductModal', $product->id)
+        ->set('productForm.sale_commission', '20')
+        ->set('productForm.commission_type', 'amount')
+        ->call('saveProductCommission')
+        ->assertHasNoErrors();
 
-    app(ChangeAppointmentStatusAction::class)->handle(
-        commissionsAdmin(),
-        $appointment,
-        $statusCompleted->slug,
-    );
-
-    $this->assertDatabaseHas('professional_commissions', [
-        'user_id' => $professional->id,
-        'branch_id' => $branch->id,
-        'source_type' => CommissionSourceCatalog::APPOINTMENT,
-        'source_reference' => (string) $appointment->id,
+    $this->assertDatabaseHas('products', [
+        'id' => $product->id,
+        'sale_commission' => 20,
+        'commission_type' => 'amount',
     ]);
 });

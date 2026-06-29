@@ -26,8 +26,8 @@ class DemoDataSeeder extends Seeder
             $users = $this->seedUsers($locations);
             $this->seedClients();
             $categories = $this->seedServiceCategories();
-            $services = $this->seedServices($categories, $users);
 
+            $this->seedServices($categories, $users);
             $this->seedLocationAssignments($users, $locations);
             $this->seedCustomPermissions($users);
         });
@@ -48,18 +48,10 @@ class DemoDataSeeder extends Seeder
                 'timezone' => 'America/Lima',
                 'accepts_online_bookings' => true,
                 'secondary_phone' => '014567890',
-                'description' => 'Sede principal enfocada en tratamientos faciales, cejas y atención premium.',
+                'description' => 'Sede premium para coloracion, maquillaje y experiencias de salon.',
                 'image_path' => null,
                 'is_active' => true,
-                'schedules' => [
-                    1 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '20:00'],
-                    2 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '20:00'],
-                    3 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '20:00'],
-                    4 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '20:00'],
-                    5 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '20:00'],
-                    6 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '18:00'],
-                    7 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '14:00'],
-                ],
+                'schedules' => $this->defaultLocationSchedule('09:00', '20:00', '18:00'),
             ],
             [
                 'code' => 'san-isidro',
@@ -70,18 +62,10 @@ class DemoDataSeeder extends Seeder
                 'timezone' => 'America/Lima',
                 'accepts_online_bookings' => true,
                 'secondary_phone' => '014567891',
-                'description' => 'Sucursal corporativa para agendas ejecutivas y servicios express.',
+                'description' => 'Sede corporativa con foco en manicure, pedicure y servicios express.',
                 'image_path' => null,
                 'is_active' => true,
-                'schedules' => [
-                    1 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '21:00'],
-                    2 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '21:00'],
-                    3 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '21:00'],
-                    4 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '21:00'],
-                    5 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '21:00'],
-                    6 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '18:00'],
-                    7 => ['is_open' => false, 'opens_at' => null, 'closes_at' => null],
-                ],
+                'schedules' => $this->defaultLocationSchedule('10:00', '21:00', '18:00'),
             ],
             [
                 'code' => 'surco',
@@ -92,40 +76,24 @@ class DemoDataSeeder extends Seeder
                 'timezone' => 'America/Lima',
                 'accepts_online_bookings' => true,
                 'secondary_phone' => '014567892',
-                'description' => 'Sede con foco en masajes, bienestar corporal y atención de fin de semana.',
+                'description' => 'Sede especializada en tratamientos capilares y depilacion.',
                 'image_path' => null,
                 'is_active' => true,
-                'schedules' => [
-                    1 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '19:00'],
-                    2 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '19:00'],
-                    3 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '19:00'],
-                    4 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '19:00'],
-                    5 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '19:00'],
-                    6 => ['is_open' => true, 'opens_at' => '09:00', 'closes_at' => '17:00'],
-                    7 => ['is_open' => false, 'opens_at' => null, 'closes_at' => null],
-                ],
+                'schedules' => $this->defaultLocationSchedule('09:00', '19:00', '17:00'),
             ],
             [
                 'code' => 'la-molina',
                 'name' => 'SASS Trend La Molina',
-                'address' => 'Av. Raúl Ferrero 1025, La Molina, Lima',
+                'address' => 'Av. Raul Ferrero 1025, La Molina, Lima',
                 'phone' => '987654324',
                 'email' => 'lamolina@sasstrend.pe',
                 'timezone' => 'America/Lima',
-                'accepts_online_bookings' => false,
+                'accepts_online_bookings' => true,
                 'secondary_phone' => '014567893',
-                'description' => 'Local orientado a servicios familiares, consultas y sesiones programadas.',
+                'description' => 'Sede familiar para cejas, pestanas, pedicure y servicios sociales.',
                 'image_path' => null,
                 'is_active' => true,
-                'schedules' => [
-                    1 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '19:00'],
-                    2 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '19:00'],
-                    3 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '19:00'],
-                    4 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '19:00'],
-                    5 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '19:00'],
-                    6 => ['is_open' => true, 'opens_at' => '10:00', 'closes_at' => '15:00'],
-                    7 => ['is_open' => false, 'opens_at' => null, 'closes_at' => null],
-                ],
+                'schedules' => $this->defaultLocationSchedule('10:00', '19:00', '15:00'),
             ],
         ];
 
@@ -162,7 +130,6 @@ class DemoDataSeeder extends Seeder
                 UserRoleCatalog::RECEPTIONIST_EDITOR,
                 UserRoleCatalog::RECEPTIONIST_VIEWER,
                 UserRoleCatalog::STAFF_EDITOR,
-                UserRoleCatalog::STAFF_VIEWER,
             ])
             ->get()
             ->keyBy('slug');
@@ -170,31 +137,23 @@ class DemoDataSeeder extends Seeder
         $definitions = [
             [
                 'code' => 'ana-lucia-torres',
-                'first_name' => 'Ana Lucía',
+                'first_name' => 'Ana Lucia',
                 'last_name' => 'Torres Mendoza',
                 'email' => 'ana.torres@sasstrend.pe',
                 'phone' => '987100201',
                 'role_slug' => UserRoleCatalog::GENERAL_ADMIN,
-                'is_active' => true,
-                'is_primary_admin' => true,
-                'invited_at' => now()->subMonths(6),
-                'invitation_accepted_at' => now()->subMonths(6)->addDay(),
-                'email_verified_at' => now()->subMonths(6)->addDay(),
                 'locations' => [],
+                'is_primary_admin' => true,
             ],
             [
                 'code' => 'ricardo-paredes',
                 'first_name' => 'Ricardo',
-                'last_name' => 'Paredes León',
+                'last_name' => 'Paredes Leon',
                 'email' => 'ricardo.paredes@sasstrend.pe',
                 'phone' => '987100202',
                 'role_slug' => UserRoleCatalog::GENERAL_ADMIN,
-                'is_active' => true,
-                'is_primary_admin' => false,
-                'invited_at' => now()->subMonths(5),
-                'invitation_accepted_at' => now()->subMonths(5)->addDay(),
-                'email_verified_at' => now()->subMonths(5)->addDay(),
                 'locations' => ['miraflores', 'san-isidro'],
+                'is_primary_admin' => false,
             ],
             [
                 'code' => 'carla-medina',
@@ -203,26 +162,18 @@ class DemoDataSeeder extends Seeder
                 'email' => 'carla.medina@sasstrend.pe',
                 'phone' => '987100203',
                 'role_slug' => UserRoleCatalog::LOCATION_ADMIN,
-                'is_active' => true,
-                'is_primary_admin' => false,
-                'invited_at' => now()->subMonths(4),
-                'invitation_accepted_at' => now()->subMonths(4)->addDay(),
-                'email_verified_at' => now()->subMonths(4)->addDay(),
                 'locations' => ['miraflores', 'san-isidro', 'surco', 'la-molina'],
+                'is_primary_admin' => false,
             ],
             [
                 'code' => 'lucia-quispe',
-                'first_name' => 'Lucía',
+                'first_name' => 'Lucia',
                 'last_name' => 'Quispe Herrera',
                 'email' => 'lucia.quispe@sasstrend.pe',
                 'phone' => '987100204',
                 'role_slug' => UserRoleCatalog::RECEPTIONIST_EDITOR,
-                'is_active' => true,
-                'is_primary_admin' => false,
-                'invited_at' => now()->subMonths(3),
-                'invitation_accepted_at' => now()->subMonths(3)->addDay(),
-                'email_verified_at' => now()->subMonths(3)->addDay(),
                 'locations' => ['miraflores', 'la-molina'],
+                'is_primary_admin' => false,
             ],
             [
                 'code' => 'diego-salazar',
@@ -231,88 +182,94 @@ class DemoDataSeeder extends Seeder
                 'email' => 'diego.salazar@sasstrend.pe',
                 'phone' => '987100205',
                 'role_slug' => UserRoleCatalog::RECEPTIONIST_VIEWER,
-                'is_active' => true,
-                'is_primary_admin' => false,
-                'invited_at' => now()->subMonths(2),
-                'invitation_accepted_at' => now()->subMonths(2)->addDay(),
-                'email_verified_at' => now()->subMonths(2)->addDay(),
                 'locations' => ['san-isidro'],
+                'is_primary_admin' => false,
             ],
             [
-                'code' => 'camila-rojas',
-                'first_name' => 'Camila',
-                'last_name' => 'Rojas Silva',
-                'email' => 'camila.rojas@sasstrend.pe',
+                'code' => 'amparo-berna',
+                'first_name' => 'Amparo',
+                'last_name' => 'Berna',
+                'email' => 'amparo.berna@sasstrend.pe',
                 'phone' => '987100206',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'is_active' => true,
-                'is_primary_admin' => false,
-                'invited_at' => now()->subMonths(3),
-                'invitation_accepted_at' => now()->subMonths(3)->addDay(),
-                'email_verified_at' => now()->subMonths(3)->addDay(),
                 'locations' => ['miraflores', 'san-isidro'],
+                'is_primary_admin' => false,
             ],
             [
-                'code' => 'kevin-torres',
-                'first_name' => 'Kevin',
-                'last_name' => 'Torres Valdivia',
-                'email' => 'kevin.torres@sasstrend.pe',
+                'code' => 'dorita-lopez',
+                'first_name' => 'Dorita',
+                'last_name' => 'Lopez',
+                'email' => 'dorita.lopez@sasstrend.pe',
                 'phone' => '987100207',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'is_active' => true,
+                'locations' => ['surco', 'san-isidro'],
                 'is_primary_admin' => false,
-                'invited_at' => now()->subMonths(2),
-                'invitation_accepted_at' => now()->subMonths(2)->addDay(),
-                'email_verified_at' => now()->subMonths(2)->addDay(),
-                'locations' => ['surco'],
             ],
             [
-                'code' => 'valeria-nunez',
-                'first_name' => 'Valeria',
-                'last_name' => 'Núñez Castro',
-                'email' => 'valeria.nunez@sasstrend.pe',
+                'code' => 'marizol-leandro',
+                'first_name' => 'Marizol',
+                'last_name' => 'Leandro',
+                'email' => 'marizol.leandro@sasstrend.pe',
                 'phone' => '987100208',
-                'role_slug' => UserRoleCatalog::STAFF_VIEWER,
-                'is_active' => true,
+                'role_slug' => UserRoleCatalog::STAFF_EDITOR,
+                'locations' => ['la-molina', 'miraflores'],
                 'is_primary_admin' => false,
-                'invited_at' => now()->subMonths(1),
-                'invitation_accepted_at' => now()->subMonths(1)->addDay(),
-                'email_verified_at' => now()->subMonths(1)->addDay(),
-                'locations' => ['la-molina'],
             ],
             [
-                'code' => 'fernando-chavez',
-                'first_name' => 'Fernando',
-                'last_name' => 'Chávez Montalvo',
-                'email' => 'fernando.chavez@sasstrend.pe',
+                'code' => 'lilian-aguado',
+                'first_name' => 'Lilian',
+                'last_name' => 'Aguado',
+                'email' => 'lilian.aguado@sasstrend.pe',
                 'phone' => '987100209',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'is_active' => false,
-                'is_primary_admin' => false,
-                'invited_at' => now()->subWeeks(3),
-                'invitation_accepted_at' => null,
-                'email_verified_at' => null,
                 'locations' => ['surco', 'la-molina'],
+                'is_primary_admin' => false,
             ],
             [
-                'code' => 'sofia-ramos',
-                'first_name' => 'Sofía',
-                'last_name' => 'Ramos Castillo',
-                'email' => 'sofia.ramos@sasstrend.pe',
+                'code' => 'enith-chero',
+                'first_name' => 'Enith',
+                'last_name' => 'Chero',
+                'email' => 'enith.chero@sasstrend.pe',
                 'phone' => '987100210',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'is_active' => true,
-                'is_primary_admin' => false,
-                'invited_at' => now()->subWeeks(2),
-                'invitation_accepted_at' => now()->subWeeks(2)->addDay(),
-                'email_verified_at' => now()->subWeeks(2)->addDay(),
                 'locations' => ['san-isidro', 'la-molina'],
+                'is_primary_admin' => false,
+            ],
+            [
+                'code' => 'fabiola-valiente',
+                'first_name' => 'Fabiola',
+                'last_name' => 'Valiente',
+                'email' => 'fabiola.valiente@sasstrend.pe',
+                'phone' => '987100211',
+                'role_slug' => UserRoleCatalog::STAFF_EDITOR,
+                'locations' => ['miraflores', 'surco'],
+                'is_primary_admin' => false,
+            ],
+            [
+                'code' => 'tatiana-bernal',
+                'first_name' => 'Tatiana',
+                'last_name' => 'Bernal',
+                'email' => 'tatiana.bernal@sasstrend.pe',
+                'phone' => '987100212',
+                'role_slug' => UserRoleCatalog::STAFF_EDITOR,
+                'locations' => ['san-isidro', 'miraflores'],
+                'is_primary_admin' => false,
+            ],
+            [
+                'code' => 'brigitte-ramos',
+                'first_name' => 'Brigitte',
+                'last_name' => 'Ramos',
+                'email' => 'brigitte.ramos@sasstrend.pe',
+                'phone' => '987100213',
+                'role_slug' => UserRoleCatalog::STAFF_EDITOR,
+                'locations' => ['san-isidro', 'la-molina'],
+                'is_primary_admin' => false,
             ],
         ];
 
         $users = [];
 
-        foreach ($definitions as $definition) {
+        foreach ($definitions as $index => $definition) {
             $role = $roles->get($definition['role_slug']);
 
             if ($role === null) {
@@ -320,15 +277,8 @@ class DemoDataSeeder extends Seeder
             }
 
             $code = $definition['code'];
-            $emailVerifiedAt = $definition['email_verified_at'];
             $locationsToAssign = $definition['locations'];
-
-            unset(
-                $definition['code'],
-                $definition['role_slug'],
-                $definition['locations'],
-                $definition['email_verified_at'],
-            );
+            $acceptedAt = now()->subDays(45 - $index);
 
             $user = User::query()->updateOrCreate(
                 ['email' => $definition['email']],
@@ -339,19 +289,20 @@ class DemoDataSeeder extends Seeder
                     'phone' => $definition['phone'],
                     'role_id' => $role->id,
                     'password' => 'password',
-                    'is_active' => $definition['is_active'],
+                    'is_active' => true,
                     'is_primary_admin' => $definition['is_primary_admin'],
-                    'invited_at' => $definition['invited_at'],
-                    'invitation_accepted_at' => $definition['invitation_accepted_at'],
+                    'invited_at' => $acceptedAt->copy()->subDay(),
+                    'invitation_accepted_at' => $acceptedAt,
                 ],
             );
 
             $user->forceFill([
-                'email_verified_at' => $emailVerifiedAt,
+                'email_verified_at' => $acceptedAt,
             ])->save();
 
             $users[$code] = $user;
             $users[$definition['email']] = $user;
+
             $this->syncUserLocations($user, $locationsToAssign, $locations);
         }
 
@@ -361,162 +312,12 @@ class DemoDataSeeder extends Seeder
     private function seedClients(): void
     {
         $definitions = [
-            [
-                'client_number' => 'CLI-1001',
-                'first_name' => 'María Fernanda',
-                'last_name' => 'López Huamán',
-                'birth_date' => '1991-05-18',
-                'dni' => '74251689',
-                'gender' => 'Femenino',
-                'email' => 'maria.lopez@gmail.com',
-                'phone' => '987300101',
-                'address' => 'Av. Pardo 455',
-                'district' => 'Miraflores',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1002',
-                'first_name' => 'José Antonio',
-                'last_name' => 'Ramírez Salazar',
-                'birth_date' => '1986-11-03',
-                'dni' => '68852147',
-                'gender' => 'Masculino',
-                'email' => 'jose.ramirez@hotmail.com',
-                'phone' => '987300102',
-                'address' => 'Av. Arequipa 1830',
-                'district' => 'Lince',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1003',
-                'first_name' => 'Valeria',
-                'last_name' => 'Paredes Rivas',
-                'birth_date' => '1998-02-14',
-                'dni' => '72134856',
-                'gender' => 'Femenino',
-                'email' => 'valeria.paredes@outlook.com',
-                'phone' => '987300103',
-                'address' => 'Calle Los Eucaliptos 210',
-                'district' => 'San Isidro',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1004',
-                'first_name' => 'Carlos Eduardo',
-                'last_name' => 'Vega Torres',
-                'birth_date' => '1984-07-22',
-                'dni' => '73491528',
-                'gender' => 'Masculino',
-                'email' => 'carlos.vega@gmail.com',
-                'phone' => '987300104',
-                'address' => 'Jr. Bolívar 314',
-                'district' => 'Pueblo Libre',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1005',
-                'first_name' => 'Andrea Lucía',
-                'last_name' => 'Castillo Peña',
-                'birth_date' => '1993-09-30',
-                'dni' => '70563149',
-                'gender' => 'Femenino',
-                'email' => 'andrea.castillo@gmail.com',
-                'phone' => '987300105',
-                'address' => 'Av. Benavides 512',
-                'district' => 'Santiago de Surco',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1006',
-                'first_name' => 'Diego Alejandro',
-                'last_name' => 'Rojas Silva',
-                'birth_date' => '1989-01-11',
-                'dni' => '71642895',
-                'gender' => 'Masculino',
-                'email' => 'diego.rojas@gmail.com',
-                'phone' => '987300106',
-                'address' => 'Av. Primavera 721',
-                'district' => 'Santiago de Surco',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1007',
-                'first_name' => 'Camila',
-                'last_name' => 'Núñez Ortega',
-                'birth_date' => '1996-04-27',
-                'dni' => '75921436',
-                'gender' => 'Femenino',
-                'email' => 'camila.nunez@gmail.com',
-                'phone' => '987300107',
-                'address' => 'Av. La Molina 890',
-                'district' => 'La Molina',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1008',
-                'first_name' => 'Paola',
-                'last_name' => 'Herrera Castañeda',
-                'birth_date' => '1990-08-08',
-                'dni' => '72894561',
-                'gender' => 'Femenino',
-                'email' => 'paola.herrera@gmail.com',
-                'phone' => '987300108',
-                'address' => 'Av. Angamos Oeste 124',
-                'district' => 'Miraflores',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1009',
-                'first_name' => 'Luis Miguel',
-                'last_name' => 'Navarro Quispe',
-                'birth_date' => '1982-12-19',
-                'dni' => '64782159',
-                'gender' => 'Masculino',
-                'email' => 'luis.navarro@icloud.com',
-                'phone' => '987300109',
-                'address' => 'Calle Las Camelias 178',
-                'district' => 'San Borja',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1010',
-                'first_name' => 'Sofía',
-                'last_name' => 'Chávez Montalvo',
-                'birth_date' => '1997-06-05',
-                'dni' => '75316428',
-                'gender' => 'Femenino',
-                'email' => 'sofia.chavez@gmail.com',
-                'phone' => '987300110',
-                'address' => 'Jr. Domeyer 145',
-                'district' => 'Barranco',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1011',
-                'first_name' => 'Fernanda',
-                'last_name' => 'Gutiérrez Flores',
-                'birth_date' => '1994-03-16',
-                'dni' => '68943215',
-                'gender' => 'Femenino',
-                'email' => 'fernanda.gutierrez@gmail.com',
-                'phone' => '987300111',
-                'address' => 'Av. República de Panamá 410',
-                'district' => 'Surquillo',
-                'city' => 'Lima',
-            ],
-            [
-                'client_number' => 'CLI-1012',
-                'first_name' => 'Renato',
-                'last_name' => 'Salazar Mena',
-                'birth_date' => '1988-10-24',
-                'dni' => '71368492',
-                'gender' => 'Prefiero no decirlo',
-                'email' => 'renato.salazar@yahoo.com',
-                'phone' => '987300112',
-                'address' => 'Av. El Derby 900',
-                'district' => 'Santiago de Surco',
-                'city' => 'Lima',
-            ],
+            ['client_number' => 'CLI-1001', 'first_name' => 'María Fernanda', 'last_name' => 'López Huamán', 'birth_date' => '1991-05-18', 'dni' => '74251689', 'gender' => 'Femenino', 'email' => 'maria.lopez@gmail.com', 'phone' => '987300101', 'address' => 'Av. Pardo 455', 'district' => 'Miraflores', 'city' => 'Lima'],
+            ['client_number' => 'CLI-1002', 'first_name' => 'Jose Antonio', 'last_name' => 'Ramirez Salazar', 'birth_date' => '1986-11-03', 'dni' => '68852147', 'gender' => 'Masculino', 'email' => 'jose.ramirez@hotmail.com', 'phone' => '987300102', 'address' => 'Av. Arequipa 1830', 'district' => 'Lince', 'city' => 'Lima'],
+            ['client_number' => 'CLI-1003', 'first_name' => 'Valeria', 'last_name' => 'Paredes Rivas', 'birth_date' => '1998-02-14', 'dni' => '72134856', 'gender' => 'Femenino', 'email' => 'valeria.paredes@outlook.com', 'phone' => '987300103', 'address' => 'Calle Los Eucaliptos 210', 'district' => 'San Isidro', 'city' => 'Lima'],
+            ['client_number' => 'CLI-1004', 'first_name' => 'Carlos Eduardo', 'last_name' => 'Vega Torres', 'birth_date' => '1984-07-22', 'dni' => '73491528', 'gender' => 'Masculino', 'email' => 'carlos.vega@gmail.com', 'phone' => '987300104', 'address' => 'Jr. Bolívar 314', 'district' => 'Pueblo Libre', 'city' => 'Lima'],
+            ['client_number' => 'CLI-1005', 'first_name' => 'Andrea Lucia', 'last_name' => 'Castillo Peña', 'birth_date' => '1993-09-30', 'dni' => '70563149', 'gender' => 'Femenino', 'email' => 'andrea.castillo@gmail.com', 'phone' => '987300105', 'address' => 'Av. Benavides 512', 'district' => 'Santiago de Surco', 'city' => 'Lima'],
+            ['client_number' => 'CLI-1006', 'first_name' => 'Camila', 'last_name' => 'Nuñez Ortega', 'birth_date' => '1996-04-27', 'dni' => '75921436', 'gender' => 'Femenino', 'email' => 'camila.nunez@gmail.com', 'phone' => '987300106', 'address' => 'Av. La Molina 890', 'district' => 'La Molina', 'city' => 'Lima'],
         ];
 
         foreach ($definitions as $definition) {
@@ -545,12 +346,12 @@ class DemoDataSeeder extends Seeder
     private function seedServiceCategories(): array
     {
         $definitions = [
-            ['name' => 'Faciales', 'slug' => 'faciales'],
-            ['name' => 'Masajes', 'slug' => 'masajes'],
-            ['name' => 'Corporal', 'slug' => 'corporal'],
-            ['name' => 'Cejas y pestañas', 'slug' => 'cejas-y-pestanas'],
-            ['name' => 'Depilación láser', 'slug' => 'depilacion-laser'],
-            ['name' => 'Nutrición', 'slug' => 'nutricion'],
+            ['name' => 'Tratamientos capilares', 'slug' => 'tratamientos-capilares'],
+            ['name' => 'Cortes y peinados', 'slug' => 'cortes-y-peinados'],
+            ['name' => 'Manicure y pedicure', 'slug' => 'manicure-y-pedicure'],
+            ['name' => 'Coloracion y mechas', 'slug' => 'coloracion-y-mechas'],
+            ['name' => 'Pestanas y maquillaje', 'slug' => 'pestanas-y-maquillaje'],
+            ['name' => 'Depilacion y cejas', 'slug' => 'depilacion-y-cejas'],
         ];
 
         $categories = [];
@@ -573,242 +374,52 @@ class DemoDataSeeder extends Seeder
     /**
      * @param  array<string, ServiceCategory>  $categories
      * @param  array<string, User>  $users
-     * @return array<string, Service>
      */
-    private function seedServices(array $categories, array $users): array
+    private function seedServices(array $categories, array $users): void
     {
         $definitions = [
-            [
-                'code' => 'limpieza-facial-profunda',
-                'service_category_slug' => 'faciales',
-                'name' => 'Limpieza facial profunda',
-                'price' => 180.00,
-                'duration_minutes' => 75,
-                'is_active' => true,
-                'is_bookable_online' => true,
-                'description' => 'Incluye diagnóstico, exfoliación, extracción, mascarilla calmante y sellado hidratante.',
-                'image_path' => null,
-                'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED,
-                'deposit_amount' => 50.00,
-                'deposit_percentage' => null,
-                'is_video_conference' => false,
-                'is_home_service' => false,
-                'has_special_schedule' => true,
-                'professionals' => ['camila-rojas', 'valeria-nunez', 'sofia-ramos'],
-                'schedules' => [
-                    1 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '19:00'],
-                    2 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '19:00'],
-                    3 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '19:00'],
-                    4 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '19:00'],
-                    5 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '19:00'],
-                    6 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '15:00'],
-                    7 => ['is_active' => false, 'starts_at' => null, 'ends_at' => null],
-                ],
-            ],
-            [
-                'code' => 'hidratacion-facial-express',
-                'service_category_slug' => 'faciales',
-                'name' => 'Hidratación facial express',
-                'price' => 120.00,
-                'duration_minutes' => 45,
-                'is_active' => true,
-                'is_bookable_online' => true,
-                'description' => 'Tratamiento rápido para recuperar luminosidad e hidratación en pieles urbanas.',
-                'image_path' => null,
-                'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED,
-                'deposit_amount' => null,
-                'deposit_percentage' => null,
-                'is_video_conference' => false,
-                'is_home_service' => false,
-                'has_special_schedule' => false,
-                'professionals' => ['camila-rojas', 'sofia-ramos'],
-                'schedules' => [],
-            ],
-            [
-                'code' => 'masaje-descontracturante',
-                'service_category_slug' => 'masajes',
-                'name' => 'Masaje descontracturante',
-                'price' => 160.00,
-                'duration_minutes' => 60,
-                'is_active' => true,
-                'is_bookable_online' => true,
-                'description' => 'Enfocado en cuello, espalda y hombros con presión media o profunda según necesidad.',
-                'image_path' => null,
-                'online_payment_type' => ServicePaymentTypeCatalog::REQUIRED,
-                'deposit_amount' => null,
-                'deposit_percentage' => null,
-                'is_video_conference' => false,
-                'is_home_service' => true,
-                'has_special_schedule' => true,
-                'professionals' => ['kevin-torres', 'fernando-chavez'],
-                'schedules' => [
-                    1 => ['is_active' => true, 'starts_at' => '10:00', 'ends_at' => '21:00'],
-                    2 => ['is_active' => true, 'starts_at' => '10:00', 'ends_at' => '21:00'],
-                    3 => ['is_active' => true, 'starts_at' => '10:00', 'ends_at' => '21:00'],
-                    4 => ['is_active' => true, 'starts_at' => '10:00', 'ends_at' => '21:00'],
-                    5 => ['is_active' => true, 'starts_at' => '10:00', 'ends_at' => '21:00'],
-                    6 => ['is_active' => true, 'starts_at' => '10:00', 'ends_at' => '18:00'],
-                    7 => ['is_active' => true, 'starts_at' => '10:00', 'ends_at' => '14:00'],
-                ],
-            ],
-            [
-                'code' => 'drenaje-linfatico',
-                'service_category_slug' => 'corporal',
-                'name' => 'Drenaje linfático manual',
-                'price' => 140.00,
-                'duration_minutes' => 50,
-                'is_active' => true,
-                'is_bookable_online' => true,
-                'description' => 'Sesión corporal suave para retención de líquidos y bienestar general.',
-                'image_path' => null,
-                'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED,
-                'deposit_amount' => null,
-                'deposit_percentage' => 20,
-                'is_video_conference' => false,
-                'is_home_service' => false,
-                'has_special_schedule' => true,
-                'professionals' => ['fernando-chavez'],
-                'schedules' => [
-                    1 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
-                    2 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
-                    3 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
-                    4 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
-                    5 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
-                    6 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '14:00'],
-                    7 => ['is_active' => false, 'starts_at' => null, 'ends_at' => null],
-                ],
-            ],
-            [
-                'code' => 'cejas-laminado',
-                'service_category_slug' => 'cejas-y-pestanas',
-                'name' => 'Diseño y laminado de cejas',
-                'price' => 110.00,
-                'duration_minutes' => 40,
-                'is_active' => true,
-                'is_bookable_online' => true,
-                'description' => 'Diseño, perfilado y laminado para cejas definidas con acabado natural.',
-                'image_path' => null,
-                'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED,
-                'deposit_amount' => 30.00,
-                'deposit_percentage' => null,
-                'is_video_conference' => false,
-                'is_home_service' => false,
-                'has_special_schedule' => false,
-                'professionals' => ['valeria-nunez', 'camila-rojas'],
-                'schedules' => [],
-            ],
-            [
-                'code' => 'lifting-pestanas',
-                'service_category_slug' => 'cejas-y-pestanas',
-                'name' => 'Lifting de pestañas',
-                'price' => 130.00,
-                'duration_minutes' => 50,
-                'is_active' => true,
-                'is_bookable_online' => true,
-                'description' => 'Realza la curvatura natural de las pestañas sin extensiones.',
-                'image_path' => null,
-                'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED,
-                'deposit_amount' => null,
-                'deposit_percentage' => null,
-                'is_video_conference' => false,
-                'is_home_service' => false,
-                'has_special_schedule' => false,
-                'professionals' => ['valeria-nunez'],
-                'schedules' => [],
-            ],
-            [
-                'code' => 'depilacion-axilas',
-                'service_category_slug' => 'depilacion-laser',
-                'name' => 'Depilación láser de axilas',
-                'price' => 150.00,
-                'duration_minutes' => 30,
-                'is_active' => true,
-                'is_bookable_online' => true,
-                'description' => 'Sesión puntual de mantenimiento con tecnología láser para zonas pequeñas.',
-                'image_path' => null,
-                'online_payment_type' => ServicePaymentTypeCatalog::NOT_ALLOWED,
-                'deposit_amount' => null,
-                'deposit_percentage' => null,
-                'is_video_conference' => false,
-                'is_home_service' => false,
-                'has_special_schedule' => true,
-                'professionals' => ['camila-rojas', 'fernando-chavez'],
-                'schedules' => [
-                    1 => ['is_active' => false, 'starts_at' => null, 'ends_at' => null],
-                    2 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
-                    3 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
-                    4 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
-                    5 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
-                    6 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '14:00'],
-                    7 => ['is_active' => false, 'starts_at' => null, 'ends_at' => null],
-                ],
-            ],
-            [
-                'code' => 'depilacion-piernas',
-                'service_category_slug' => 'depilacion-laser',
-                'name' => 'Depilación láser de piernas completas',
-                'price' => 320.00,
-                'duration_minutes' => 90,
-                'is_active' => true,
-                'is_bookable_online' => true,
-                'description' => 'Cobertura completa de piernas con planificación por sesiones.',
-                'image_path' => null,
-                'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED,
-                'deposit_amount' => 80.00,
-                'deposit_percentage' => null,
-                'is_video_conference' => false,
-                'is_home_service' => false,
-                'has_special_schedule' => false,
-                'professionals' => ['fernando-chavez'],
-                'schedules' => [],
-            ],
-            [
-                'code' => 'consulta-nutricional',
-                'service_category_slug' => 'nutricion',
-                'name' => 'Consulta nutricional integral',
-                'price' => 200.00,
-                'duration_minutes' => 60,
-                'is_active' => true,
-                'is_bookable_online' => true,
-                'description' => 'Evaluación inicial, revisión de hábitos y plan alimenticio personalizado.',
-                'image_path' => null,
-                'online_payment_type' => ServicePaymentTypeCatalog::REQUIRED,
-                'deposit_amount' => null,
-                'deposit_percentage' => null,
-                'is_video_conference' => true,
-                'is_home_service' => false,
-                'has_special_schedule' => true,
-                'professionals' => ['sofia-ramos'],
-                'schedules' => [
-                    1 => ['is_active' => true, 'starts_at' => '08:00', 'ends_at' => '18:00'],
-                    2 => ['is_active' => true, 'starts_at' => '08:00', 'ends_at' => '18:00'],
-                    3 => ['is_active' => true, 'starts_at' => '08:00', 'ends_at' => '18:00'],
-                    4 => ['is_active' => true, 'starts_at' => '08:00', 'ends_at' => '18:00'],
-                    5 => ['is_active' => true, 'starts_at' => '08:00', 'ends_at' => '18:00'],
-                    6 => ['is_active' => true, 'starts_at' => '08:00', 'ends_at' => '12:00'],
-                    7 => ['is_active' => false, 'starts_at' => null, 'ends_at' => null],
-                ],
-            ],
+            ['code' => 'keratinas', 'service_category_slug' => 'tratamientos-capilares', 'name' => 'Keratinas', 'price' => 280.00, 'duration_minutes' => 180, 'description' => 'Alisado y nutricion capilar con acabado brillante y control de frizz.', 'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED, 'deposit_amount' => 80.00, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => true, 'professionals' => ['amparo-berna', 'dorita-lopez', 'marizol-leandro', 'tatiana-bernal']],
+            ['code' => 'tratamientos-cabello', 'service_category_slug' => 'tratamientos-capilares', 'name' => 'Tratamientos de cabello', 'price' => 160.00, 'duration_minutes' => 90, 'description' => 'Hidratacion, reparacion y nutricion profunda segun diagnostico capilar.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['amparo-berna', 'marizol-leandro', 'lilian-aguado', 'enith-chero']],
+            ['code' => 'botox-capilares', 'service_category_slug' => 'tratamientos-capilares', 'name' => 'Bóttox capilares', 'price' => 240.00, 'duration_minutes' => 150, 'description' => 'Recuperacion intensiva para cabellos maltratados con sellado termico.', 'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED, 'deposit_amount' => 70.00, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => true, 'professionals' => ['dorita-lopez', 'marizol-leandro', 'tatiana-bernal']],
+            ['code' => 'cortes-dama-caballeros', 'service_category_slug' => 'cortes-y-peinados', 'name' => 'Cortes de dama y caballeros', 'price' => 65.00, 'duration_minutes' => 45, 'description' => 'Corte personalizado con acabado y asesoria segun estilo.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['amparo-berna', 'dorita-lopez', 'marizol-leandro', 'lilian-aguado', 'enith-chero']],
+            ['code' => 'peinados', 'service_category_slug' => 'cortes-y-peinados', 'name' => 'Peinados', 'price' => 95.00, 'duration_minutes' => 60, 'description' => 'Peinado social, brushing o styling final segun ocasion.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['amparo-berna', 'tatiana-bernal', 'brigitte-ramos']],
+            ['code' => 'manicure-clasicas', 'service_category_slug' => 'manicure-y-pedicure', 'name' => 'Manicure clásicas', 'price' => 35.00, 'duration_minutes' => 45, 'description' => 'Limpieza, limado, cuticulas y esmaltado clasico.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['lilian-aguado', 'enith-chero', 'fabiola-valiente', 'brigitte-ramos']],
+            ['code' => 'manicure-infinity-shade', 'service_category_slug' => 'manicure-y-pedicure', 'name' => 'Manicure Infinity Shade', 'price' => 55.00, 'duration_minutes' => 50, 'description' => 'Manicure con acabado duradero y tonos de alta cobertura.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['lilian-aguado', 'fabiola-valiente']],
+            ['code' => 'color-gel', 'service_category_slug' => 'manicure-y-pedicure', 'name' => 'Color gel', 'price' => 45.00, 'duration_minutes' => 30, 'description' => 'Aplicacion de gel color con curado y brillo prolongado.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['enith-chero', 'fabiola-valiente', 'brigitte-ramos']],
+            ['code' => 'linea-opi', 'service_category_slug' => 'manicure-y-pedicure', 'name' => 'En la línea de OPI', 'price' => 60.00, 'duration_minutes' => 55, 'description' => 'Servicio premium con esmaltes y acabados de la linea OPI.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['lilian-aguado', 'fabiola-valiente']],
+            ['code' => 'pedicure', 'service_category_slug' => 'manicure-y-pedicure', 'name' => 'Pedicure', 'price' => 50.00, 'duration_minutes' => 60, 'description' => 'Pedicure completa con limpieza, exfoliacion y esmaltado.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['enith-chero', 'brigitte-ramos', 'fabiola-valiente']],
+            ['code' => 'mechas', 'service_category_slug' => 'coloracion-y-mechas', 'name' => 'Mechas', 'price' => 210.00, 'duration_minutes' => 150, 'description' => 'Iluminacion parcial o total con tecnica personalizada.', 'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED, 'deposit_amount' => 60.00, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => true, 'professionals' => ['amparo-berna', 'dorita-lopez', 'marizol-leandro']],
+            ['code' => 'tinte-color-entero', 'service_category_slug' => 'coloracion-y-mechas', 'name' => 'Tinte color entero', 'price' => 170.00, 'duration_minutes' => 120, 'description' => 'Aplicacion global de color con cobertura uniforme y brillo.', 'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED, 'deposit_amount' => 50.00, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['amparo-berna', 'tatiana-bernal', 'marizol-leandro']],
+            ['code' => 'tinte-raices', 'service_category_slug' => 'coloracion-y-mechas', 'name' => 'Tinte raíces', 'price' => 120.00, 'duration_minutes' => 90, 'description' => 'Retoque de crecimiento para mantener uniformidad del color.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['dorita-lopez', 'lilian-aguado', 'tatiana-bernal']],
+            ['code' => 'rayitos', 'service_category_slug' => 'coloracion-y-mechas', 'name' => 'Rayitos', 'price' => 190.00, 'duration_minutes' => 140, 'description' => 'Reflejos finos para iluminar y dar dimension al cabello.', 'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED, 'deposit_amount' => 55.00, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['amparo-berna', 'marizol-leandro']],
+            ['code' => 'balayage', 'service_category_slug' => 'coloracion-y-mechas', 'name' => 'Balayage', 'price' => 320.00, 'duration_minutes' => 180, 'description' => 'Tecnica de iluminacion degradada con acabado natural y sofisticado.', 'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED, 'deposit_amount' => 90.00, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => true, 'professionals' => ['amparo-berna', 'dorita-lopez', 'tatiana-bernal']],
+            ['code' => 'mechas-babylights', 'service_category_slug' => 'coloracion-y-mechas', 'name' => 'Mechas babylights', 'price' => 280.00, 'duration_minutes' => 180, 'description' => 'Iluminacion fina y sutil para un efecto natural tipo babylights.', 'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED, 'deposit_amount' => 80.00, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => true, 'professionals' => ['dorita-lopez', 'marizol-leandro', 'lilian-aguado']],
+            ['code' => 'pestanas-1x1', 'service_category_slug' => 'pestanas-y-maquillaje', 'name' => 'Pestañas 1x1', 'price' => 180.00, 'duration_minutes' => 120, 'description' => 'Aplicacion clasica una a una para un look natural y definido.', 'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED, 'deposit_amount' => 50.00, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['tatiana-bernal', 'brigitte-ramos']],
+            ['code' => 'pestanas-tira', 'service_category_slug' => 'pestanas-y-maquillaje', 'name' => 'Pestañas de tira', 'price' => 40.00, 'duration_minutes' => 20, 'description' => 'Colocacion rapida de pestanas de tira para eventos y maquillaje social.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['tatiana-bernal', 'fabiola-valiente', 'brigitte-ramos']],
+            ['code' => 'maquillaje', 'service_category_slug' => 'pestanas-y-maquillaje', 'name' => 'Maquillaje', 'price' => 130.00, 'duration_minutes' => 75, 'description' => 'Maquillaje social o de ocasion con preparacion y sellado de piel.', 'online_payment_type' => ServicePaymentTypeCatalog::DEPOSIT_REQUIRED, 'deposit_amount' => 40.00, 'deposit_percentage' => null, 'is_home_service' => true, 'has_special_schedule' => false, 'professionals' => ['tatiana-bernal', 'fabiola-valiente']],
+            ['code' => 'depilacion-hilo-cejas', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación con hilo - Cejas', 'price' => 25.00, 'duration_minutes' => 20, 'description' => 'Perfilado preciso de cejas con tecnica de hilo.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['dorita-lopez', 'enith-chero', 'brigitte-ramos']],
+            ['code' => 'depilacion-hilo-boso', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación con hilo - Boso', 'price' => 18.00, 'duration_minutes' => 15, 'description' => 'Retiro delicado del vello del boso con tecnica de hilo.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['dorita-lopez', 'brigitte-ramos']],
+            ['code' => 'depilacion-hilo-rostro', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación con hilo - Rostro', 'price' => 45.00, 'duration_minutes' => 35, 'description' => 'Depilacion facial completa con acabado suave y preciso.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['enith-chero', 'brigitte-ramos']],
+            ['code' => 'cejas', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Cejas', 'price' => 22.00, 'duration_minutes' => 20, 'description' => 'Diseño basico y definicion de cejas.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['dorita-lopez', 'brigitte-ramos']],
+            ['code' => 'depilacion-cera-rostro', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación de cera - Rostro', 'price' => 40.00, 'duration_minutes' => 30, 'description' => 'Depilacion facial completa con cera de baja irritacion.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['enith-chero', 'fabiola-valiente']],
+            ['code' => 'depilacion-cera-cejas', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación de cera - Cejas', 'price' => 20.00, 'duration_minutes' => 15, 'description' => 'Perfilado rapido de cejas con cera.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['dorita-lopez', 'enith-chero']],
+            ['code' => 'depilacion-cera-boso', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación de cera - Boso', 'price' => 16.00, 'duration_minutes' => 10, 'description' => 'Depilacion de boso con cera suave de rapida aplicacion.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['dorita-lopez', 'brigitte-ramos']],
+            ['code' => 'depilacion-cera-piernas-enteras', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación de cera - Piernas enteras', 'price' => 75.00, 'duration_minutes' => 50, 'description' => 'Depilacion completa de piernas con cera profesional.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['enith-chero', 'fabiola-valiente']],
+            ['code' => 'depilacion-cera-media-pierna', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación de cera - 1/2 piernas', 'price' => 45.00, 'duration_minutes' => 30, 'description' => 'Depilacion de media pierna con cera tibia.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['enith-chero', 'fabiola-valiente']],
+            ['code' => 'depilacion-cera-bikini', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación de cera - Área de bikini', 'price' => 40.00, 'duration_minutes' => 25, 'description' => 'Perfilado de bikini con protocolo higienico y cera especializada.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['fabiola-valiente', 'brigitte-ramos']],
+            ['code' => 'depilacion-cera-brasilera', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación de cera - Brasilera', 'price' => 55.00, 'duration_minutes' => 35, 'description' => 'Depilacion brasilera con tecnica de confort y acabado prolijo.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['fabiola-valiente', 'brigitte-ramos']],
+            ['code' => 'depilacion-cera-ingle', 'service_category_slug' => 'depilacion-y-cejas', 'name' => 'Depilación de cera - Ingle', 'price' => 30.00, 'duration_minutes' => 20, 'description' => 'Depilacion de ingle con cera de uso profesional.', 'online_payment_type' => ServicePaymentTypeCatalog::ALLOWED, 'deposit_amount' => null, 'deposit_percentage' => null, 'is_home_service' => false, 'has_special_schedule' => false, 'professionals' => ['enith-chero', 'brigitte-ramos']],
         ];
 
-        $services = [];
-
         foreach ($definitions as $definition) {
-            $code = $definition['code'];
-            $scheduleDefinitions = $definition['schedules'];
-            $professionalCodes = $definition['professionals'];
             $category = $categories[$definition['service_category_slug']] ?? null;
 
             if ($category === null) {
-                throw new \RuntimeException("Falta la categoría {$definition['service_category_slug']} para sembrar servicios.");
+                throw new \RuntimeException("Falta la categoria {$definition['service_category_slug']} para sembrar servicios.");
             }
 
-            unset(
-                $definition['code'],
-                $definition['service_category_slug'],
-                $definition['professionals'],
-                $definition['schedules'],
-            );
+            $professionals = $definition['professionals'];
+            unset($definition['code'], $definition['service_category_slug'], $definition['professionals']);
 
             $service = Service::query()->updateOrCreate(
                 [
@@ -820,25 +431,24 @@ class DemoDataSeeder extends Seeder
                     'name' => $definition['name'],
                     'price' => $definition['price'],
                     'duration_minutes' => $definition['duration_minutes'],
-                    'is_active' => $definition['is_active'],
-                    'is_bookable_online' => $definition['is_bookable_online'],
+                    'is_active' => true,
+                    'is_bookable_online' => true,
                     'description' => $definition['description'],
-                    'image_path' => $definition['image_path'],
+                    'image_path' => null,
                     'online_payment_type' => $definition['online_payment_type'],
                     'deposit_amount' => $definition['deposit_amount'],
                     'deposit_percentage' => $definition['deposit_percentage'],
-                    'is_video_conference' => $definition['is_video_conference'],
+                    'is_video_conference' => false,
                     'is_home_service' => $definition['is_home_service'],
                     'has_special_schedule' => $definition['has_special_schedule'],
                 ],
             );
 
-            $services[$code] = $service;
-            $this->seedServiceSchedules($service, $scheduleDefinitions);
-            $this->syncServiceProfessionals($service, $professionalCodes, $users);
+            $this->seedServiceSchedules($service, $definition['has_special_schedule']
+                ? $this->defaultServiceSchedule()
+                : []);
+            $this->syncServiceProfessionals($service, $professionals, $users);
         }
-
-        return $services;
     }
 
     /**
@@ -853,11 +463,14 @@ class DemoDataSeeder extends Seeder
             'carla.medina@sasstrend.pe' => ['miraflores', 'san-isidro', 'surco', 'la-molina'],
             'lucia.quispe@sasstrend.pe' => ['miraflores', 'la-molina'],
             'diego.salazar@sasstrend.pe' => ['san-isidro'],
-            'camila.rojas@sasstrend.pe' => ['miraflores', 'san-isidro'],
-            'kevin.torres@sasstrend.pe' => ['surco'],
-            'valeria.nunez@sasstrend.pe' => ['la-molina'],
-            'fernando.chavez@sasstrend.pe' => ['surco', 'la-molina'],
-            'sofia.ramos@sasstrend.pe' => ['san-isidro', 'la-molina'],
+            'amparo.berna@sasstrend.pe' => ['miraflores', 'san-isidro'],
+            'dorita.lopez@sasstrend.pe' => ['surco', 'san-isidro'],
+            'marizol.leandro@sasstrend.pe' => ['la-molina', 'miraflores'],
+            'lilian.aguado@sasstrend.pe' => ['surco', 'la-molina'],
+            'enith.chero@sasstrend.pe' => ['san-isidro', 'la-molina'],
+            'fabiola.valiente@sasstrend.pe' => ['miraflores', 'surco'],
+            'tatiana.bernal@sasstrend.pe' => ['san-isidro', 'miraflores'],
+            'brigitte.ramos@sasstrend.pe' => ['san-isidro', 'la-molina'],
         ];
 
         foreach ($assignments as $email => $locationCodes) {
@@ -867,11 +480,7 @@ class DemoDataSeeder extends Seeder
                 continue;
             }
 
-            $locationIds = collect($locationCodes)
-                ->map(fn (string $code): int => $locations[$code]->id)
-                ->all();
-
-            $user->locations()->sync($locationIds);
+            $this->syncUserLocations($user, $locationCodes, $locations);
         }
     }
 
@@ -918,10 +527,6 @@ class DemoDataSeeder extends Seeder
         }
     }
 
-    /**
-     * @param  array<string, User>  $users
-     * @param  array<string, Location>  $locations
-     */
     /**
      * @param  list<string>  $locationCodes
      * @param  array<string, Location>  $locations
@@ -998,9 +603,43 @@ class DemoDataSeeder extends Seeder
     private function syncServiceProfessionals(Service $service, array $professionalCodes, array $users): void
     {
         $professionalIds = collect($professionalCodes)
-            ->map(fn (string $code): int => $users[$code]->id)
+            ->map(fn (string $code): ?int => isset($users[$code]) ? $users[$code]->id : null)
+            ->filter()
+            ->values()
             ->all();
 
         $service->professionals()->sync($professionalIds);
+    }
+
+    /**
+     * @return array<int, array{is_open: bool, opens_at: ?string, closes_at: ?string}>
+     */
+    private function defaultLocationSchedule(string $weekdayStart, string $weekdayEnd, string $saturdayEnd): array
+    {
+        return [
+            1 => ['is_open' => true, 'opens_at' => $weekdayStart, 'closes_at' => $weekdayEnd],
+            2 => ['is_open' => true, 'opens_at' => $weekdayStart, 'closes_at' => $weekdayEnd],
+            3 => ['is_open' => true, 'opens_at' => $weekdayStart, 'closes_at' => $weekdayEnd],
+            4 => ['is_open' => true, 'opens_at' => $weekdayStart, 'closes_at' => $weekdayEnd],
+            5 => ['is_open' => true, 'opens_at' => $weekdayStart, 'closes_at' => $weekdayEnd],
+            6 => ['is_open' => true, 'opens_at' => $weekdayStart, 'closes_at' => $saturdayEnd],
+            7 => ['is_open' => false, 'opens_at' => null, 'closes_at' => null],
+        ];
+    }
+
+    /**
+     * @return array<int, array{is_active: bool, starts_at: ?string, ends_at: ?string}>
+     */
+    private function defaultServiceSchedule(): array
+    {
+        return [
+            1 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
+            2 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
+            3 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
+            4 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
+            5 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '18:00'],
+            6 => ['is_active' => true, 'starts_at' => '09:00', 'ends_at' => '14:00'],
+            7 => ['is_active' => false, 'starts_at' => null, 'ends_at' => null],
+        ];
     }
 }

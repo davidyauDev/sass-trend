@@ -12,6 +12,10 @@ final class SalePaymentMethodCatalog
 
     public const CASH = 'cash';
 
+    public const YAPE = 'yape';
+
+    public const PLIN = 'plin';
+
     /**
      * @return array<string, string>
      */
@@ -22,6 +26,8 @@ final class SalePaymentMethodCatalog
             self::DEBIT_CARD => 'Tarjeta de Débito',
             self::CREDIT_CARD => 'Tarjeta de Crédito',
             self::CASH => 'Efectivo',
+            self::YAPE => 'Yape',
+            self::PLIN => 'Plin',
         ];
     }
 }

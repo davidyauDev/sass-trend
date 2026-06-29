@@ -11,6 +11,6 @@ final class SyncServiceProfessionalsAction
      */
     public function handle(Service $service, array $professionalIds): void
     {
-        $service->professionals()->sync($professionalIds);
+        $service->professionalProfiles()->sync($professionalIds);
     }
 }

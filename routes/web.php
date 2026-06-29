@@ -3,13 +3,14 @@
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SaleReceiptController;
 use App\Http\Middleware\EnsureTenantIsActive;
-use App\Livewire\Administracion\Locales\Index as LocationsIndex;
+use App\Livewire\Administracion\Comisiones\Index as CommissionsIndex;
+use App\Livewire\Administracion\Comisiones\Report as CommissionsReport;
 use App\Livewire\Administracion\Empresa\Settings as CompanySettings;
+use App\Livewire\Administracion\Locales\Index as LocationsIndex;
 use App\Livewire\Administracion\Profesionales\Index as ProfessionalsIndex;
 use App\Livewire\Administracion\Servicios\Index as ServicesIndex;
 use App\Livewire\Administracion\Tenants\Index as TenantsIndex;
 use App\Livewire\Administracion\Usuarios\Index as UsersIndex;
-use App\Livewire\Administracion\Comisiones\Index as CommissionsIndex;
 use App\Livewire\Clients\Index as ClientsIndex;
 use App\Livewire\Sales\Index as SalesIndex;
 use App\Livewire\SitioWeb\Booking as PublicBooking;
@@ -40,6 +41,7 @@ Route::middleware(['auth', 'verified', EnsureTenantIsActive::class])->group(func
     Route::get('products', [ProductController::class, 'index'])->name('products.index');
     Route::post('products', [ProductController::class, 'store'])->name('products.store');
     Route::get('products/ventas', [ProductController::class, 'salesIndex'])->name('products.sales.index');
+    Route::get('products/ventas/export', [ProductController::class, 'salesExport'])->name('products.sales.export');
     Route::post('products/ventas', [ProductController::class, 'salesStore'])->name('products.sales.store');
     Route::get('products/movimientos', [ProductController::class, 'movementsIndex'])->name('products.movements.index');
     Route::get('products/movimientos/{product}', [ProductController::class, 'movementShow'])->whereNumber('product')->name('products.movements.show');
@@ -51,6 +53,7 @@ Route::middleware(['auth', 'verified', EnsureTenantIsActive::class])->group(func
     Route::post('product-presentations', [ProductController::class, 'storePresentation'])->name('product-presentations.store');
     Route::get('locales', LocationsIndex::class)->name('locales.index');
     Route::get('administracion/comisiones', CommissionsIndex::class)->name('administracion.comisiones.index');
+    Route::get('administracion/comisiones/reporte', CommissionsReport::class)->name('administracion.comisiones.reporte');
     Route::get('administracion/profesionales', ProfessionalsIndex::class)->name('administracion.profesionales.index');
     Route::get('administracion/empresa', CompanySettings::class)->name('administracion.empresa');
     Route::get('administracion/sitio-web', CompanySettings::class)->name('administracion.sitio-web');

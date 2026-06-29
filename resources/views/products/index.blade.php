@@ -294,7 +294,7 @@
                                                 <option :value="brand.id" x-text="brand.name"></option>
                                             </template>
                                         </flux:select>
-                                        <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="quickCreate('brands')">
+                                        <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="openQuickCreate('brands')">
                                             + Nueva marca
                                         </button>
                                         <p class="text-sm text-rose-600" x-show="errors.brand_id" x-text="errors.brand_id" x-cloak></p>
@@ -307,7 +307,7 @@
                                                 <option :value="category.id" x-text="category.name"></option>
                                             </template>
                                         </flux:select>
-                                        <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="quickCreate('categories')">
+                                        <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="openQuickCreate('categories')">
                                             + Nueva categoría
                                         </button>
                                         <p class="text-sm text-rose-600" x-show="errors.category_id" x-text="errors.category_id" x-cloak></p>
@@ -320,7 +320,7 @@
                                                 <option :value="presentation.id" x-text="presentation.name"></option>
                                             </template>
                                         </flux:select>
-                                        <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="quickCreate('presentations')">
+                                        <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="openQuickCreate('presentations')">
                                             + Nuevo formato
                                         </button>
                                         <p class="text-sm text-rose-600" x-show="errors.presentation_id" x-text="errors.presentation_id" x-cloak></p>
@@ -525,6 +525,69 @@
         </div>
 
         <div
+            x-show="quickCreateOpen"
+            x-cloak
+            x-transition.opacity
+            class="fixed inset-0 z-[75] flex items-center justify-center bg-zinc-950/50 px-3 py-6 backdrop-blur-[2px]"
+            @keydown.escape.window="closeQuickCreate()"
+            @click.self="closeQuickCreate()"
+        >
+            <div class="relative flex w-full max-w-lg flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_100px_rgba(0,0,0,0.25)] ring-1 ring-violet-200">
+                <div class="flex items-start justify-between gap-4 border-b border-violet-100 px-6 py-5">
+                    <div>
+                        <flux:heading size="lg" x-text="quickCreateTitle()"></flux:heading>
+                        <flux:text class="mt-1 text-sm text-zinc-500" x-text="quickCreateDescription()"></flux:text>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+                        @click="closeQuickCreate()"
+                        aria-label="Cerrar modal de alta rápida"
+                    >
+                        <flux:icon name="x-mark" class="size-6" />
+                    </button>
+                </div>
+
+                <form class="space-y-5 px-6 py-5" @submit.prevent="saveQuickCreate()">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-zinc-700" x-text="`Nombre de la ${quickCreateLabel()} *`"></label>
+                        <input
+                            x-model="quickCreateName"
+                            type="text"
+                            class="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-sm text-zinc-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                            :placeholder="quickCreatePlaceholder()"
+                            autofocus
+                        />
+                        <p class="text-sm text-rose-600" x-show="quickCreateErrors.name" x-text="quickCreateErrors.name" x-cloak></p>
+                    </div>
+
+                    <div class="rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm text-violet-900">
+                        Al crear este registro, quedará seleccionado automáticamente en el formulario del producto.
+                    </div>
+
+                    <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                        <button
+                            type="button"
+                            class="inline-flex h-10 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-200"
+                            @click="closeQuickCreate()"
+                        >
+                            Cancelar
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="inline-flex h-10 items-center justify-center rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            :disabled="quickCreateSaving"
+                        >
+                            <span x-text="quickCreateSubmitLabel()"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div
             x-show="stockAdjustmentOpen"
             x-transition.opacity
             class="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/50 px-3 py-6 backdrop-blur-[2px]"
@@ -644,4 +707,3 @@
         </div>
     </section>
 </x-layouts::app>
-

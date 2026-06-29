@@ -78,7 +78,7 @@ class CommissionDemoSeeder extends Seeder
             ],
         );
 
-        $professional = User::query()->withoutGlobalScopes()->where('email', 'camila.rojas@sasstrend.pe')->first();
+        $professional = User::query()->withoutGlobalScopes()->where('email', 'amparo.berna@sasstrend.pe')->first();
 
         if ($professional instanceof User) {
             ProfessionalCommission::query()->withoutGlobalScopes()->updateOrCreate(

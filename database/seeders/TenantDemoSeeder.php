@@ -2,29 +2,26 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
+use App\Models\Branch;
+use App\Models\Client;
 use App\Models\Location;
-use App\Models\Professional;
 use App\Models\Product;
 use App\Models\ProductBrand;
-use App\Models\ProductBranchStock;
 use App\Models\ProductCategory;
 use App\Models\ProductPresentation;
 use App\Models\ProductSale;
 use App\Models\ProductSaleItem;
-use App\Models\ProductStockMovement;
+use App\Models\Professional;
+use App\Models\Role;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SalePayment;
+use App\Models\Service;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\Branch;
-use App\Models\Client;
-use App\Models\Resource;
-use App\Models\Service;
-use Illuminate\Support\Carbon;
 use App\Services\Users\UserRoleCatalog;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -231,32 +228,60 @@ final class TenantDemoSeeder extends Seeder
     {
         $definitions = [
             [
-                'email' => 'camila.rojas@sasstrend.pe',
-                'public_name' => 'Camila Rojas Silva',
-                'bio' => 'Especialista en faciales y protocolos de hidratación.',
+                'email' => 'amparo.berna@sasstrend.pe',
+                'public_name' => 'AMPARO BERNA',
+                'bio' => 'Especialista en keratinas, balayage y acabados premium.',
                 'locations' => ['SASS Trend Miraflores', 'SASS Trend San Isidro'],
-                'services' => ['Limpieza facial profunda', 'Hidratación facial express'],
+                'services' => ['Keratinas', 'Balayage', 'Cortes de dama y caballeros'],
             ],
             [
-                'email' => 'valeria.nunez@sasstrend.pe',
-                'public_name' => 'Valeria Núñez Castro',
-                'bio' => 'Diseño de cejas, lifting y atención estética detallista.',
-                'locations' => ['SASS Trend La Molina'],
-                'services' => ['Diseño y laminado de cejas', 'Lifting de pestañas'],
+                'email' => 'dorita.lopez@sasstrend.pe',
+                'public_name' => 'DORITA LÓPEZ',
+                'bio' => 'Colorista con experiencia en mechas, rayitos y tintes.',
+                'locations' => ['SASS Trend Surco', 'SASS Trend San Isidro'],
+                'services' => ['Mechas', 'Tinte raíces', 'Depilación con hilo - Cejas'],
             ],
             [
-                'email' => 'fernando.chavez@sasstrend.pe',
-                'public_name' => 'Fernando Chávez Montalvo',
-                'bio' => 'Enfoque corporal, masajes y bienestar integral.',
-                'locations' => ['SASS Trend Surco'],
-                'services' => ['Masaje descontracturante', 'Depilación láser de axilas'],
+                'email' => 'marizol.leandro@sasstrend.pe',
+                'public_name' => 'MARIZOL LEANDRO',
+                'bio' => 'Especialista en coloraciones completas, bottox capilar y peinados.',
+                'locations' => ['SASS Trend La Molina', 'SASS Trend Miraflores'],
+                'services' => ['Bóttox capilares', 'Tinte color entero', 'Peinados'],
             ],
             [
-                'email' => 'sofia.ramos@sasstrend.pe',
-                'public_name' => 'Sofía Ramos Castillo',
-                'bio' => 'Nutrición clínica y seguimiento personalizado.',
+                'email' => 'lilian.aguado@sasstrend.pe',
+                'public_name' => 'LILIAN AGUADO',
+                'bio' => 'Manicurista y colorista orientada a acabados prolijos.',
+                'locations' => ['SASS Trend Surco', 'SASS Trend La Molina'],
+                'services' => ['Manicure clásicas', 'En la línea de OPI', 'Mechas babylights'],
+            ],
+            [
+                'email' => 'enith.chero@sasstrend.pe',
+                'public_name' => 'ENITH CHERO',
+                'bio' => 'Especialista en manicure, pedicure y depilación facial.',
                 'locations' => ['SASS Trend San Isidro', 'SASS Trend La Molina'],
-                'services' => ['Consulta nutricional integral', 'Limpieza facial profunda'],
+                'services' => ['Color gel', 'Pedicure', 'Depilación de cera - Rostro'],
+            ],
+            [
+                'email' => 'fabiola.valiente@sasstrend.pe',
+                'public_name' => 'FABIOLA VALIENTE',
+                'bio' => 'Experta en maquillaje social, uñas y depilación corporal.',
+                'locations' => ['SASS Trend Miraflores', 'SASS Trend Surco'],
+                'services' => ['Maquillaje', 'Manicure Infinity Shade', 'Depilación de cera - Brasilera'],
+            ],
+            [
+                'email' => 'tatiana.bernal@sasstrend.pe',
+                'public_name' => 'TATIANA BERNAL',
+                'bio' => 'Especialista en pestañas, peinados y coloración avanzada.',
+                'locations' => ['SASS Trend San Isidro', 'SASS Trend Miraflores'],
+                'services' => ['Pestañas 1x1', 'Pestañas de tira', 'Balayage'],
+            ],
+            [
+                'email' => 'brigitte.ramos@sasstrend.pe',
+                'public_name' => 'BRIGITTE RAMOS',
+                'bio' => 'Perfilado de cejas, pestañas y servicios express de belleza.',
+                'locations' => ['SASS Trend San Isidro', 'SASS Trend La Molina'],
+                'services' => ['Pestañas de tira', 'Cejas', 'Depilación con hilo - Rostro'],
             ],
         ];
 
@@ -515,7 +540,7 @@ final class TenantDemoSeeder extends Seeder
                 'sold_at' => Carbon::create(2026, 6, 16, 14, 0, 0),
                 'notes' => 'Cobro mixto por tratamiento y producto.',
                 'items' => [
-                    ['item_type' => 'service', 'service' => 'Limpieza facial profunda', 'product' => null, 'item_name' => 'Limpieza facial profunda', 'item_detail' => 'Sesión premium', 'quantity' => 1, 'unit_price' => 180],
+                    ['item_type' => 'service', 'service' => 'Keratinas', 'product' => null, 'item_name' => 'Keratinas', 'item_detail' => 'Sesión premium', 'quantity' => 1, 'unit_price' => 280],
                     ['item_type' => 'product', 'service' => null, 'product' => 'Serum hidratante 30 ml', 'item_name' => 'Serum hidratante 30 ml', 'item_detail' => 'Venta retail', 'quantity' => 1, 'unit_price' => 85],
                 ],
             ],
@@ -528,7 +553,7 @@ final class TenantDemoSeeder extends Seeder
                 'sold_at' => Carbon::create(2026, 6, 17, 9, 15, 0),
                 'notes' => 'Venta de control y producto complementario.',
                 'items' => [
-                    ['item_type' => 'service', 'service' => 'Consulta nutricional integral', 'product' => null, 'item_name' => 'Consulta nutricional integral', 'item_detail' => 'Primera evaluación', 'quantity' => 1, 'unit_price' => 200],
+                    ['item_type' => 'service', 'service' => 'Pedicure', 'product' => null, 'item_name' => 'Pedicure', 'item_detail' => 'Primera evaluación', 'quantity' => 1, 'unit_price' => 50],
                     ['item_type' => 'product', 'service' => null, 'product' => 'Protector solar facial SPF 50', 'item_name' => 'Protector solar facial SPF 50', 'item_detail' => 'Recomendado por profesional', 'quantity' => 1, 'unit_price' => 120],
                 ],
             ],

@@ -26,6 +26,7 @@ class ServiceForm extends Form
     public bool $is_active = true;
 
     /** @var array<int, int> */
+    /** @var list<int> */
     public array $professional_ids = [];
 
     public bool $is_bookable_online = true;
@@ -86,7 +87,18 @@ class ServiceForm extends Form
         $this->price = (string) $service->price;
         $this->duration_minutes = (string) $service->duration_minutes;
         $this->is_active = $service->is_active;
-        $this->professional_ids = $service->professionals->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all();
+        $this->professional_ids = $service->professionalProfiles->isNotEmpty()
+            ? $service->professionalProfiles
+                ->pluck('id')
+                ->map(fn (mixed $id): int => (int) $id)
+                ->values()
+                ->all()
+            : $service->professionals
+                ->map(fn ($user): ?int => $user->professionalProfile?->id)
+                ->filter()
+                ->map(fn (mixed $id): int => (int) $id)
+                ->values()
+                ->all();
         $this->is_bookable_online = $service->is_bookable_online;
         $this->description = $service->description ?? '';
         $this->image = null;
@@ -211,7 +223,7 @@ class ServiceForm extends Form
             'deposit_amount' => ['nullable', 'numeric', 'min:0'],
             'deposit_percentage' => ['nullable', 'integer', 'min:0', 'max:100'],
             'professional_ids' => ['array'],
-            'professional_ids.*' => ['integer', Rule::exists('users', 'id')],
+            'professional_ids.*' => ['integer', Rule::exists('professionals', 'id')],
             'is_bookable_online' => ['boolean'],
             'is_active' => ['boolean'],
             'is_video_conference' => ['boolean'],

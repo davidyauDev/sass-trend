@@ -19,6 +19,8 @@ class ProfessionalFactory extends Factory
             'has_system_access' => false,
             'bio' => fake()->optional()->paragraph(),
             'photo_path' => null,
+            'sale_commission' => fake()->randomFloat(2, 0, 50),
+            'commission_type' => fake()->randomElement(['percent', 'amount']),
             'is_active' => true,
         ];
     }

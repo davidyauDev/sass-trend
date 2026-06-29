@@ -10,17 +10,11 @@
     <div class="flex w-full flex-col gap-6">
         <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="min-w-0">
-                <flux:badge color="sky" size="sm" inset="left">Administración</flux:badge>
                 <flux:heading size="xl" level="1" class="mt-3">Profesionales</flux:heading>
-                <flux:subheading size="lg" class="mt-2">
-                    Gestiona tu equipo, sus servicios, horarios, perfil público y grupos personalizados desde un solo lugar.
-                </flux:subheading>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
-                <flux:button variant="ghost" icon="funnel" wire:click="$toggle('showFilters')">
-                    Filtrar por
-                </flux:button>
+
 
                 @if ($sectionTab === 'professionals')
                     <flux:button variant="primary" icon="plus" wire:click="openCreateModal">
@@ -243,13 +237,14 @@
                         <div class="grid gap-4">
                             <flux:input wire:model="form.public_name" label="Nombre Público" type="text" placeholder="Nombre Público" />
 
-                            <flux:switch
+                            {{-- Los permisos comienzan desactivados por defecto para nuevos profesionales. --}}
+                            {{-- <flux:switch
                                 wire:model.live="form.accepts_online_bookings"
                                 label="Este profesional acepta reservas en línea"
                                 align="left"
-                            />
+                            /> --}}
 
-                            <div class="space-y-3">
+                            {{-- <div class="space-y-3">
                                 <flux:switch
                                     wire:model.live="form.has_system_access"
                                     label="Crear un usuario a este profesional"
@@ -260,7 +255,7 @@
                                 @if ($form->has_system_access)
                                     <flux:input wire:model="form.email" label="Email" type="email" placeholder="Ingresa el email del profesional" />
                                 @endif
-                            </div>
+                            </div> --}}
                         </div>
                     </div>
 

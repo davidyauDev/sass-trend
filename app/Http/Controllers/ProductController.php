@@ -11,7 +11,9 @@ use App\Models\ProductBrand;
 use App\Models\ProductCategory;
 use App\Models\ProductPresentation;
 use App\Models\ProductSale;
+use App\Models\ProductSaleItem;
 use App\Models\ProductStockMovement;
+use App\Models\SaleItem;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\View\View;
@@ -21,8 +23,10 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductController extends Controller
 {
@@ -92,12 +96,17 @@ class ProductController extends Controller
     {
         $hasFilters = $request->filled('from')
             || $request->filled('to')
-            || $request->filled('branch_id')
-            || $request->filled('product_id');
+            || $request->filled('product_status')
+            || $request->filled('product_id')
+            || $request->filled('seller_id');
 
         [$from, $to, $branchId, $productId] = $this->resolveRangeFilters($request);
         $from ??= now()->subDays(30)->toDateString();
         $to ??= now()->toDateString();
+        $branchId = null;
+        $productStatus = $this->resolveProductStatusFilter($request);
+        $sellerKey = $this->resolveSellerFilter($request);
+        $detailTab = $this->resolveSalesDetailTab($request);
 
         $branches = Branch::query()
             ->where('is_active', true)
@@ -109,38 +118,40 @@ class ProductController extends Controller
             ->orderBy('name')
             ->get();
 
-        $salesQuery = $this->salesQuery($from, $to, $branchId, $productId);
-
-        $sales = (clone $salesQuery)
-            ->with(['branch', 'user', 'items.product.presentation', 'items.product.brand'])
-            ->latest('sold_at')
-            ->paginate(10)
-            ->withQueryString();
+        $salesRows = $this->unifiedProductSalesRows($from, $to, $branchId, $productId, $productStatus, $sellerKey);
+        $productBreakdown = $this->salesByProduct($salesRows);
+        $sellerBreakdown = $this->salesBySeller($salesRows);
 
         $salesSummary = [
-            'revenue' => (float) (clone $salesQuery)->sum('total'),
-            'sales_count' => (int) (clone $salesQuery)->count(),
-            'units_sold' => (float) ProductSale::query()
-                ->selectRaw('coalesce(sum(product_sale_items.quantity), 0) as units_sold')
-                ->join('product_sale_items', 'product_sales.id', '=', 'product_sale_items.product_sale_id')
-                ->whereDate('product_sales.sold_at', '>=', $from)
-                ->whereDate('product_sales.sold_at', '<=', $to)
-                ->when($branchId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('product_sales.branch_id', $branchId))
-                ->when($productId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('product_sale_items.product_id', $productId))
-                ->value('units_sold'),
-            'average_ticket' => (float) ((clone $salesQuery)->count() > 0 ? (clone $salesQuery)->avg('total') : 0),
+            'revenue' => (float) $productBreakdown->sum('revenue'),
+            'units_sold' => (float) $productBreakdown->sum('units_sold'),
         ];
+
+        $highestProduct = $productBreakdown->sortByDesc('revenue')->first();
+        $lowestProduct = $productBreakdown->sortBy('revenue')->first();
+        $highestSeller = $sellerBreakdown->sortByDesc('revenue')->first();
+        $lowestSeller = $sellerBreakdown->sortBy('revenue')->first();
 
         return view('products.sales', [
             'from' => $from,
             'to' => $to,
             'branchId' => $branchId,
             'productId' => $productId,
+            'sellerKey' => $sellerKey,
             'hasFilters' => $hasFilters,
-            'sales' => $sales,
+            'detailTab' => $detailTab,
+            'productStatus' => $productStatus,
             'branches' => $this->branchPayload($branches),
             'products' => $this->productCatalogPayload($products),
             'salesSummary' => $salesSummary,
+            'productBreakdown' => $productBreakdown,
+            'sellerBreakdown' => $sellerBreakdown,
+            'highlights' => [
+                'highest_product' => $highestProduct,
+                'lowest_product' => $lowestProduct,
+                'highest_seller' => $highestSeller,
+                'lowest_seller' => $lowestSeller,
+            ],
             'salesConfig' => [
                 'csrf' => csrf_token(),
                 'endpoints' => [
@@ -151,10 +162,69 @@ class ProductController extends Controller
                 'filters' => [
                     'from' => $from,
                     'to' => $to,
-                    'branch_id' => $branchId,
                     'product_id' => $productId,
+                    'seller_key' => $sellerKey,
+                    'product_status' => $productStatus,
                 ],
             ],
+        ]);
+    }
+
+    public function salesExport(Request $request): StreamedResponse
+    {
+        [$from, $to, $branchId, $productId] = $this->resolveRangeFilters($request);
+        $from ??= now()->subDays(30)->toDateString();
+        $to ??= now()->toDateString();
+        $branchId = null;
+
+        $productStatus = $this->resolveProductStatusFilter($request);
+        $sellerKey = $this->resolveSellerFilter($request);
+        $detailTab = $this->resolveSalesDetailTab($request);
+        $salesRows = $this->unifiedProductSalesRows($from, $to, $branchId, $productId, $productStatus, $sellerKey);
+
+        $rows = $detailTab === 'vendors'
+            ? $this->salesBySeller($salesRows)
+            : $this->salesByProduct($salesRows);
+
+        $headers = $detailTab === 'vendors'
+            ? ['Vendedor', 'Tipo de usuario', 'Unidades vendidas', 'Recaudacion']
+            : ['Producto', 'Formato/Presentacion', 'Unidades vendidas', 'Recaudacion'];
+
+        $filename = sprintf(
+            'ventas-productos-%s-%s-%s.csv',
+            $detailTab,
+            $from,
+            $to,
+        );
+
+        return response()->streamDownload(function () use ($rows, $headers, $detailTab): void {
+            $handle = fopen('php://output', 'wb');
+
+            if ($handle === false) {
+                return;
+            }
+
+            fputcsv($handle, $headers);
+
+            foreach ($rows as $row) {
+                fputcsv($handle, $detailTab === 'vendors'
+                    ? [
+                        $row['seller_name'],
+                        $row['user_type'],
+                        $this->exportNumeric($row['units_sold']),
+                        $this->exportNumeric($row['revenue']),
+                    ]
+                    : [
+                        $row['product_name'],
+                        $row['presentation_name'],
+                        $this->exportNumeric($row['units_sold']),
+                        $this->exportNumeric($row['revenue']),
+                    ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
 
@@ -448,6 +518,191 @@ class ProductController extends Controller
             ->whereDate('sold_at', '<=', $to)
             ->when($branchId !== null, fn (EloquentBuilder $saleQuery): EloquentBuilder => $saleQuery->where('branch_id', $branchId))
             ->when($productId !== null, fn (EloquentBuilder $saleQuery): EloquentBuilder => $saleQuery->whereHas('items', fn (EloquentBuilder $itemQuery): EloquentBuilder => $itemQuery->where('product_id', $productId)));
+    }
+
+    private function resolveProductStatusFilter(Request $request): string
+    {
+        $status = $request->string('product_status')->trim()->toString();
+
+        return in_array($status, ['all', 'active', 'inactive'], true) ? $status : 'active';
+    }
+
+    private function resolveSellerFilter(Request $request): ?string
+    {
+        $sellerKey = $request->string('seller_key')->trim()->toString();
+
+        return $sellerKey !== '' ? $sellerKey : null;
+    }
+
+    private function resolveSalesDetailTab(Request $request): string
+    {
+        $detail = $request->string('detail')->trim()->toString();
+
+        return in_array($detail, ['products', 'vendors'], true) ? $detail : 'products';
+    }
+
+    /**
+     * @return Collection<int, array{
+     *     product_id:int,
+     *     product_name:string,
+     *     presentation_name:string,
+     *     seller_key:string,
+     *     seller_name:string,
+     *     user_type:string,
+     *     sold_at:string,
+     *     units_sold:float,
+     *     revenue:float
+     * }>
+     */
+    private function unifiedProductSalesRows(
+        string $from,
+        string $to,
+        ?int $branchId,
+        ?int $productId,
+        string $productStatus,
+        ?string $sellerKey,
+    ): Collection {
+        $directRows = ProductSale::query()
+            ->with(['user.role', 'items.product.presentation'])
+            ->whereDate('sold_at', '>=', $from)
+            ->whereDate('sold_at', '<=', $to)
+            ->when($branchId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('branch_id', $branchId))
+            ->when($productId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->whereHas('items', fn (EloquentBuilder $itemQuery): EloquentBuilder => $itemQuery->where('product_id', $productId)))
+            ->when($productStatus !== 'all', fn (EloquentBuilder $query): EloquentBuilder => $query->whereHas('items.product', fn (EloquentBuilder $productQuery): EloquentBuilder => $productQuery->where('is_active', $productStatus === 'active')))
+            ->get()
+            ->flatMap(function (ProductSale $sale): Collection {
+                return $sale->items->map(function (ProductSaleItem $item) use ($sale): array {
+                    $product = $item->product;
+                    $sellerName = (string) data_get($sale, 'user.name', 'Sin vendedor');
+                    $sellerType = (string) data_get($sale, 'user.role.name', 'Usuario');
+
+                    return [
+                        'product_id' => (int) $item->product_id,
+                        'product_name' => (string) data_get($product, 'name', 'Producto'),
+                        'presentation_name' => (string) data_get($product, 'presentation.name', 'Sin formato'),
+                        'seller_key' => 'user:'.$sale->user_id,
+                        'seller_name' => $sellerName,
+                        'user_type' => $sellerType,
+                        'sold_at' => (string) $sale->sold_at,
+                        'units_sold' => (float) $item->quantity,
+                        'revenue' => (float) $item->subtotal,
+                    ];
+                });
+            });
+
+        $checkoutRows = SaleItem::query()
+            ->with(['sale.user.role', 'product.presentation'])
+            ->where('item_type', 'product')
+            ->whereHas('sale', function (EloquentBuilder $query) use ($from, $to, $branchId): EloquentBuilder {
+                return $query
+                    ->whereDate('sold_at', '>=', $from)
+                    ->whereDate('sold_at', '<=', $to)
+                    ->when($branchId !== null, fn (EloquentBuilder $saleQuery): EloquentBuilder => $saleQuery->where('branch_id', $branchId));
+            })
+            ->when($productId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('product_id', $productId))
+            ->when($productStatus !== 'all', fn (EloquentBuilder $query): EloquentBuilder => $query->whereHas('product', fn (EloquentBuilder $productQuery): EloquentBuilder => $productQuery->where('is_active', $productStatus === 'active')))
+            ->get()
+            ->map(function (SaleItem $item): array {
+                $sale = $item->sale;
+                $product = $item->product;
+                $professionalId = data_get($item->meta, 'professional_id');
+                $professionalName = trim((string) data_get($item->meta, 'professional_name', ''));
+                $sellerKey = $professionalId !== null ? 'professional:'.$professionalId : 'user:'.$sale?->user_id;
+                $sellerName = $professionalName !== ''
+                    ? $professionalName
+                    : (string) data_get($sale, 'user.name', 'Sin vendedor');
+                $sellerType = $professionalName !== ''
+                    ? 'Profesional'
+                    : (string) data_get($sale, 'user.role.name', 'Usuario');
+
+                return [
+                    'product_id' => (int) $item->product_id,
+                    'product_name' => (string) data_get($product, 'name', 'Producto'),
+                    'presentation_name' => (string) data_get($product, 'presentation.name', 'Sin formato'),
+                    'seller_key' => $sellerKey,
+                    'seller_name' => $sellerName,
+                    'user_type' => $sellerType,
+                    'sold_at' => (string) $sale?->sold_at,
+                    'units_sold' => (float) $item->quantity,
+                    'revenue' => (float) $item->subtotal,
+                ];
+            });
+
+        return $directRows
+            ->merge($checkoutRows)
+            ->when($sellerKey !== null, fn (Collection $rows): Collection => $rows->where('seller_key', $sellerKey))
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, array{
+     *     product_id:int,
+     *     product_name:string,
+     *     presentation_name:string,
+     *     seller_key:string,
+     *     seller_name:string,
+     *     user_type:string,
+     *     sold_at:string,
+     *     units_sold:float,
+     *     revenue:float
+     * }>
+     */
+    private function salesByProduct(Collection $rows): Collection
+    {
+        return $rows
+            ->groupBy('product_id')
+            ->map(function (Collection $group): array {
+                $first = $group->first();
+
+                return [
+                    'product_id' => (int) $first['product_id'],
+                    'product_name' => (string) $first['product_name'],
+                    'presentation_name' => (string) $first['presentation_name'],
+                    'units_sold' => (float) $group->sum('units_sold'),
+                    'revenue' => (float) $group->sum('revenue'),
+                ];
+            })
+            ->sortByDesc('revenue')
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, array{
+     *     product_id:int,
+     *     product_name:string,
+     *     presentation_name:string,
+     *     seller_key:string,
+     *     seller_name:string,
+     *     user_type:string,
+     *     sold_at:string,
+     *     units_sold:float,
+     *     revenue:float
+     * }>
+     */
+    private function salesBySeller(Collection $rows): Collection
+    {
+        return $rows
+            ->groupBy('seller_key')
+            ->map(function (Collection $group): array {
+                $first = $group->first();
+
+                return [
+                    'seller_key' => (string) $first['seller_key'],
+                    'seller_name' => (string) $first['seller_name'],
+                    'user_type' => (string) $first['user_type'],
+                    'units_sold' => (float) $group->sum('units_sold'),
+                    'revenue' => (float) $group->sum('revenue'),
+                ];
+            })
+            ->sortByDesc('revenue')
+            ->values();
+    }
+
+    private function exportNumeric(float $value): string
+    {
+        return fmod($value, 1.0) === 0.0
+            ? number_format($value, 0, '.', '')
+            : number_format($value, 2, '.', '');
     }
 
     /**

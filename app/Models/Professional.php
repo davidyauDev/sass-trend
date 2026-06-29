@@ -36,6 +36,8 @@ use Illuminate\Support\Str;
     'has_system_access',
     'bio',
     'photo_path',
+    'sale_commission',
+    'commission_type',
     'is_active',
 ])]
 class Professional extends Model
@@ -48,6 +50,8 @@ class Professional extends Model
         return [
             'accepts_online_bookings' => 'boolean',
             'has_system_access' => 'boolean',
+            'sale_commission' => 'decimal:2',
+            'commission_type' => 'string',
             'is_active' => 'boolean',
         ];
     }
@@ -73,7 +77,9 @@ class Professional extends Model
      */
     public function services(): BelongsToMany
     {
-        return $this->belongsToMany(Service::class, 'professional_service_assignments')->withTimestamps();
+        return $this->belongsToMany(Service::class, 'professional_service_assignments')
+            ->withPivot(['sale_commission', 'commission_type'])
+            ->withTimestamps();
     }
 
     /**

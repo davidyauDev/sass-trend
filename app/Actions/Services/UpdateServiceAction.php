@@ -60,7 +60,7 @@ final class UpdateServiceAction
             $this->syncProfessionals->handle($service, $data['professional_ids']);
             $this->saveSchedules->handle($service, $data['has_special_schedule'], $data['schedules']);
 
-            return $service->load(['category', 'professionals', 'schedules']);
+            return $service->load(['category', 'professionalProfiles', 'professionals.professionalProfile', 'schedules']);
         });
     }
 }

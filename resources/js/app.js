@@ -62,6 +62,11 @@ document.addEventListener('alpine:init', () => {
         stockAdjustmentProduct: null,
         stockAdjustmentBranches: [],
         stockAdjustmentForm: {},
+        quickCreateOpen: false,
+        quickCreateSaving: false,
+        quickCreateErrors: {},
+        quickCreateKind: 'brands',
+        quickCreateName: '',
         toastTimer: null,
         toast: {
             visible: false,
@@ -107,6 +112,30 @@ document.addEventListener('alpine:init', () => {
                 quantity: '',
                 comment: '',
             };
+        },
+        quickCreateMeta(kind = this.quickCreateKind) {
+            const meta = {
+                brands: {
+                    title: 'Nueva marca',
+                    label: 'marca',
+                    description: 'Crea una marca nueva y quedará seleccionada automáticamente en el producto.',
+                    placeholder: 'Ej. Natura',
+                },
+                categories: {
+                    title: 'Nueva categoría',
+                    label: 'categoría',
+                    description: 'Crea una categoría nueva y quedará seleccionada automáticamente en el producto.',
+                    placeholder: 'Ej. Cuidado facial',
+                },
+                presentations: {
+                    title: 'Nuevo formato',
+                    label: 'formato',
+                    description: 'Crea un formato nuevo y quedará seleccionado automáticamente en el producto.',
+                    placeholder: 'Ej. Frasco',
+                },
+            };
+
+            return meta[kind] ?? meta.brands;
         },
         resetMovementState() {
             this.movementLoading = false;
@@ -168,6 +197,34 @@ document.addEventListener('alpine:init', () => {
         },
         closeStockAdjustment() {
             this.resetStockAdjustment();
+        },
+        openQuickCreate(kind) {
+            this.quickCreateKind = kind;
+            this.quickCreateName = '';
+            this.quickCreateErrors = {};
+            this.quickCreateSaving = false;
+            this.quickCreateOpen = true;
+        },
+        closeQuickCreate() {
+            this.quickCreateOpen = false;
+            this.quickCreateSaving = false;
+            this.quickCreateErrors = {};
+            this.quickCreateName = '';
+        },
+        quickCreateTitle() {
+            return this.quickCreateMeta().title;
+        },
+        quickCreateDescription() {
+            return this.quickCreateMeta().description;
+        },
+        quickCreatePlaceholder() {
+            return this.quickCreateMeta().placeholder;
+        },
+        quickCreateLabel() {
+            return this.quickCreateMeta().label;
+        },
+        quickCreateSubmitLabel() {
+            return this.quickCreateSaving ? 'Guardando...' : 'Crear';
         },
         modalTitle() {
             return this.isEditing ? `Editando ${this.form.name || 'producto'}` : 'Nuevo producto';
@@ -413,18 +470,12 @@ document.addEventListener('alpine:init', () => {
                 this.showToast('error', 'Error', error?.message ?? 'No se pudo eliminar.');
             }
         },
-        async quickCreate(kind) {
-            const label = {
-                brands: 'marca',
-                categories: 'categoría',
-                presentations: 'formato',
-            }[kind] ?? 'registro';
+        async saveQuickCreate() {
+            const kind = this.quickCreateKind;
+            const label = this.quickCreateLabel();
 
-            const name = window.prompt(`Nombre de la nueva ${label}`);
-
-            if (!name || !name.trim()) {
-                return;
-            }
+            this.quickCreateSaving = true;
+            this.quickCreateErrors = {};
 
             try {
                 const response = await fetch(this.endpoints[kind], {
@@ -434,14 +485,15 @@ document.addEventListener('alpine:init', () => {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': this.csrf,
                     },
-                    body: JSON.stringify({ name: name.trim() }),
+                    body: JSON.stringify({ name: this.quickCreateName.trim() }),
                 });
 
                 const data = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
                     if (response.status === 422 && data.errors) {
-                        this.showToast('error', 'No se pudo crear', data.errors.name?.[0] ?? data.message ?? 'Revisa el nombre.');
+                        this.applyErrorsTo(this.quickCreateErrors, data.errors);
+                        this.showToast('error', 'Revisa el formulario', data.errors.name?.[0] ?? data.message ?? 'Revisa el nombre.');
                         return;
                     }
 
@@ -465,9 +517,12 @@ document.addEventListener('alpine:init', () => {
                     this.form.presentation_id = record.id;
                 }
 
+                this.closeQuickCreate();
                 this.showToast('success', data.message ?? `${label} creada correctamente.`);
             } catch (error) {
                 this.showToast('error', 'Error', error?.message ?? `No se pudo crear la ${label}.`);
+            } finally {
+                this.quickCreateSaving = false;
             }
         },
         upsertCatalog(items, record) {

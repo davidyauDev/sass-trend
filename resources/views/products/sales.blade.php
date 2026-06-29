@@ -1,4 +1,23 @@
 <x-layouts::app :title="__('Venta de productos')">
+    @php
+        $formatAmount = static fn (float|int $value): string => rtrim(rtrim(number_format((float) $value, 2, '.', ','), '0'), '.');
+        $detailBaseQuery = [
+            'from' => $from,
+            'to' => $to,
+            'product_status' => $productStatus,
+            'product_id' => $productId,
+            'seller_key' => $sellerKey,
+        ];
+        $selectedProductLabel = collect($products)->firstWhere('id', $productId)['name'] ?? null;
+        $selectedSellerLabel = $sellerKey === null
+            ? null
+            : ($sellerBreakdown->firstWhere('seller_key', $sellerKey)['seller_name'] ?? null);
+        $highestProduct = $highlights['highest_product'] ?? null;
+        $lowestProduct = $highlights['lowest_product'] ?? null;
+        $highestSeller = $highlights['highest_seller'] ?? null;
+        $lowestSeller = $highlights['lowest_seller'] ?? null;
+    @endphp
+
     <section
         x-data="productSales(@js($salesConfig))"
         x-cloak
@@ -16,159 +35,289 @@
             <div class="mt-1 text-sm opacity-90" x-text="toast.message"></div>
         </div>
 
-        <div class="relative w-full overflow-hidden rounded-[24px] border border-zinc-200/80 bg-white shadow-[0_20px_70px_rgba(122,80,210,0.08)]">
-            <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-400"></div>
+        <div class="space-y-6">
+            <div class="rounded-[26px] bg-white px-4 py-5 shadow-sm ring-1 ring-zinc-200/70 sm:px-6">
+                <form method="GET" action="{{ route('products.sales.index') }}" class="grid gap-4 xl:grid-cols-3">
+                    <input type="hidden" name="detail" value="{{ $detailTab }}">
 
-            <div class="space-y-6 px-4 py-6 sm:px-5 lg:px-6">
-                <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                    <div class="min-w-0">
-                        <flux:badge color="violet" size="sm" inset="left">Productos</flux:badge>
-                        <flux:heading size="xl" class="mt-3">Venta de productos</flux:heading>
-                        <flux:text class="mt-2 max-w-3xl text-sm text-zinc-500 dark:text-zinc-400">
-                            Registra ventas rápidas, descuenta stock del local seleccionado y revisa el resumen de recaudación por rango de fechas.
-                        </flux:text>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-2">
-                        <form method="GET" action="{{ route('products.sales.index') }}" class="flex flex-wrap items-center gap-2">
-                            <flux:input
+                    <div class="space-y-2">
+                        <label class="text-sm font-semibold text-slate-900">Periodo de tiempo</label>
+                        <div class="grid grid-cols-2 gap-3 rounded-2xl border border-zinc-300 bg-white p-3 shadow-sm">
+                            <input
+                                type="date"
                                 name="from"
                                 value="{{ $from }}"
-                                type="date"
-                                label="Desde"
-                                class="w-full min-w-[11rem] rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm xl:w-[12rem]"
+                                class="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                             />
-                            <flux:input
+                            <input
+                                type="date"
                                 name="to"
                                 value="{{ $to }}"
-                                type="date"
-                                label="Hasta"
-                                class="w-full min-w-[11rem] rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm xl:w-[12rem]"
+                                class="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                             />
-                            <div class="space-y-1.5">
-                                <label class="text-sm font-medium text-zinc-700">Local</label>
-                                <select
-                                    name="branch_id"
-                                    class="h-12 w-full min-w-[11rem] rounded-2xl border border-zinc-300 bg-white px-4 text-sm text-zinc-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100 xl:w-[14rem]"
-                                >
-                                    <option value="">Todos</option>
-                                    @foreach ($branches as $branch)
-                                        <option value="{{ $branch['id'] }}" @selected((string) $branchId === (string) $branch['id'])>{{ $branch['name'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-sm font-medium text-zinc-700">Producto</label>
-                                <select
-                                    name="product_id"
-                                    class="h-12 w-full min-w-[11rem] rounded-2xl border border-zinc-300 bg-white px-4 text-sm text-zinc-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100 xl:w-[16rem]"
-                                >
-                                    <option value="">Todos</option>
-                                    @foreach ($products as $product)
-                                        <option value="{{ $product['id'] }}" @selected((string) $productId === (string) $product['id'])>{{ $product['name'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <flux:button type="submit" variant="ghost" icon="magnifying-glass">
-                                Buscar
-                            </flux:button>
-                            @if ($hasFilters)
-                                <flux:button variant="ghost" href="{{ route('products.sales.index') }}" icon="x-mark">
-                                    Limpiar
-                                </flux:button>
-                            @endif
-                        </form>
+                        </div>
+                    </div>
 
-                        <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
+                    <div class="space-y-2">
+                        <label class="text-sm font-semibold text-slate-900">Estado del producto</label>
+                        <select
+                            name="product_status"
+                            class="h-[68px] w-full rounded-2xl border border-zinc-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                        >
+                            <option value="active" @selected($productStatus === 'active')>Activo</option>
+                            <option value="inactive" @selected($productStatus === 'inactive')>Inactivo</option>
+                            <option value="all" @selected($productStatus === 'all')>Todos</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-sm font-semibold text-slate-900">Productos</label>
+                        <select
+                            name="product_id"
+                            class="h-[68px] w-full rounded-2xl border border-zinc-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                        >
+                            <option value="">Todos</option>
+                            @foreach ($products as $product)
+                                <option value="{{ $product['id'] }}" @selected((string) $productId === (string) $product['id'])>{{ $product['name'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="xl:col-span-3 flex flex-wrap items-center justify-end gap-2">
+                        <flux:button type="submit" variant="primary" icon="magnifying-glass">
+                            Aplicar filtros
+                        </flux:button>
+
+                        @if ($hasFilters)
+                            <flux:button variant="ghost" href="{{ route('products.sales.index', ['detail' => $detailTab]) }}" icon="x-mark">
+                                Limpiar
+                            </flux:button>
+                        @endif
+
+                        <flux:button variant="ghost" icon="plus" type="button" @click="openCreate()">
                             Registrar venta
                         </flux:button>
                     </div>
-                </div>
+                </form>
+            </div>
 
-                <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-                    <div class="rounded-[28px] bg-zinc-900 px-6 py-8 text-white shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
-                        <div class="text-sm text-zinc-300">Recaudación total</div>
-                        <div class="mt-5 text-4xl font-semibold">S/ {{ number_format($salesSummary['revenue'], 2) }}</div>
-                    </div>
-
-                    <div class="rounded-[28px] bg-zinc-900 px-6 py-8 text-white shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
-                        <div class="text-sm text-zinc-300">Unidades vendidas</div>
-                        <div class="mt-5 text-4xl font-semibold">{{ number_format($salesSummary['units_sold'], 2) }}</div>
-                    </div>
-
-                    <div class="rounded-[28px] border border-zinc-200 bg-white px-6 py-8 shadow-sm">
-                        <div class="text-sm text-zinc-500">Ventas registradas</div>
-                        <div class="mt-5 text-4xl font-semibold text-zinc-900">{{ number_format($salesSummary['sales_count']) }}</div>
-                    </div>
-
-                    <div class="rounded-[28px] border border-zinc-200 bg-white px-6 py-8 shadow-sm">
-                        <div class="text-sm text-zinc-500">Ticket promedio</div>
-                        <div class="mt-5 text-4xl font-semibold text-zinc-900">S/ {{ number_format($salesSummary['average_ticket'], 2) }}</div>
+            <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_460px_460px]">
+                <div class="flex min-h-[214px] items-center justify-center rounded-[18px] bg-[#263039] px-6 py-8 text-center text-white shadow-[0_18px_40px_rgba(21,30,39,0.15)]">
+                    <div>
+                        <div class="text-5xl font-semibold leading-none">S/{{ $formatAmount($salesSummary['revenue']) }}</div>
+                        <div class="mt-4 text-lg uppercase tracking-wide text-slate-300">Recaudacion total</div>
                     </div>
                 </div>
 
-                <flux:card class="overflow-hidden border border-zinc-200/80 bg-white shadow-sm">
-                    <div class="flex items-center justify-between gap-4 border-b border-zinc-200/80 px-5 py-4">
-                        <div>
-                            <flux:heading size="lg">Detalle de la venta</flux:heading>
-                            <flux:text class="mt-1 text-sm text-zinc-500">
-                                Revisa las ventas recientes por producto y local.
+                <div class="flex min-h-[214px] items-center justify-center rounded-[18px] bg-[#263039] px-6 py-8 text-center text-white shadow-[0_18px_40px_rgba(21,30,39,0.15)]">
+                    <div>
+                        <div class="text-5xl font-semibold leading-none">{{ $formatAmount($salesSummary['units_sold']) }}</div>
+                        <div class="mt-4 text-lg uppercase tracking-wide text-slate-300">Unidades vendidas</div>
+                    </div>
+                </div>
+
+                <div class="rounded-[18px] bg-white px-5 py-4 shadow-sm ring-1 ring-zinc-200/70">
+                    <div class="flex items-start justify-between gap-4">
+                        <h2 class="text-[20px] font-semibold text-slate-900">Mayor ingreso</h2>
+                        <span class="inline-flex size-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                            <flux:icon name="arrow-up" class="size-4" />
+                        </span>
+                    </div>
+
+                    <div class="mt-5 space-y-5">
+                        <div class="border-t border-zinc-200 pt-5">
+                            <div class="text-[15px] text-slate-900">{{ $highestProduct['product_name'] ?? 'Sin registros' }}</div>
+                            <div class="mt-1 text-[14px] text-slate-500">{{ $highestProduct['presentation_name'] ?? 'Sin formato' }}</div>
+                            <div class="mt-2 flex items-end justify-between gap-4">
+                                <div class="text-[24px] font-semibold leading-none text-slate-900">
+                                    S/{{ $formatAmount($highestProduct['revenue'] ?? 0) }}
+                                </div>
+                                <div class="text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
+                                    {{ $formatAmount($highestProduct['units_sold'] ?? 0) }} {{ ($highestProduct['units_sold'] ?? 0) == 1.0 ? 'Unidad' : 'Unidades' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-zinc-200 pt-5">
+                            <div class="text-[15px] font-medium text-slate-900">
+                                Vendedor: {{ $highestSeller['seller_name'] ?? 'Sin registros' }}
+                            </div>
+                            <div class="mt-2 flex items-end justify-between gap-4">
+                                <div class="text-[24px] font-semibold leading-none text-slate-900">
+                                    S/{{ $formatAmount($highestSeller['revenue'] ?? 0) }}
+                                </div>
+                                <div class="text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
+                                    {{ $formatAmount($highestSeller['units_sold'] ?? 0) }} {{ ($highestSeller['units_sold'] ?? 0) == 1.0 ? 'Unidad' : 'Unidades' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-[18px] bg-white px-5 py-4 shadow-sm ring-1 ring-zinc-200/70">
+                    <div class="flex items-start justify-between gap-4">
+                        <h2 class="text-[20px] font-semibold text-slate-900">Menor ingreso</h2>
+                        <span class="inline-flex size-7 items-center justify-center rounded-full bg-rose-100 text-rose-500">
+                            <flux:icon name="arrow-down" class="size-4" />
+                        </span>
+                    </div>
+
+                    <div class="mt-5 space-y-5">
+                        <div class="border-t border-zinc-200 pt-5">
+                            <div class="text-[15px] text-slate-900">{{ $lowestProduct['product_name'] ?? 'Sin registros' }}</div>
+                            <div class="mt-1 text-[14px] text-slate-500">{{ $lowestProduct['presentation_name'] ?? 'Sin formato' }}</div>
+                            <div class="mt-2 flex items-end justify-between gap-4">
+                                <div class="text-[24px] font-semibold leading-none text-slate-900">
+                                    S/{{ $formatAmount($lowestProduct['revenue'] ?? 0) }}
+                                </div>
+                                <div class="text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
+                                    {{ $formatAmount($lowestProduct['units_sold'] ?? 0) }} {{ ($lowestProduct['units_sold'] ?? 0) == 1.0 ? 'Unidad' : 'Unidades' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-zinc-200 pt-5">
+                            <div class="text-[15px] font-medium text-slate-900">
+                                Vendedor: {{ $lowestSeller['seller_name'] ?? 'Sin registros' }}
+                            </div>
+                            <div class="mt-2 flex items-end justify-between gap-4">
+                                <div class="text-[24px] font-semibold leading-none text-slate-900">
+                                    S/{{ $formatAmount($lowestSeller['revenue'] ?? 0) }}
+                                </div>
+                                <div class="text-[15px] text-slate-700 underline decoration-zinc-300 underline-offset-4">
+                                    {{ $formatAmount($lowestSeller['units_sold'] ?? 0) }} {{ ($lowestSeller['units_sold'] ?? 0) == 1.0 ? 'Unidad' : 'Unidades' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sales-detail" class="rounded-[18px] bg-white px-5 py-5 shadow-sm ring-1 ring-zinc-200/70">
+                <div class="text-[18px] font-semibold text-slate-900">Detalle de la venta</div>
+
+                <div class="mt-6 flex flex-col gap-4 border-b border-zinc-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div class="flex items-center gap-8 text-[15px]">
+                        <a
+                            href="{{ route('products.sales.index', array_merge($detailBaseQuery, ['detail' => 'products'])) }}"
+                            class="relative pb-3 font-medium {{ $detailTab === 'products' ? 'text-violet-600' : 'text-slate-900' }}"
+                        >
+                            Por productos
+                            @if ($detailTab === 'products')
+                                <span class="absolute inset-x-0 bottom-0 h-[3px] rounded-full bg-violet-500"></span>
+                            @endif
+                        </a>
+                        <a
+                            href="{{ route('products.sales.index', array_merge($detailBaseQuery, ['detail' => 'vendors'])) }}"
+                            class="relative pb-3 font-medium {{ $detailTab === 'vendors' ? 'text-violet-600' : 'text-slate-900' }}"
+                        >
+                            Por vendedor
+                            @if ($detailTab === 'vendors')
+                                <span class="absolute inset-x-0 bottom-0 h-[3px] rounded-full bg-violet-500"></span>
+                            @endif
+                        </a>
+                    </div>
+
+                    <flux:button
+                        variant="ghost"
+                        icon="arrow-down-tray"
+                        href="{{ route('products.sales.export', array_merge($detailBaseQuery, ['detail' => $detailTab])) }}"
+                    >
+                        Descargar reporte
+                    </flux:button>
+                </div>
+
+                @if ($selectedProductLabel !== null || $selectedSellerLabel !== null)
+                    <div class="mt-4 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
+                        @if ($selectedProductLabel !== null)
+                            <span>Producto filtrado: <strong>{{ $selectedProductLabel }}</strong>.</span>
+                        @endif
+                        @if ($selectedSellerLabel !== null)
+                            <span> Vendedor filtrado: <strong>{{ $selectedSellerLabel }}</strong>.</span>
+                        @endif
+                        <a href="{{ route('products.sales.index', ['detail' => $detailTab]) }}" class="ml-1 font-semibold underline underline-offset-4">Quitar filtro</a>
+                    </div>
+                @endif
+
+                @if (($detailTab === 'products' && $productBreakdown->isEmpty()) || ($detailTab === 'vendors' && $sellerBreakdown->isEmpty()))
+                    <div class="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
+                        <div class="flex size-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                            <flux:icon name="shopping-cart" class="size-8" />
+                        </div>
+                        <div class="space-y-1">
+                            <flux:heading size="lg">No hay ventas registradas</flux:heading>
+                            <flux:text class="text-sm text-zinc-500">
+                                Registra la primera venta para empezar a ver el detalle por producto y por vendedor.
                             </flux:text>
                         </div>
                     </div>
-
-                    @if ($sales->isEmpty())
-                        <div class="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
-                            <div class="flex size-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
-                                <flux:icon name="shopping-cart" class="size-8" />
-                            </div>
-
-                            <div class="space-y-1">
-                                <flux:heading size="lg">No hay ventas registradas</flux:heading>
-                                <flux:text class="text-sm text-zinc-500">
-                                    Registra la primera venta para empezar a descontar stock y construir el historial.
-                                </flux:text>
-                            </div>
-
-                            <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
-                                Registrar venta
-                            </flux:button>
-                        </div>
-                    @else
-                        <div class="overflow-x-auto">
-                            <flux:table>
-                                <flux:table.columns>
-                                    <flux:table.column>Fecha</flux:table.column>
-                                    <flux:table.column>Local</flux:table.column>
-                                    <flux:table.column>Producto</flux:table.column>
-                                    <flux:table.column>Formato/Presentación</flux:table.column>
-                                    <flux:table.column>Unidades vendidas</flux:table.column>
-                                    <flux:table.column>Recaudación</flux:table.column>
-                                    <flux:table.column>Staff</flux:table.column>
-                                </flux:table.columns>
-
-                                <flux:table.rows>
-                                    @foreach ($sales as $sale)
-                                        @php($item = $sale->items->first())
-                                        <flux:table.row :key="$sale->id">
-                                            <flux:table.cell>{{ $sale->sold_at?->format('d-m-Y H:i') }}</flux:table.cell>
-                                            <flux:table.cell>{{ $sale->branch?->name ?? 'N/A' }}</flux:table.cell>
-                                            <flux:table.cell>{{ $item?->product?->name ?? 'N/A' }}</flux:table.cell>
-                                            <flux:table.cell>{{ $item?->product?->presentation?->name ?? 'N/A' }}</flux:table.cell>
-                                            <flux:table.cell>{{ number_format((float) ($item?->quantity ?? 0), 2) }}</flux:table.cell>
-                                            <flux:table.cell>S/ {{ number_format((float) $sale->total, 2) }}</flux:table.cell>
-                                            <flux:table.cell>{{ $sale->user?->name ?? 'N/A' }}</flux:table.cell>
-                                        </flux:table.row>
-                                    @endforeach
-                                </flux:table.rows>
-                            </flux:table>
-                        </div>
-
-                        <div class="border-t border-zinc-200/80 px-5 py-4">
-                            {{ $sales->links() }}
-                        </div>
-                    @endif
-                </flux:card>
+                @elseif ($detailTab === 'products')
+                    <div class="mt-4 overflow-x-auto rounded-[16px] border border-zinc-200/80">
+                        <table class="min-w-full divide-y divide-zinc-200 text-left">
+                            <thead class="bg-white">
+                                <tr class="text-[14px] font-semibold text-slate-700">
+                                    <th class="px-4 py-4">Producto</th>
+                                    <th class="px-4 py-4">Formato/ Presentacion</th>
+                                    <th class="px-4 py-4">Unidades vendidas</th>
+                                    <th class="px-4 py-4">Recaudacion</th>
+                                    <th class="px-4 py-4 text-right"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-zinc-100 bg-white text-[15px] text-slate-800">
+                                @foreach ($productBreakdown as $row)
+                                    <tr>
+                                        <td class="px-4 py-5">{{ $row['product_name'] }}</td>
+                                        <td class="px-4 py-5">{{ $row['presentation_name'] }}</td>
+                                        <td class="px-4 py-5">{{ $formatAmount($row['units_sold']) }}</td>
+                                        <td class="px-4 py-5">S/{{ $formatAmount($row['revenue']) }}</td>
+                                        <td class="px-4 py-5 text-right">
+                                            <a
+                                                href="{{ route('products.sales.index', array_merge($detailBaseQuery, ['detail' => 'products', 'product_id' => $row['product_id']])) }}#sales-detail"
+                                                class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-violet-600 shadow-sm transition hover:border-violet-200 hover:bg-violet-50"
+                                            >
+                                                <flux:icon name="eye" class="size-4" />
+                                                <span>Ver detalles</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="mt-4 overflow-x-auto rounded-[16px] border border-zinc-200/80">
+                        <table class="min-w-full divide-y divide-zinc-200 text-left">
+                            <thead class="bg-white">
+                                <tr class="text-[14px] font-semibold text-slate-700">
+                                    <th class="px-4 py-4">Vendedor</th>
+                                    <th class="px-4 py-4">Tipo de usuario</th>
+                                    <th class="px-4 py-4">Unidades vendidas</th>
+                                    <th class="px-4 py-4">Recaudacion</th>
+                                    <th class="px-4 py-4 text-right"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-zinc-100 bg-white text-[15px] text-slate-800">
+                                @foreach ($sellerBreakdown as $row)
+                                    <tr>
+                                        <td class="px-4 py-5">{{ $row['seller_name'] }}</td>
+                                        <td class="px-4 py-5">{{ $row['user_type'] }}</td>
+                                        <td class="px-4 py-5">{{ $formatAmount($row['units_sold']) }}</td>
+                                        <td class="px-4 py-5">S/{{ $formatAmount($row['revenue']) }}</td>
+                                        <td class="px-4 py-5 text-right">
+                                            <a
+                                                href="{{ route('products.sales.index', array_merge($detailBaseQuery, ['detail' => 'vendors', 'seller_key' => $row['seller_key']])) }}#sales-detail"
+                                                class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-violet-600 shadow-sm transition hover:border-violet-200 hover:bg-violet-50"
+                                            >
+                                                <flux:icon name="eye" class="size-4" />
+                                                <span>Ver detalles</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -184,7 +333,7 @@
                     <div>
                         <flux:heading size="lg">Registrar venta</flux:heading>
                         <flux:text class="mt-1 text-sm text-zinc-500">
-                            Selecciona el local y el producto para descontar stock automáticamente.
+                            Selecciona el local y el producto para descontar stock automaticamente.
                         </flux:text>
                     </div>
 

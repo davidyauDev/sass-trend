@@ -89,7 +89,9 @@ class Service extends Model
      */
     public function professionalProfiles(): BelongsToMany
     {
-        return $this->belongsToMany(Professional::class, 'professional_service_assignments')->withTimestamps();
+        return $this->belongsToMany(Professional::class, 'professional_service_assignments')
+            ->withPivot(['sale_commission', 'commission_type'])
+            ->withTimestamps();
     }
 
     /**

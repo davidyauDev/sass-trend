@@ -7,8 +7,8 @@ use App\Actions\Sales\CreateSaleAction;
 use App\Actions\Sales\DeleteSaleAction;
 use App\Models\Branch;
 use App\Models\Client;
-use App\Models\Professional;
 use App\Models\Product;
+use App\Models\Professional;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Service;
@@ -35,6 +35,8 @@ class Index extends Component
 {
     use WithPagination;
 
+    private const array ITEM_PICKER_TABS = ['recent', 'services', 'products'];
+
     #[Url(as: 'q')]
     public string $search = '';
 
@@ -58,15 +60,27 @@ class Index extends Component
 
     public bool $isDrawerOpen = false;
 
-    /** @var 'cart'|'client-search'|'client-create'|'item-picker'|'payment'|'success' */
+    /** @var 'cart'|'client-search'|'client-create'|'item-picker'|'product-config'|'service-professional'|'payment'|'success' */
     public string $drawerStep = 'cart';
 
-    /** @var 'recent'|'services'|'products'|'giftcards' */
+    /** @var 'recent'|'services'|'products' */
     public string $itemPickerTab = 'recent';
 
     public ?int $serviceProfessionalPickerServiceId = null;
 
     public ?int $serviceProfessionalPickerProfessionalId = null;
+
+    public ?int $productConfigurationProductId = null;
+
+    public ?int $productConfigurationProfessionalId = null;
+
+    public int $productConfigurationQuantity = 1;
+
+    public string $productConfigurationPrice = '';
+
+    public string $productConfigurationDiscountType = 'percent';
+
+    public string $productConfigurationDiscountValue = '0';
 
     public string $itemSearch = '';
 
@@ -156,6 +170,7 @@ class Index extends Component
         $this->itemPickerTab = 'recent';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetProductConfiguration();
         $this->itemSearch = '';
         $this->clientSearch = '';
         $this->selectedSaleId = null;
@@ -172,6 +187,7 @@ class Index extends Component
         $this->itemPickerTab = 'recent';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetProductConfiguration();
         $this->itemSearch = '';
         $this->saleSummaryMode = 'success';
         $this->resetSaleForm();
@@ -202,6 +218,7 @@ class Index extends Component
         $this->drawerStep = 'cart';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetProductConfiguration();
         $this->resetValidation();
         $this->resetErrorBag();
     }
@@ -211,6 +228,7 @@ class Index extends Component
         $this->drawerStep = 'item-picker';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetProductConfiguration();
         $this->resetValidation();
         $this->resetErrorBag();
     }
@@ -218,15 +236,16 @@ class Index extends Component
     public function openItemPicker(string $tab = 'recent'): void
     {
         $this->drawerStep = 'item-picker';
-        $this->itemPickerTab = in_array($tab, ['recent', 'services', 'products', 'giftcards'], true) ? $tab : 'recent';
+        $this->itemPickerTab = in_array($tab, self::ITEM_PICKER_TABS, true) ? $tab : 'recent';
         $this->itemSearch = '';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetProductConfiguration();
     }
 
     public function setItemPickerTab(string $tab): void
     {
-        if (! in_array($tab, ['recent', 'services', 'products', 'giftcards'], true)) {
+        if (! in_array($tab, self::ITEM_PICKER_TABS, true)) {
             return;
         }
 
@@ -254,6 +273,25 @@ class Index extends Component
         $this->resetErrorBag();
     }
 
+    public function openProductConfiguration(int $productId): void
+    {
+        $product = Product::query()
+            ->with(['brand', 'presentation'])
+            ->findOrFail($productId);
+
+        $this->productConfigurationProductId = $product->id;
+        $this->productConfigurationProfessionalId = $this->professionalsCatalog()->count() === 1
+            ? $this->professionalsCatalog()->first()?->id
+            : null;
+        $this->productConfigurationQuantity = 1;
+        $this->productConfigurationPrice = (string) $product->public_sale_price;
+        $this->productConfigurationDiscountType = 'percent';
+        $this->productConfigurationDiscountValue = '0';
+        $this->drawerStep = 'product-config';
+        $this->resetValidation();
+        $this->resetErrorBag();
+    }
+
     public function selectServiceProfessional(int $professionalId): void
     {
         if ($this->serviceProfessionalPickerServiceId === null) {
@@ -275,6 +313,60 @@ class Index extends Component
         $this->drawerStep = 'cart';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+    }
+
+    public function increaseProductConfigurationQuantity(): void
+    {
+        $this->productConfigurationQuantity++;
+    }
+
+    public function decreaseProductConfigurationQuantity(): void
+    {
+        if ($this->productConfigurationQuantity <= 1) {
+            $this->backToItemPicker();
+
+            return;
+        }
+
+        $this->productConfigurationQuantity--;
+    }
+
+    public function saveProductConfiguration(): void
+    {
+        $this->validate([
+            'productConfigurationProductId' => ['required', 'integer', Rule::exists('products', 'id')],
+            'productConfigurationProfessionalId' => ['required', 'integer', Rule::exists('professionals', 'id')],
+            'productConfigurationQuantity' => ['required', 'integer', 'min:1'],
+            'productConfigurationPrice' => ['required', 'numeric', 'min:0'],
+            'productConfigurationDiscountType' => ['required', 'string', Rule::in(['percent', 'amount'])],
+            'productConfigurationDiscountValue' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $product = Product::query()
+            ->with(['brand', 'presentation'])
+            ->findOrFail($this->productConfigurationProductId);
+
+        $professional = $this->professionalsCatalog()->firstWhere('id', $this->productConfigurationProfessionalId);
+
+        if (! $professional instanceof Professional) {
+            throw ValidationException::withMessages([
+                'productConfigurationProfessionalId' => 'Selecciona un vendedor válido.',
+            ]);
+        }
+
+        $this->addConfiguredProductToCart(
+            $product,
+            $professional,
+            $this->productConfigurationQuantity,
+            (float) $this->productConfigurationPrice,
+            $this->productConfigurationDiscountType,
+            (float) $this->productConfigurationDiscountValue,
+        );
+
+        $this->drawerStep = 'cart';
+        $this->resetProductConfiguration();
+        $this->resetValidation();
+        $this->resetErrorBag();
     }
 
     public function addServiceToCart(Service|int $service, Professional|int|null $professional = null): void
@@ -319,52 +411,41 @@ class Index extends Component
             'meta' => [
                 'professional_id' => $professionalModel?->id,
                 'professional_name' => $professionalModel?->displayName(),
+                'discount_type' => 'none',
+                'discount_value' => '0',
+                'discount_amount' => 0.0,
             ],
         ];
     }
 
     public function addProductToCart(int $productId): void
     {
-        $product = Product::query()->with(['brand', 'presentation'])->findOrFail($productId);
-        $key = 'product:'.$product->id;
-
-        $this->adjustCartItemQuantity(
-            $key,
-            1,
-            [
-                'key' => $key,
-                'item_type' => 'product',
-                'service_id' => null,
-                'product_id' => $product->id,
-                'item_name' => $product->name,
-                'item_detail' => trim(implode(' | ', array_filter([
-                    $product->brand?->name,
-                    $product->presentation?->name,
-                ]))),
-                'quantity' => '1',
-                'unit_price' => (string) $product->public_sale_price,
-                'subtotal' => (float) $product->public_sale_price,
-                'meta' => null,
-            ]
-        );
+        $this->openProductConfiguration($productId);
     }
 
     public function decreaseProductToCart(int $productId): void
     {
-        $key = 'product:'.$productId;
+        $key = collect($this->saleForm['cart'] ?? [])
+            ->first(function (array $item) use ($productId): bool {
+                return ($item['item_type'] ?? null) === 'product'
+                    && (int) ($item['product_id'] ?? 0) === $productId;
+            })['key'] ?? null;
+
+        if (! is_string($key)) {
+            return;
+        }
 
         $this->adjustCartItemQuantity($key, -1);
     }
 
     public function cartQuantityForProduct(int $productId): int
     {
-        $cartItem = collect($this->saleForm['cart'] ?? [])
-            ->first(function (array $item) use ($productId): bool {
+        return (int) round(collect($this->saleForm['cart'] ?? [])
+            ->filter(function (array $item) use ($productId): bool {
                 return ($item['item_type'] ?? null) === 'product'
                     && (int) ($item['product_id'] ?? 0) === $productId;
-            });
-
-        return (int) round((float) ($cartItem['quantity'] ?? 0));
+            })
+            ->sum(fn (array $item): float => (float) ($item['quantity'] ?? 0)));
     }
 
     public function cartQuantityForService(int $serviceId): int
@@ -392,6 +473,53 @@ class Index extends Component
         $this->adjustCartItemQuantity($key, 1);
     }
 
+    private function addConfiguredProductToCart(
+        Product $product,
+        Professional $professional,
+        int $quantity,
+        float $unitPrice,
+        string $discountType,
+        float $discountValue,
+    ): void {
+        $key = $this->productCartKey($product->id, $professional->id, $unitPrice, $discountType, $discountValue);
+
+        $lineSubtotal = $this->lineSubtotal($quantity, $unitPrice, $discountType, $discountValue);
+        $lineDiscountAmount = $this->lineDiscountAmount($quantity, $unitPrice, $discountType, $discountValue);
+
+        if (isset($this->saleForm['cart'][$key])) {
+            $currentQuantity = (float) ($this->saleForm['cart'][$key]['quantity'] ?? 0);
+            $newQuantity = (int) round($currentQuantity + $quantity);
+
+            $this->saleForm['cart'][$key]['quantity'] = (string) $newQuantity;
+            $this->saleForm['cart'][$key]['subtotal'] = $this->lineSubtotal($newQuantity, $unitPrice, $discountType, $discountValue);
+            $this->saleForm['cart'][$key]['meta']['discount_amount'] = $this->lineDiscountAmount($newQuantity, $unitPrice, $discountType, $discountValue);
+
+            return;
+        }
+
+        $this->saleForm['cart'][$key] = [
+            'key' => $key,
+            'item_type' => 'product',
+            'service_id' => null,
+            'product_id' => $product->id,
+            'item_name' => $product->name,
+            'item_detail' => trim(implode(' | ', array_filter([
+                $product->brand?->name,
+                $product->presentation?->name,
+            ]))),
+            'quantity' => (string) $quantity,
+            'unit_price' => (string) $unitPrice,
+            'subtotal' => $lineSubtotal,
+            'meta' => [
+                'professional_id' => $professional->id,
+                'professional_name' => $professional->displayName(),
+                'discount_type' => $discountType,
+                'discount_value' => (string) $discountValue,
+                'discount_amount' => $lineDiscountAmount,
+            ],
+        ];
+    }
+
     private function adjustCartItemQuantity(string $key, int $delta, ?array $defaultItem = null): void
     {
         if (! isset($this->saleForm['cart'][$key])) {
@@ -412,8 +540,52 @@ class Index extends Component
         }
 
         $unitPrice = (float) ($this->saleForm['cart'][$key]['unit_price'] ?? 0);
+        $discountType = (string) data_get($this->saleForm['cart'][$key], 'meta.discount_type', 'none');
+        $discountValue = (float) data_get($this->saleForm['cart'][$key], 'meta.discount_value', 0);
         $this->saleForm['cart'][$key]['quantity'] = (string) $newQuantity;
-        $this->saleForm['cart'][$key]['subtotal'] = round($newQuantity * $unitPrice, 2);
+        $this->saleForm['cart'][$key]['subtotal'] = $this->lineSubtotal((int) $newQuantity, $unitPrice, $discountType, $discountValue);
+        $this->saleForm['cart'][$key]['meta']['discount_amount'] = $this->lineDiscountAmount((int) $newQuantity, $unitPrice, $discountType, $discountValue);
+    }
+
+    private function resetProductConfiguration(): void
+    {
+        $this->productConfigurationProductId = null;
+        $this->productConfigurationProfessionalId = null;
+        $this->productConfigurationQuantity = 1;
+        $this->productConfigurationPrice = '';
+        $this->productConfigurationDiscountType = 'percent';
+        $this->productConfigurationDiscountValue = '0';
+    }
+
+    private function productCartKey(int $productId, int $professionalId, float $unitPrice, string $discountType, float $discountValue): string
+    {
+        return sprintf(
+            'product:%d:professional:%d:price:%s:discount:%s:%s',
+            $productId,
+            $professionalId,
+            number_format($unitPrice, 2, '.', ''),
+            $discountType,
+            number_format($discountValue, 2, '.', ''),
+        );
+    }
+
+    private function lineSubtotal(int $quantity, float $unitPrice, string $discountType, float $discountValue): float
+    {
+        $gross = round($quantity * $unitPrice, 2);
+        $discount = $this->lineDiscountAmount($quantity, $unitPrice, $discountType, $discountValue);
+
+        return round(max(0, $gross - $discount), 2);
+    }
+
+    private function lineDiscountAmount(int $quantity, float $unitPrice, string $discountType, float $discountValue): float
+    {
+        $gross = round($quantity * $unitPrice, 2);
+
+        return match ($discountType) {
+            'amount' => round(min($gross, max(0, $discountValue)), 2),
+            'percent' => round($gross * max(0, min(100, $discountValue)) / 100, 2),
+            default => 0.0,
+        };
     }
 
     public function selectClient(int $clientId): void
@@ -491,8 +663,14 @@ class Index extends Component
             $this->selectedSaleId = $sale->id;
             $this->saleSummaryMode = 'success';
             $this->drawerStep = 'success';
+        } catch (ValidationException $exception) {
+            Flux::toast(variant: 'danger', text: $this->validationMessage($exception));
         } catch (\Throwable $throwable) {
-            Flux::toast(variant: 'danger', text: 'No se pudo registrar la venta. Revisa los datos e inténtalo otra vez.');
+            $message = app()->hasDebugModeEnabled() && $throwable->getMessage() !== ''
+                ? $throwable->getMessage()
+                : 'No se pudo registrar la venta. Revisa los datos e inténtalo otra vez.';
+
+            Flux::toast(variant: 'danger', text: $message);
             report($throwable);
         }
     }
@@ -633,6 +811,7 @@ class Index extends Component
     {
         $items = SaleItem::query()
             ->with(['product.brand', 'product.presentation', 'service.professionalProfiles'])
+            ->where('item_type', '!=', 'giftcard')
             ->latest()
             ->limit(12)
             ->get();
@@ -705,6 +884,19 @@ class Index extends Component
         return SalePaymentMethodCatalog::options();
     }
 
+    /**
+     * @return Collection<int, Professional>
+     */
+    #[Computed]
+    public function professionalsCatalog(): Collection
+    {
+        return Professional::query()
+            ->with('user')
+            ->where('is_active', true)
+            ->orderBy('public_name')
+            ->get();
+    }
+
     #[Computed]
     public function serviceProfessionalPickerService(): ?Service
     {
@@ -737,6 +929,18 @@ class Index extends Component
             ->withTrashed()
             ->with(['client', 'branch', 'items.product.presentation', 'items.service', 'payments'])
             ->find($this->selectedSaleId);
+    }
+
+    #[Computed]
+    public function productConfigurationProduct(): ?Product
+    {
+        if ($this->productConfigurationProductId === null) {
+            return null;
+        }
+
+        return Product::query()
+            ->with(['brand', 'presentation'])
+            ->find($this->productConfigurationProductId);
     }
 
     /**
@@ -791,6 +995,11 @@ class Index extends Component
             ->map(function (array $item): array {
                 $quantity = max(0.01, (float) $item['quantity']);
                 $unitPrice = max(0, (float) $item['unit_price']);
+                $discountType = (string) data_get($item, 'meta.discount_type', 'none');
+                $discountValue = (float) data_get($item, 'meta.discount_value', 0);
+                $discountAmount = $this->lineDiscountAmount((int) round($quantity), $unitPrice, $discountType, $discountValue);
+                $grossSubtotal = round($quantity * $unitPrice, 2);
+                $finalSubtotal = round(max(0, $grossSubtotal - $discountAmount), 2);
 
                 return [
                     'item_type' => $item['item_type'],
@@ -800,15 +1009,29 @@ class Index extends Component
                     'item_detail' => $item['item_detail'],
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
+                    'subtotal' => $finalSubtotal,
+                    'discount_amount' => $discountAmount,
                     'meta' => $item['meta'],
                 ];
             })
             ->values()
             ->all();
 
-        $itemsTotal = round(array_reduce(
+        $subtotalTotal = round(array_reduce(
             $items,
             fn (float $carry, array $item): float => $carry + round($item['quantity'] * $item['unit_price'], 2),
+            0.0,
+        ), 2);
+
+        $discountTotal = round(array_reduce(
+            $items,
+            fn (float $carry, array $item): float => $carry + (float) ($item['discount_amount'] ?? 0),
+            0.0,
+        ), 2);
+
+        $itemsTotal = round(array_reduce(
+            $items,
+            fn (float $carry, array $item): float => $carry + (float) ($item['subtotal'] ?? 0),
             0.0,
         ), 2);
 
@@ -863,6 +1086,9 @@ class Index extends Component
             'client_id' => $this->saleForm['client_id'] !== null ? (int) $this->saleForm['client_id'] : null,
             'notes' => $this->nullableString($this->saleForm['notes']),
             'status' => $status,
+            'subtotal' => $subtotalTotal,
+            'discount_total' => $discountTotal,
+            'total' => $itemsTotal,
             'items' => $items,
             'payments' => $payments,
         ];
@@ -927,6 +1153,18 @@ class Index extends Component
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function validationMessage(ValidationException $exception): string
+    {
+        $message = collect($exception->errors())
+            ->flatten()
+            ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
+            ->first();
+
+        return is_string($message) && $message !== ''
+            ? $message
+            : 'No se pudo registrar la venta. Revisa los datos e inténtalo otra vez.';
     }
 
     /**

@@ -45,20 +45,22 @@ final class CreateSaleAction
                 'user_id' => $actor->id,
                 'sold_at' => now(),
                 'status' => $status,
-                'subtotal' => 0,
-                'discount_total' => 0,
-                'total' => 0,
+                'subtotal' => (float) ($data['subtotal'] ?? 0),
+                'discount_total' => (float) ($data['discount_total'] ?? 0),
+                'total' => (float) ($data['total'] ?? 0),
                 'paid_total' => 0,
                 'change_total' => 0,
                 'notes' => $data['notes'],
             ]);
 
             $subtotal = 0.0;
+            $discountTotal = 0.0;
 
             foreach ($itemsData as $itemData) {
                 $quantity = (float) $itemData['quantity'];
                 $unitPrice = (float) $itemData['unit_price'];
-                $itemSubtotal = round($quantity * $unitPrice, 2);
+                $itemSubtotal = round((float) ($itemData['subtotal'] ?? round($quantity * $unitPrice, 2)), 2);
+                $itemDiscountAmount = round((float) ($itemData['discount_amount'] ?? max(0, round($quantity * $unitPrice, 2) - $itemSubtotal)), 2);
                 $itemType = (string) $itemData['item_type'];
 
                 $serviceId = null;
@@ -113,10 +115,11 @@ final class CreateSaleAction
                     $this->stockService->decreaseBranchStock($product, $branch, $quantity, $actor);
                 }
 
-                $subtotal += $itemSubtotal;
+                $subtotal += round($quantity * $unitPrice, 2);
+                $discountTotal += $itemDiscountAmount;
             }
 
-            $total = round($subtotal, 2);
+            $total = round(max(0, $subtotal - $discountTotal), 2);
             $paidTotal = round(array_reduce(
                 $paymentsData,
                 fn (float $carry, array $payment): float => $carry + (float) $payment['amount'],
@@ -138,6 +141,7 @@ final class CreateSaleAction
                 'sale_number' => (string) (1000 + $sale->id),
                 'ticket_number' => (string) (42250000 + $sale->id),
                 'subtotal' => $subtotal,
+                'discount_total' => $discountTotal,
                 'total' => $total,
                 'paid_total' => $paidTotal,
                 'change_total' => $changeTotal,

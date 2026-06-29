@@ -162,7 +162,7 @@
             <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
                 <div class="flex items-center gap-3">
                     @if ($drawerStep !== 'cart' && $drawerStep !== 'success')
-                        @if ($drawerStep === 'service-professional')
+                        @if (in_array($drawerStep, ['service-professional', 'product-config'], true))
                             <button type="button" wire:click="backToItemPicker" class="text-zinc-500">
                                 <flux:icon.chevron-left class="size-6" />
                             </button>
@@ -182,6 +182,7 @@
                             @case('client-create') Agrega un nuevo cliente @break
                             @case('item-picker') Agrega lo que desees @break
                             @case('service-professional') Selecciona un profesional @break
+                            @case('product-config') {{ $this->productConfigurationProduct?->name ?? 'Configura el producto' }} @break
                             @case('payment') Método de pago @break
                             @case('success') {{ $saleSummaryMode === 'detail' ? 'Detalle de venta' : 'Venta completada' }} @break
                             @default Nueva venta
@@ -228,7 +229,9 @@
                             </div>
 
                             @if ($saleForm['client_id'])
-                                @php($client = $this->clientsCatalog->firstWhere('id', $saleForm['client_id']))
+                                @php
+                                    $client = $this->clientsCatalog->firstWhere('id', $saleForm['client_id']);
+                                @endphp
                                 <button type="button" wire:click="openClientSearch" class="flex w-full items-center justify-between rounded-2xl border border-zinc-200 px-4 py-4 text-left">
                                     <span class="font-semibold text-zinc-900">{{ $client?->fullName() ?? 'Cliente' }}</span>
                                     <flux:icon.chevron-right class="size-5 text-zinc-400" />
@@ -247,15 +250,33 @@
                                             <div class="mt-1 text-sm text-zinc-500">{{ $item['item_detail'] }}</div>
                                         @endif
 
+                                        @if ($item['item_type'] === 'product' && ($item['meta']['professional_name'] ?? null))
+                                            <div class="mt-1 inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
+                                                <span>Vendedor</span>
+                                                <span>{{ $item['meta']['professional_name'] }}</span>
+                                            </div>
+                                        @endif
+
                                         @if ($item['item_type'] === 'service' && ($item['meta']['professional_name'] ?? null))
                                             <div class="mt-1 inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
                                                 <span>Profesional</span>
                                                 <span>{{ $item['meta']['professional_name'] }}</span>
                                             </div>
                                         @endif
+
+                                        @if (($item['meta']['discount_amount'] ?? 0) > 0)
+                                            <div class="mt-1 text-xs text-emerald-600">
+                                                Descuento aplicado: S/{{ number_format((float) $item['meta']['discount_amount'], 2) }}
+                                            </div>
+                                        @endif
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <div class="font-semibold text-zinc-900">S/{{ number_format((float) $item['subtotal'], 0) }}</div>
+                                        <div class="text-right">
+                                            <div class="font-semibold text-zinc-900">S/{{ number_format((float) $item['subtotal'], 2) }}</div>
+                                            @if (($item['meta']['discount_amount'] ?? 0) > 0)
+                                                <div class="text-xs text-zinc-400">Antes S/{{ number_format(((float) $item['quantity'] * (float) $item['unit_price']), 2) }}</div>
+                                            @endif
+                                        </div>
                                         <div class="flex items-center gap-1">
                                             <button
                                                 type="button"
@@ -338,7 +359,7 @@
                         <flux:input wire:model.live.debounce.300ms="itemSearch" icon="magnifying-glass" placeholder="Busca y agrega entre tus servicios y productos" />
 
                         <div class="flex gap-2 overflow-x-auto pb-1">
-                            @foreach (['recent' => 'Recientes', 'services' => 'Servicios', 'products' => 'Productos', 'giftcards' => 'Giftcard'] as $tab => $label)
+                            @foreach (['recent' => 'Recientes', 'services' => 'Servicios', 'products' => 'Productos'] as $tab => $label)
                                 <button
                                     type="button"
                                     wire:click="setItemPickerTab('{{ $tab }}')"
@@ -379,25 +400,21 @@
                                 @forelse ($this->filteredProductsCatalog as $product)
                                     <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-4 last:border-b-0">
                                         <div>
-                                            <div class="font-medium text-zinc-900">{{ $product->name }}</div>
-                                            <div class="mt-1 text-sm text-zinc-500">S/{{ number_format((float) $product->public_sale_price, 0) }} | {{ $product->brand?->name }} | {{ $product->presentation?->name }}</div>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            @if ($this->cartQuantityForProduct($product->id) > 0)
-                                                <button type="button" wire:click="decreaseProductToCart({{ $product->id }})" class="flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm">
-                                                    <flux:icon.minus class="size-4" />
-                                                </button>
-
-                                                <div class="flex size-10 items-center justify-center rounded-xl bg-violet-600 text-sm font-semibold text-white shadow-sm">
-                                                    {{ $this->cartQuantityForProduct($product->id) }}
-                                                </div>
-                                            @endif
-
-                                            <button type="button" wire:click="addProductToCart({{ $product->id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
-                                                <flux:icon.plus class="size-5 text-violet-600" />
-                                            </button>
-                                        </div>
+                                        <div class="font-medium text-zinc-900">{{ $product->name }}</div>
+                                        <div class="mt-1 text-sm text-zinc-500">S/{{ number_format((float) $product->public_sale_price, 0) }} | {{ $product->brand?->name }} | {{ $product->presentation?->name }}</div>
                                     </div>
+                                    <div class="flex items-center gap-3">
+                                        @if ($this->cartQuantityForProduct($product->id) > 0)
+                                            <div class="flex size-10 items-center justify-center rounded-xl bg-violet-600 text-sm font-semibold text-white shadow-sm">
+                                                {{ $this->cartQuantityForProduct($product->id) }}
+                                            </div>
+                                        @endif
+
+                                        <button type="button" wire:click="addProductToCart({{ $product->id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
+                                                <flux:icon.plus class="size-5 text-violet-600" />
+                                        </button>
+                                    </div>
+                                </div>
                                 @empty
                                     <div class="px-4 py-6 text-sm text-zinc-500">No se encontraron productos.</div>
                                 @endforelse
@@ -421,10 +438,6 @@
                                         @elseif ($item->item_type === 'product' && $item->product_id)
                                             <div class="flex items-center gap-3">
                                                 @if ($this->cartQuantityForProduct($item->product_id) > 0)
-                                                    <button type="button" wire:click="decreaseProductToCart({{ $item->product_id }})" class="flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm">
-                                                        <flux:icon.minus class="size-4" />
-                                                    </button>
-
                                                     <div class="flex size-10 items-center justify-center rounded-xl bg-violet-600 text-sm font-semibold text-white shadow-sm">
                                                         {{ $this->cartQuantityForProduct($item->product_id) }}
                                                     </div>
@@ -445,7 +458,9 @@
                         </div>
                     </div>
                 @elseif ($drawerStep === 'service-professional')
-                    @php($selectedService = $this->serviceProfessionalPickerService)
+                    @php
+                        $selectedService = $this->serviceProfessionalPickerService;
+                    @endphp
 
                     <div class="space-y-4">
                         @if ($selectedService)
@@ -488,6 +503,102 @@
                                     No hay profesionales vinculados a este servicio.
                                 </div>
                             @endforelse
+                        </div>
+                    </div>
+                @elseif ($drawerStep === 'product-config')
+                    @php
+                        $selectedProduct = $this->productConfigurationProduct;
+                    @endphp
+
+                    <div class="space-y-4">
+                        @if ($selectedProduct)
+                            <div class="rounded-[24px] border border-zinc-200 bg-zinc-50 px-4 py-4">
+                                <div class="text-sm text-zinc-500">Producto seleccionado</div>
+                                <div class="mt-1 text-lg font-semibold text-zinc-900">{{ $selectedProduct->name }}</div>
+                                <div class="mt-1 text-sm text-zinc-500">
+                                    S/{{ number_format((float) $selectedProduct->public_sale_price, 2) }} · {{ $selectedProduct->brand?->name }} · {{ $selectedProduct->presentation?->name }}
+                                </div>
+                            </div>
+                        @endif
+
+                        <div class="flex items-center justify-center gap-3">
+                            <button
+                                type="button"
+                                wire:click="decreaseProductConfigurationQuantity"
+                                class="inline-flex size-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-rose-500 shadow-sm"
+                            >
+                                <flux:icon.trash class="size-5" />
+                            </button>
+
+                            <div class="min-w-8 text-center text-lg font-medium text-zinc-800">
+                                {{ $productConfigurationQuantity }}
+                            </div>
+
+                            <button
+                                type="button"
+                                wire:click="increaseProductConfigurationQuantity"
+                                class="inline-flex size-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-violet-600 shadow-sm"
+                            >
+                                <flux:icon.plus class="size-5" />
+                            </button>
+                        </div>
+
+                        <div class="rounded-[24px] border border-zinc-200 bg-white px-4 py-4">
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="mb-2 text-sm font-medium text-zinc-700">Vendedor</div>
+                                    <flux:select wire:model.live="productConfigurationProfessionalId">
+                                        <option value="">Selecciona un vendedor</option>
+                                        @forelse ($this->professionalsCatalog as $professional)
+                                            <option value="{{ $professional->id }}">{{ $professional->public_name }}</option>
+                                        @empty
+                                            <option value="">No hay vendedores disponibles</option>
+                                        @endforelse
+                                    </flux:select>
+                                </div>
+
+                                <div>
+                                    <div class="mb-2 text-sm font-medium text-zinc-700">Precio</div>
+                                    <flux:input wire:model.live="productConfigurationPrice" type="number" min="0" step="0.01" />
+                                </div>
+
+                                <div>
+                                    <div class="mb-2 text-sm font-medium text-zinc-700">Descuento</div>
+                                    <div class="grid grid-cols-[minmax(0,1fr)_5rem] gap-2">
+                                        <flux:input wire:model.live="productConfigurationDiscountValue" type="number" min="0" step="0.01" />
+                                        <flux:select wire:model.live="productConfigurationDiscountType">
+                                            <option value="percent">%</option>
+                                            <option value="amount">S/</option>
+                                        </flux:select>
+                                    </div>
+                                </div>
+
+                                @php
+                                    $productPrice = (float) $productConfigurationPrice;
+                                    $productQuantity = max(1, (int) $productConfigurationQuantity);
+                                    $discountValue = (float) $productConfigurationDiscountValue;
+                                    $grossSubtotal = round($productPrice * $productQuantity, 2);
+                                    $discountAmount = $productConfigurationDiscountType === 'amount'
+                                        ? min($grossSubtotal, $discountValue)
+                                        : round($grossSubtotal * min(100, $discountValue) / 100, 2);
+                                    $netSubtotal = round(max(0, $grossSubtotal - $discountAmount), 2);
+                                @endphp
+
+                                <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                                    <div class="flex items-center justify-between">
+                                        <span>Subtotal</span>
+                                        <span>S/{{ number_format($grossSubtotal, 2) }}</span>
+                                    </div>
+                                    <div class="mt-1 flex items-center justify-between">
+                                        <span>Descuento</span>
+                                        <span>S/{{ number_format($discountAmount, 2) }}</span>
+                                    </div>
+                                    <div class="mt-2 flex items-center justify-between border-t border-zinc-200 pt-2 text-base font-semibold text-zinc-900">
+                                        <span>Total</span>
+                                        <span>S/{{ number_format($netSubtotal, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 @elseif ($drawerStep === 'payment')
@@ -612,6 +723,10 @@
                 @elseif ($drawerStep === 'service-professional')
                     <button type="button" wire:click="backToItemPicker" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
                         Volver a servicios
+                    </button>
+                @elseif ($drawerStep === 'product-config')
+                    <button type="button" wire:click="saveProductConfiguration" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                        Agregar al carro
                     </button>
                 @elseif ($drawerStep === 'client-create')
                     <button type="button" wire:click="saveInlineClient" class="flex h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">

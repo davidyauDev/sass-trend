@@ -2,410 +2,264 @@
 
 namespace App\Livewire\Administracion\Comisiones;
 
-use App\Actions\Commissions\ApproveCommissionAction;
-use App\Actions\Commissions\ApproveCommissionSettlementAction;
-use App\Actions\Commissions\CreateCommissionRuleAction;
-use App\Actions\Commissions\CreateCommissionSettlementAction;
-use App\Actions\Commissions\MarkCommissionSettlementPaidAction;
-use App\Actions\Commissions\RejectCommissionAction;
-use App\Actions\Commissions\ReverseCommissionAction;
-use App\Actions\Commissions\UpdateCommissionRuleAction;
-use App\DTOs\Commissions\CommissionSettlementData;
-use App\Livewire\Forms\CommissionRuleForm;
-use App\Livewire\Forms\CommissionSettlementForm;
-use App\Models\Branch;
-use App\Models\CommissionAuditLog;
-use App\Models\CommissionRule;
-use App\Models\CommissionSettlement;
+use App\Livewire\Forms\ProductCommissionForm;
+use App\Livewire\Forms\ProfessionalDefaultCommissionForm;
+use App\Livewire\Forms\ProfessionalServiceCommissionForm;
+use App\Models\Product;
+use App\Models\Professional;
 use App\Models\ProfessionalCommission;
-use App\Models\User;
-use App\Repositories\Commissions\CommissionReportRepository;
-use App\Repositories\Commissions\CommissionRepository;
-use App\Services\Commissions\CommissionMetricsService;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
-use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
 
 #[Title('Comisiones')]
 class Index extends Component
 {
-    use WithPagination;
+    public string $section = 'services';
 
-    public CommissionRuleForm $ruleForm;
+    public string $professionalSearch = '';
 
-    public CommissionSettlementForm $settlementForm;
+    public string $productSearch = '';
 
-    public string $section = 'dashboard';
+    public ?int $selectedProfessionalId = null;
 
-    #[Url(as: 'q')]
-    public string $search = '';
+    public ?int $selectedProductId = null;
 
-    #[Url(as: 'branch')]
-    public string $branchFilter = '';
+    public ProfessionalDefaultCommissionForm $professionalDefaultForm;
 
-    #[Url(as: 'professional')]
-    public string $professionalFilter = '';
+    public ProfessionalServiceCommissionForm $professionalServiceForm;
 
-    #[Url(as: 'status')]
-    public string $statusFilter = '';
-
-    #[Url(as: 'source')]
-    public string $sourceFilter = '';
-
-    #[Url(as: 'from')]
-    public string $dateFrom = '';
-
-    #[Url(as: 'to')]
-    public string $dateTo = '';
-
-    #[Url]
-    public int $perPage = 10;
-
-    public bool $isRuleModalOpen = false;
-
-    public bool $isSettlementModalOpen = false;
-
-    public ?int $selectedCommissionId = null;
-
-    public ?int $selectedRuleId = null;
-
-    public ?int $selectedSettlementId = null;
+    public ProductCommissionForm $productForm;
 
     public function mount(): void
     {
         abort_unless(auth()->user()?->can('viewAny', ProfessionalCommission::class) === true, 403);
-
-        $this->dateFrom = now()->startOfMonth()->toDateString();
-        $this->dateTo = now()->toDateString();
-        $this->ruleForm->resetForm();
-        $this->settlementForm->resetForm();
     }
 
-    public function updatedSection(): void
+    public function updatedProfessionalSearch(): void
     {
-        $this->selectedCommissionId = null;
-        $this->selectedRuleId = null;
-        $this->selectedSettlementId = null;
+        //
     }
 
-    public function updatedPerPage(): void
+    public function updatedProductSearch(): void
     {
-        if (! in_array($this->perPage, [10, 25, 50], true)) {
-            $this->perPage = 10;
-        }
-
-        $this->resetPage();
+        //
     }
 
-    public function openRuleModal(): void
+    public function showServices(): void
     {
-        $this->authorize('create', CommissionRule::class);
+        $this->section = 'services';
+    }
 
-        $this->ruleForm->resetForm();
-        $this->isRuleModalOpen = true;
+    public function showProducts(): void
+    {
+        $this->section = 'products';
+    }
+
+    public function openProfessionalServicesModal(int $professionalId): void
+    {
+        $professional = Professional::query()
+            ->with(['services' => fn ($query) => $query->orderBy('name')])
+            ->findOrFail($professionalId);
+
+        $this->selectedProfessionalId = $professional->id;
+        $this->professionalServiceForm->resetForm();
+        $this->professionalServiceForm->fillFromProfessional($professional);
         $this->resetValidation();
         $this->resetErrorBag();
+
+        $this->modal('professional-services')->show();
     }
 
-    public function openEditRuleModal(int $ruleId): void
+    public function openProfessionalDefaultModal(int $professionalId): void
     {
-        $rule = CommissionRule::query()->findOrFail($ruleId);
+        $professional = Professional::query()->findOrFail($professionalId);
 
-        $this->authorize('update', $rule);
-
-        $this->ruleForm->fillFromRule($rule);
-        $this->isRuleModalOpen = true;
+        $this->selectedProfessionalId = $professional->id;
+        $this->professionalDefaultForm->resetForm();
+        $this->professionalDefaultForm->fillFromProfessional($professional);
         $this->resetValidation();
         $this->resetErrorBag();
+
+        $this->modal('professional-default-commission')->show();
     }
 
-    public function closeRuleModal(): void
+    public function openProductModal(int $productId): void
     {
-        $this->ruleForm->resetForm();
-        $this->isRuleModalOpen = false;
-    }
+        $product = Product::query()
+            ->with(['brand', 'presentation'])
+            ->findOrFail($productId);
 
-    public function saveRule(CreateCommissionRuleAction $createRule, UpdateCommissionRuleAction $updateRule): void
-    {
-        $this->ruleForm->validate();
-
-        $payload = $this->ruleForm->payload();
-
-        if ($this->ruleForm->commissionRuleId !== null) {
-            $rule = CommissionRule::query()->findOrFail($this->ruleForm->commissionRuleId);
-            $this->authorize('update', $rule);
-            $updateRule->handle($this->authUser(), $rule, $payload);
-            $message = 'Regla de comisión actualizada.';
-        } else {
-            $this->authorize('create', CommissionRule::class);
-            $createRule->handle($this->authUser(), $payload);
-            $message = 'Regla de comisión creada.';
-        }
-
-        $this->closeRuleModal();
-        Flux::toast(variant: 'success', text: $message);
-    }
-
-    public function openSettlementModal(): void
-    {
-        $this->authorize('create', CommissionSettlement::class);
-
-        $this->settlementForm->resetForm();
-        $this->isSettlementModalOpen = true;
+        $this->selectedProductId = $product->id;
+        $this->productForm->resetForm();
+        $this->productForm->fillFromProduct($product);
         $this->resetValidation();
         $this->resetErrorBag();
+
+        $this->modal('product-commission')->show();
     }
 
-    public function closeSettlementModal(): void
+    public function closeProfessionalServicesModal(): void
     {
-        $this->settlementForm->resetForm();
-        $this->isSettlementModalOpen = false;
+        $this->selectedProfessionalId = null;
+        $this->professionalServiceForm->resetForm();
+        $this->resetValidation();
+        $this->resetErrorBag();
+
+        $this->modal('professional-services')->close();
     }
 
-    public function saveSettlement(CreateCommissionSettlementAction $createSettlement): void
+    public function closeProfessionalDefaultModal(): void
     {
-        $this->settlementForm->validate();
+        $this->selectedProfessionalId = null;
+        $this->professionalDefaultForm->resetForm();
+        $this->resetValidation();
+        $this->resetErrorBag();
 
-        $payload = $this->settlementForm->payload();
-
-        $createSettlement->handle($this->authUser(), new CommissionSettlementData(
-            branchId: $payload['branch_id'],
-            periodType: $payload['period_type'],
-            startsAt: $payload['starts_at'],
-            endsAt: $payload['ends_at'],
-            notes: $payload['notes'],
-        ));
-        $this->closeSettlementModal();
-
-        Flux::toast(variant: 'success', text: 'Liquidación generada.');
+        $this->modal('professional-default-commission')->close();
     }
 
-    public function approveSelectedCommission(ApproveCommissionAction $approveCommission): void
+    public function closeProductModal(): void
     {
-        $commission = $this->selectedCommission();
+        $this->selectedProductId = null;
+        $this->productForm->resetForm();
+        $this->resetValidation();
+        $this->resetErrorBag();
 
-        if ($commission === null) {
+        $this->modal('product-commission')->close();
+    }
+
+    public function saveProfessionalServices(): void
+    {
+        $this->professionalServiceForm->validate();
+
+        if ($this->professionalServiceForm->professionalId === null) {
             return;
         }
 
-        $this->authorize('approve', $commission);
-        $approveCommission->handle($this->authUser(), $commission);
-        Flux::toast(variant: 'success', text: 'Comisión aprobada.');
+        $professional = Professional::query()
+            ->with(['services' => fn ($query) => $query->orderBy('name')])
+            ->findOrFail($this->professionalServiceForm->professionalId);
+
+        DB::transaction(function () use ($professional): void {
+            foreach ($this->professionalServiceForm->payload() as $row) {
+                $professional->services()->updateExistingPivot((int) $row['service_id'], [
+                    'sale_commission' => $row['sale_commission'],
+                    'commission_type' => $row['commission_type'],
+                ]);
+            }
+        });
+
+        $this->closeProfessionalServicesModal();
+        Flux::toast(variant: 'success', text: 'Comisiones del profesional actualizadas.');
     }
 
-    public function rejectSelectedCommission(RejectCommissionAction $rejectCommission): void
+    public function saveProfessionalDefaultCommission(): void
     {
-        $commission = $this->selectedCommission();
+        $this->professionalDefaultForm->validate();
 
-        if ($commission === null) {
+        if ($this->professionalDefaultForm->professionalId === null) {
             return;
         }
 
-        $this->authorize('reject', $commission);
-        $rejectCommission->handle($this->authUser(), $commission);
-        Flux::toast(variant: 'success', text: 'Comisión rechazada.');
+        $professional = Professional::query()->findOrFail($this->professionalDefaultForm->professionalId);
+        $professional->update($this->professionalDefaultForm->payload());
+
+        $this->closeProfessionalDefaultModal();
+        Flux::toast(variant: 'success', text: 'Comisión por defecto actualizada.');
     }
 
-    public function reverseSelectedCommission(ReverseCommissionAction $reverseCommission): void
+    public function saveProductCommission(): void
     {
-        $commission = $this->selectedCommission();
+        $this->productForm->validate();
 
-        if ($commission === null) {
+        if ($this->productForm->productId === null) {
             return;
         }
 
-        $reverseCommission->handle($this->authUser(), $commission, 'Manual reversal from commissions module.');
-        Flux::toast(variant: 'success', text: 'Comisión revertida.');
-    }
+        $product = Product::query()->findOrFail($this->productForm->productId);
+        $product->update($this->productForm->payload());
 
-    public function approveSettlement(ApproveCommissionSettlementAction $approveSettlement): void
-    {
-        $settlement = $this->selectedSettlement();
-
-        if ($settlement === null) {
-            return;
-        }
-
-        $approveSettlement->handle($this->authUser(), $settlement);
-        Flux::toast(variant: 'success', text: 'Liquidación aprobada.');
-    }
-
-    public function markSettlementPaid(MarkCommissionSettlementPaidAction $markPaid): void
-    {
-        $settlement = $this->selectedSettlement();
-
-        if ($settlement === null) {
-            return;
-        }
-
-        $markPaid->handle($this->authUser(), $settlement, (float) $settlement->total_commissions, null, 'bank_transfer');
-        Flux::toast(variant: 'success', text: 'Liquidación pagada.');
-    }
-
-    public function clearFilters(): void
-    {
-        $this->reset(['search', 'branchFilter', 'professionalFilter', 'statusFilter', 'sourceFilter', 'dateFrom', 'dateTo']);
-        $this->dateFrom = now()->startOfMonth()->toDateString();
-        $this->dateTo = now()->toDateString();
-        $this->resetPage();
-    }
-
-    public function exportReport(string $format): void
-    {
-        Flux::toast(variant: 'success', text: 'Exportación preparada en formato '.$format.'.');
+        $this->closeProductModal();
+        Flux::toast(variant: 'success', text: 'Comisión del producto actualizada.');
     }
 
     /**
-     * @return SupportCollection<int, Branch>
+     * @return EloquentCollection<int, Professional>
      */
     #[Computed]
-    public function branches(): SupportCollection
+    public function professionals(): EloquentCollection
     {
-        return Branch::query()->orderBy('name')->get();
-    }
+        $search = trim($this->professionalSearch);
 
-    /**
-     * @return SupportCollection<int, User>
-     */
-    #[Computed]
-    public function professionals(): SupportCollection
-    {
-        return User::query()
-            ->with('role')
+        return Professional::query()
+            ->with(['services' => fn ($query) => $query->orderBy('name')])
+            ->withCount('services')
             ->where('is_active', true)
-            ->orderBy('name')
+            ->when($search !== '', function ($query) use ($search): void {
+                $like = '%'.$search.'%';
+
+                $query->where(function ($searchQuery) use ($like): void {
+                    $searchQuery
+                        ->where('public_name', 'like', $like)
+                        ->orWhereHas('services', fn ($serviceQuery) => $serviceQuery->where('name', 'like', $like));
+                });
+            })
+            ->orderBy('public_name')
             ->get();
     }
 
     /**
-     * @return array{total_commissions: float, pending_commissions: float, approved_commissions: float, paid_commissions: float, revenue_generated: float}
+     * @return EloquentCollection<int, Product>
      */
     #[Computed]
-    public function dashboardMetrics(): array
+    public function products(): EloquentCollection
     {
-        return app(CommissionMetricsService::class)->dashboardMetrics(
-            $this->branchFilter !== '' ? (int) $this->branchFilter : null,
-        );
-    }
-
-    /**
-     * @return SupportCollection<int, array{user_id: int, name: string, revenue: float, commissions: float, completed: int}>
-     */
-    #[Computed]
-    public function topPerformers(): SupportCollection
-    {
-        return app(CommissionMetricsService::class)->topPerformers(
-            $this->branchFilter !== '' ? (int) $this->branchFilter : null,
-        );
-    }
-
-    /**
-     * @return SupportCollection<int, array{label: string, total: float}>
-     */
-    #[Computed]
-    public function bestSellingServices(): SupportCollection
-    {
-        return app(CommissionReportRepository::class)->bestSellingServices([]);
-    }
-
-    /**
-     * @return LengthAwarePaginator<int, ProfessionalCommission>
-     */
-    #[Computed]
-    public function commissions(): LengthAwarePaginator
-    {
-        return app(CommissionRepository::class)->commissions([
-            'search' => $this->search,
-            'branch_id' => $this->branchFilter !== '' ? (int) $this->branchFilter : null,
-            'user_id' => $this->professionalFilter !== '' ? (int) $this->professionalFilter : null,
-            'status' => $this->statusFilter,
-            'source_type' => $this->sourceFilter,
-            'date_from' => $this->dateFrom,
-            'date_to' => $this->dateTo,
-        ], $this->perPage);
-    }
-
-    /**
-     * @return SupportCollection<int, CommissionRule>
-     */
-    #[Computed]
-    public function rules(): SupportCollection
-    {
-        return app(CommissionRepository::class)->rules();
-    }
-
-    /**
-     * @return LengthAwarePaginator<int, CommissionSettlement>
-     */
-    #[Computed]
-    public function settlements(): LengthAwarePaginator
-    {
-        return app(CommissionRepository::class)->settlements([
-            'branch_id' => $this->branchFilter !== '' ? (int) $this->branchFilter : null,
-            'status' => $this->statusFilter,
-        ], $this->perPage);
-    }
-
-    /**
-     * @return LengthAwarePaginator<int, CommissionAuditLog>
-     */
-    #[Computed]
-    public function auditLogs(): LengthAwarePaginator
-    {
-        return app(CommissionRepository::class)->auditLogs([
-            'branch_id' => $this->branchFilter !== '' ? (int) $this->branchFilter : null,
-        ], $this->perPage);
+        return Product::query()
+            ->with(['brand', 'presentation'])
+            ->where('is_active', true)
+            ->search(trim($this->productSearch))
+            ->orderBy('name')
+            ->get();
     }
 
     #[Computed]
-    public function selectedCommission(): ?ProfessionalCommission
+    public function selectedProfessional(): ?Professional
     {
-        if ($this->selectedCommissionId === null) {
+        if ($this->selectedProfessionalId === null) {
             return null;
         }
 
-        return ProfessionalCommission::query()
-            ->with(['branch', 'professional', 'rule', 'type', 'settlement', 'transactions', 'calculations', 'approvals'])
-            ->find($this->selectedCommissionId);
+        return Professional::query()
+            ->with(['services' => fn ($query) => $query->orderBy('name')])
+            ->find($this->selectedProfessionalId);
     }
 
     #[Computed]
-    public function selectedRule(): ?CommissionRule
+    public function selectedProduct(): ?Product
     {
-        if ($this->selectedRuleId === null) {
+        if ($this->selectedProductId === null) {
             return null;
         }
 
-        return CommissionRule::query()->with(['branch', 'service', 'serviceCategory', 'type', 'formulas'])->find($this->selectedRuleId);
+        return Product::query()
+            ->with(['brand', 'presentation'])
+            ->find($this->selectedProductId);
     }
 
-    #[Computed]
-    public function selectedSettlement(): ?CommissionSettlement
+    public function commissionBadge(float|string $amount, string $type): string
     {
-        if ($this->selectedSettlementId === null) {
-            return null;
-        }
-
-        return CommissionSettlement::query()->with(['branch', 'approver', 'payments', 'commissions.professional'])->find($this->selectedSettlementId);
+        return $type === 'amount'
+            ? 'S/ '.number_format((float) $amount, 1)
+            : number_format((float) $amount, 1).'%';
     }
 
     public function render(): View
     {
         return view('livewire.administracion.comisiones.index')->layout('layouts.app');
-    }
-
-    private function authUser(): User
-    {
-        $user = auth()->user();
-
-        abort_unless($user instanceof User, 403);
-
-        return $user;
     }
 }
