@@ -43,6 +43,33 @@
                             @endif
                         </form>
 
+                        <form
+                            method="POST"
+                            action="{{ route('products.import') }}"
+                            enctype="multipart/form-data"
+                            class="flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-3 py-2 shadow-sm"
+                            onsubmit="return confirm('Se eliminara el inventario actual y se reemplazara con el contenido del Excel. Deseas continuar?')"
+                        >
+                            @csrf
+
+                            <label for="inventory_file" class="sr-only">Archivo Excel de inventario</label>
+                            <input
+                                id="inventory_file"
+                                name="inventory_file"
+                                type="file"
+                                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                required
+                                class="block max-w-[16rem] text-sm text-zinc-600 file:mr-3 file:rounded-xl file:border-0 file:bg-zinc-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-zinc-700 hover:file:bg-zinc-200"
+                            />
+
+                            <button
+                                type="submit"
+                                class="inline-flex h-10 items-center justify-center rounded-xl bg-amber-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600"
+                            >
+                                Importar Excel
+                            </button>
+                        </form>
+
                         <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
                             Nuevo producto
                         </flux:button>
@@ -58,6 +85,12 @@
                 @if (session('error'))
                     <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                         {{ session('error') }}
+                    </div>
+                @endif
+
+                @if ($errors->has('inventory_file'))
+                    <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                        {{ $errors->first('inventory_file') }}
                     </div>
                 @endif
 

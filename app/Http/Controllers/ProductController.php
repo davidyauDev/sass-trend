@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Products\AdjustProductStockAction;
 use App\Actions\Products\CreateProductSaleAction;
+use App\Actions\Products\ImportInventoryFromExcelAction;
 use App\Models\Branch;
 use App\Models\Product;
 use App\Models\ProductBranchStock;
@@ -26,6 +27,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductController extends Controller
@@ -90,6 +92,33 @@ class ProductController extends Controller
         $product->delete();
 
         return $this->respond($request, "Producto {$productName} eliminado correctamente.");
+    }
+
+    public function import(Request $request, ImportInventoryFromExcelAction $action): RedirectResponse
+    {
+        $validated = $request->validate([
+            'inventory_file' => ['required', 'file', 'mimes:xlsx', 'max:10240'],
+        ]);
+
+        try {
+            $summary = $action->handle($validated['inventory_file']);
+        } catch (RuntimeException $exception) {
+            return redirect()
+                ->route('products.index')
+                ->with('error', $exception->getMessage());
+        }
+
+        $message = sprintf(
+            'Inventario importado correctamente. Se cargaron %d productos, %d marcas, %d categorias y %d presentaciones.',
+            $summary['products'],
+            $summary['brands'],
+            $summary['categories'],
+            $summary['presentations'],
+        );
+
+        return redirect()
+            ->route('products.index')
+            ->with('success', $message);
     }
 
     public function salesIndex(Request $request): View

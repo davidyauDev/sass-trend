@@ -35,7 +35,7 @@ class Index extends Component
 {
     use WithPagination;
 
-    private const array ITEM_PICKER_TABS = ['recent', 'services', 'products'];
+    private const ITEM_PICKER_TABS = ['recent', 'services', 'products'];
 
     #[Url(as: 'q')]
     public string $search = '';
@@ -69,6 +69,14 @@ class Index extends Component
     public ?int $serviceProfessionalPickerServiceId = null;
 
     public ?int $serviceProfessionalPickerProfessionalId = null;
+
+    public int $serviceConfigurationQuantity = 1;
+
+    public string $serviceConfigurationPrice = '';
+
+    public string $serviceConfigurationDiscountType = 'percent';
+
+    public string $serviceConfigurationDiscountValue = '0';
 
     public ?int $productConfigurationProductId = null;
 
@@ -170,6 +178,7 @@ class Index extends Component
         $this->itemPickerTab = 'recent';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetServiceConfiguration();
         $this->resetProductConfiguration();
         $this->itemSearch = '';
         $this->clientSearch = '';
@@ -187,6 +196,7 @@ class Index extends Component
         $this->itemPickerTab = 'recent';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetServiceConfiguration();
         $this->resetProductConfiguration();
         $this->itemSearch = '';
         $this->saleSummaryMode = 'success';
@@ -218,6 +228,7 @@ class Index extends Component
         $this->drawerStep = 'cart';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetServiceConfiguration();
         $this->resetProductConfiguration();
         $this->resetValidation();
         $this->resetErrorBag();
@@ -228,6 +239,7 @@ class Index extends Component
         $this->drawerStep = 'item-picker';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetServiceConfiguration();
         $this->resetProductConfiguration();
         $this->resetValidation();
         $this->resetErrorBag();
@@ -240,6 +252,7 @@ class Index extends Component
         $this->itemSearch = '';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetServiceConfiguration();
         $this->resetProductConfiguration();
     }
 
@@ -255,7 +268,10 @@ class Index extends Component
     public function openServiceProfessionalPicker(int $serviceId): void
     {
         $service = Service::query()
-            ->with(['professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name')])
+            ->with([
+                'category',
+                'professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name'),
+            ])
             ->findOrFail($serviceId);
 
         if ($service->professionalProfiles->isEmpty()) {
@@ -268,6 +284,10 @@ class Index extends Component
         $this->serviceProfessionalPickerProfessionalId = $service->professionalProfiles->count() === 1
             ? $service->professionalProfiles->first()?->id
             : null;
+        $this->serviceConfigurationQuantity = 1;
+        $this->serviceConfigurationPrice = (string) $service->price;
+        $this->serviceConfigurationDiscountType = 'percent';
+        $this->serviceConfigurationDiscountValue = '0';
         $this->drawerStep = 'service-professional';
         $this->resetValidation();
         $this->resetErrorBag();
@@ -299,7 +319,10 @@ class Index extends Component
         }
 
         $service = Service::query()
-            ->with(['professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name')])
+            ->with([
+                'category',
+                'professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name'),
+            ])
             ->findOrFail($this->serviceProfessionalPickerServiceId);
 
         $professional = $service->professionalProfiles->firstWhere('id', $professionalId);
@@ -309,10 +332,76 @@ class Index extends Component
         }
 
         $this->serviceProfessionalPickerProfessionalId = $professional->id;
-        $this->addServiceToCart($service, $professional);
+        $this->serviceConfigurationPrice = (string) $service->price;
+        $this->drawerStep = 'service-professional';
+    }
+
+    public function clearServiceProfessionalSelection(): void
+    {
+        $this->serviceProfessionalPickerProfessionalId = null;
+    }
+
+    public function increaseServiceConfigurationQuantity(): void
+    {
+        $this->serviceConfigurationQuantity++;
+    }
+
+    public function decreaseServiceConfigurationQuantity(): void
+    {
+        if ($this->serviceConfigurationQuantity <= 1) {
+            $this->backToItemPicker();
+
+            return;
+        }
+
+        $this->serviceConfigurationQuantity--;
+    }
+
+    public function saveServiceConfiguration(): void
+    {
+        $this->validate([
+            'serviceProfessionalPickerServiceId' => ['required', 'integer', Rule::exists('services', 'id')],
+            'serviceProfessionalPickerProfessionalId' => ['required', 'integer', Rule::exists('professionals', 'id')],
+            'serviceConfigurationQuantity' => ['required', 'integer', 'min:1'],
+            'serviceConfigurationPrice' => ['required', 'numeric', 'min:0'],
+            'serviceConfigurationDiscountType' => ['required', 'string', Rule::in(['percent', 'amount'])],
+            'serviceConfigurationDiscountValue' => ['required', 'numeric', 'min:0'],
+        ], [
+            'serviceProfessionalPickerProfessionalId.required' => 'Selecciona un profesional para continuar.',
+            'serviceProfessionalPickerProfessionalId.integer' => 'Selecciona un profesional válido.',
+            'serviceProfessionalPickerProfessionalId.exists' => 'Selecciona un profesional válido.',
+        ]);
+
+        $service = Service::query()
+            ->with([
+                'category',
+                'professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name'),
+            ])
+            ->findOrFail($this->serviceProfessionalPickerServiceId);
+
+        $professional = $service->professionalProfiles->firstWhere('id', $this->serviceProfessionalPickerProfessionalId);
+
+        if (! $professional instanceof Professional) {
+            throw ValidationException::withMessages([
+                'serviceProfessionalPickerProfessionalId' => 'Selecciona un profesional válido.',
+            ]);
+        }
+
+        $this->addConfiguredServiceToCart(
+            $service,
+            $professional,
+            $this->serviceConfigurationQuantity,
+            (float) $this->serviceConfigurationPrice,
+            $this->serviceConfigurationDiscountType,
+            (float) $this->serviceConfigurationDiscountValue,
+        );
+
         $this->drawerStep = 'cart';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
+        $this->resetServiceConfiguration();
+        $this->resetValidation();
+        $this->resetErrorBag();
     }
 
     public function increaseProductConfigurationQuantity(): void
@@ -374,7 +463,10 @@ class Index extends Component
         $service = $service instanceof Service
             ? $service
             : Service::query()
-                ->with(['professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name')])
+                ->with([
+                    'category',
+                    'professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name'),
+                ])
                 ->findOrFail($service);
 
         $professionalModel = null;
@@ -387,13 +479,33 @@ class Index extends Component
             $professionalModel = $service->professionalProfiles->first();
         }
 
-        $key = $professionalModel instanceof Professional
-            ? 'service:'.$service->id.':professional:'.$professionalModel->id
-            : 'service:'.$service->id;
+        if (! $professionalModel instanceof Professional) {
+            return;
+        }
+
+        $this->addConfiguredServiceToCart($service, $professionalModel, 1, (float) $service->price, 'none', 0.0);
+    }
+
+    private function addConfiguredServiceToCart(
+        Service $service,
+        Professional $professional,
+        int $quantity,
+        float $unitPrice,
+        string $discountType,
+        float $discountValue,
+    ): void {
+        $key = $this->serviceCartKey($service->id, $professional->id, $unitPrice, $discountType, $discountValue);
+
+        $lineSubtotal = $this->lineSubtotal($quantity, $unitPrice, $discountType, $discountValue);
+        $lineDiscountAmount = $this->lineDiscountAmount($quantity, $unitPrice, $discountType, $discountValue);
 
         if (isset($this->saleForm['cart'][$key])) {
-            $this->saleForm['cart'][$key]['quantity'] = (string) ((float) $this->saleForm['cart'][$key]['quantity'] + 1);
-            $this->saleForm['cart'][$key]['subtotal'] = round((float) $this->saleForm['cart'][$key]['quantity'] * (float) $this->saleForm['cart'][$key]['unit_price'], 2);
+            $currentQuantity = (float) ($this->saleForm['cart'][$key]['quantity'] ?? 0);
+            $newQuantity = (int) round($currentQuantity + $quantity);
+
+            $this->saleForm['cart'][$key]['quantity'] = (string) $newQuantity;
+            $this->saleForm['cart'][$key]['subtotal'] = $this->lineSubtotal($newQuantity, $unitPrice, $discountType, $discountValue);
+            $this->saleForm['cart'][$key]['meta']['discount_amount'] = $this->lineDiscountAmount($newQuantity, $unitPrice, $discountType, $discountValue);
 
             return;
         }
@@ -404,16 +516,19 @@ class Index extends Component
             'service_id' => $service->id,
             'product_id' => null,
             'item_name' => $service->name,
-            'item_detail' => $service->duration_minutes.' min',
-            'quantity' => '1',
-            'unit_price' => (string) $service->price,
-            'subtotal' => (float) $service->price,
+            'item_detail' => trim(implode(' | ', array_filter([
+                $service->category?->name,
+                $service->duration_minutes.' min',
+            ]))),
+            'quantity' => (string) $quantity,
+            'unit_price' => (string) $unitPrice,
+            'subtotal' => $lineSubtotal,
             'meta' => [
-                'professional_id' => $professionalModel?->id,
-                'professional_name' => $professionalModel?->displayName(),
-                'discount_type' => 'none',
-                'discount_value' => '0',
-                'discount_amount' => 0.0,
+                'professional_id' => $professional->id,
+                'professional_name' => $professional->displayName(),
+                'discount_type' => $discountType,
+                'discount_value' => (string) $discountValue,
+                'discount_amount' => $lineDiscountAmount,
             ],
         ];
     }
@@ -505,6 +620,7 @@ class Index extends Component
             'item_name' => $product->name,
             'item_detail' => trim(implode(' | ', array_filter([
                 $product->brand?->name,
+                $product->category?->name,
                 $product->presentation?->name,
             ]))),
             'quantity' => (string) $quantity,
@@ -569,6 +685,18 @@ class Index extends Component
         );
     }
 
+    private function serviceCartKey(int $serviceId, int $professionalId, float $unitPrice, string $discountType, float $discountValue): string
+    {
+        return sprintf(
+            'service:%d:professional:%d:price:%s:discount:%s:%s',
+            $serviceId,
+            $professionalId,
+            number_format($unitPrice, 2, '.', ''),
+            $discountType,
+            number_format($discountValue, 2, '.', ''),
+        );
+    }
+
     private function lineSubtotal(int $quantity, float $unitPrice, string $discountType, float $discountValue): float
     {
         $gross = round($quantity * $unitPrice, 2);
@@ -586,6 +714,14 @@ class Index extends Component
             'percent' => round($gross * max(0, min(100, $discountValue)) / 100, 2),
             default => 0.0,
         };
+    }
+
+    private function resetServiceConfiguration(): void
+    {
+        $this->serviceConfigurationQuantity = 1;
+        $this->serviceConfigurationPrice = '';
+        $this->serviceConfigurationDiscountType = 'percent';
+        $this->serviceConfigurationDiscountValue = '0';
     }
 
     public function selectClient(int $clientId): void
@@ -797,7 +933,7 @@ class Index extends Component
     public function productsCatalog(): Collection
     {
         return Product::query()
-            ->with(['brand', 'presentation'])
+            ->with(['brand', 'category', 'presentation'])
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -844,7 +980,7 @@ class Index extends Component
     public function filteredProductsCatalog(): Collection
     {
         return Product::query()
-            ->with(['brand', 'presentation'])
+            ->with(['brand', 'category', 'presentation'])
             ->where('is_active', true)
             ->search(trim($this->itemSearch))
             ->orderBy('name')
@@ -905,7 +1041,10 @@ class Index extends Component
         }
 
         return Service::query()
-            ->with(['professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name')])
+            ->with([
+                'category',
+                'professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name'),
+            ])
             ->find($this->serviceProfessionalPickerServiceId);
     }
 
@@ -939,7 +1078,7 @@ class Index extends Component
         }
 
         return Product::query()
-            ->with(['brand', 'presentation'])
+            ->with(['brand', 'category', 'presentation'])
             ->find($this->productConfigurationProductId);
     }
 

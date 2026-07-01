@@ -40,6 +40,7 @@ Route::middleware(['auth', 'verified', EnsureTenantIsActive::class])->group(func
     Route::get('clientes', ClientsIndex::class)->name('clientes.index');
     Route::get('products', [ProductController::class, 'index'])->name('products.index');
     Route::post('products', [ProductController::class, 'store'])->name('products.store');
+    Route::post('products/import', [ProductController::class, 'import'])->name('products.import');
     Route::get('products/ventas', [ProductController::class, 'salesIndex'])->name('products.sales.index');
     Route::get('products/ventas/export', [ProductController::class, 'salesExport'])->name('products.sales.export');
     Route::post('products/ventas', [ProductController::class, 'salesStore'])->name('products.sales.store');

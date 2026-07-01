@@ -26,14 +26,7 @@
                         <flux:sidebar.collapse class="lg:hidden" />
                     </div>
 
-                    <div class="mt-4">
-                        <flux:input
-                            type="search"
-                            placeholder="{{ __('Search') }}"
-                            icon="magnifying-glass"
-                            class="h-11 rounded-2xl bg-zinc-50 dark:bg-zinc-900"
-                        />
-                    </div>
+                    
                 </div>
 
                 <div class="flex-1 overflow-y-auto px-3 py-4">
@@ -120,8 +113,11 @@
                     </flux:sidebar.nav>
 
                     @if ($authUser)
-                        <div class="mt-3 rounded-2xl border border-zinc-200/80 bg-zinc-50 px-3 py-3 dark:border-zinc-800 dark:bg-zinc-900">
-                            <x-desktop-user-menu class="hidden lg:block" :name="$authUser->name" />
+                        <div class="pt-3">
+                            <div class="hidden lg:block">
+                                <x-desktop-user-menu :name="$authUser->name" />
+                            </div>
+
                             <div class="flex items-center gap-3 lg:hidden">
                                 <flux:avatar :name="$authUser->name" :initials="$authUser->initials()" />
                                 <div class="min-w-0">

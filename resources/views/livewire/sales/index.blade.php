@@ -401,7 +401,7 @@
                                     <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-4 last:border-b-0">
                                         <div>
                                         <div class="font-medium text-zinc-900">{{ $product->name }}</div>
-                                        <div class="mt-1 text-sm text-zinc-500">S/{{ number_format((float) $product->public_sale_price, 0) }} | {{ $product->brand?->name }} | {{ $product->presentation?->name }}</div>
+                                        <div class="mt-1 text-sm text-zinc-500">S/{{ number_format((float) $product->public_sale_price, 2) }} | {{ $product->category?->name }} | {{ $product->brand?->name }} | {{ $product->presentation?->name }}</div>
                                     </div>
                                     <div class="flex items-center gap-3">
                                         @if ($this->cartQuantityForProduct($product->id) > 0)
@@ -460,6 +460,14 @@
                 @elseif ($drawerStep === 'service-professional')
                     @php
                         $selectedService = $this->serviceProfessionalPickerService;
+                        $servicePrice = (float) $serviceConfigurationPrice;
+                        $serviceQuantity = max(1, (int) $serviceConfigurationQuantity);
+                        $serviceDiscountValue = (float) $serviceConfigurationDiscountValue;
+                        $serviceGrossSubtotal = round($servicePrice * $serviceQuantity, 2);
+                        $serviceDiscountAmount = $serviceConfigurationDiscountType === 'amount'
+                            ? min($serviceGrossSubtotal, $serviceDiscountValue)
+                            : round($serviceGrossSubtotal * min(100, $serviceDiscountValue) / 100, 2);
+                        $serviceNetSubtotal = round(max(0, $serviceGrossSubtotal - $serviceDiscountAmount), 2);
                     @endphp
 
                     <div class="space-y-4">
@@ -471,38 +479,62 @@
                             </div>
                         @endif
 
-                        <div class="space-y-2">
-                            <div class="text-sm font-medium text-zinc-700">Profesional</div>
-                            <div class="text-sm text-zinc-500">Elige quién realizará este servicio para guardarlo en la venta.</div>
-                        </div>
-
-                        <div class="grid gap-3">
-                            @forelse ($this->serviceProfessionalPickerProfessionals as $professional)
-                                <button
-                                    type="button"
-                                    wire:click="selectServiceProfessional({{ $professional->id }})"
-                                    class="flex items-center gap-3 rounded-[22px] border {{ $serviceProfessionalPickerProfessionalId === $professional->id ? 'border-violet-400 bg-violet-50 ring-2 ring-violet-100' : 'border-zinc-200 bg-white' }} px-4 py-4 text-left transition hover:border-violet-300"
-                                >
-                                    @if ($professional->photoUrl())
-                                        <img src="{{ $professional->photoUrl() }}" alt="{{ $professional->displayName() }}" class="size-12 rounded-2xl object-cover">
-                                    @else
-                                        <div class="flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-sm font-semibold text-zinc-500">
-                                            {{ $professional->initials() }}
-                                        </div>
-                                    @endif
-
-                                    <div class="min-w-0 flex-1">
-                                        <div class="font-semibold text-zinc-900">{{ $professional->displayName() }}</div>
-                                        <div class="mt-0.5 text-sm text-zinc-500">{{ $selectedService?->duration_minutes ?? 0 }} min · Asignado a este servicio</div>
+                        <div class="rounded-[24px] border border-zinc-200 bg-white px-4 py-4">
+                            <div class="space-y-4">
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-zinc-700">
+                                        Profesional <span class="text-rose-500">*</span>
                                     </div>
 
-                                    <flux:icon.chevron-right class="size-5 text-zinc-400" />
-                                </button>
-                            @empty
-                                <div class="rounded-[22px] border border-dashed border-zinc-300 px-4 py-6 text-sm text-zinc-500">
-                                    No hay profesionales vinculados a este servicio.
+                                    <flux:select
+                                        wire:model.live="serviceProfessionalPickerProfessionalId"
+                                        class="{{ $errors->has('serviceProfessionalPickerProfessionalId') ? 'border-rose-500 ring-2 ring-rose-100' : '' }}"
+                                    >
+                                        <option value="">Selecciona un profesional</option>
+
+                                        @forelse ($this->serviceProfessionalPickerProfessionals as $professional)
+                                            <option value="{{ $professional->id }}">{{ $professional->public_name }}</option>
+                                        @empty
+                                            <option value="">No hay profesionales vinculados</option>
+                                        @endforelse
+                                    </flux:select>
+
+                                    @error('serviceProfessionalPickerProfessionalId')
+                                        <p class="text-sm font-medium text-rose-500">{{ $message }}</p>
+                                    @enderror
                                 </div>
-                            @endforelse
+
+                                <div>
+                                    <div class="mb-2 text-sm font-medium text-zinc-700">Precio</div>
+                                    <flux:input wire:model.live="serviceConfigurationPrice" type="number" min="0" step="0.01" />
+                                </div>
+
+                                <div>
+                                    <div class="mb-2 text-sm font-medium text-zinc-700">Descuento</div>
+                                    <div class="grid grid-cols-[minmax(0,1fr)_5rem] gap-2">
+                                        <flux:input wire:model.live="serviceConfigurationDiscountValue" type="number" min="0" step="0.01" />
+                                        <flux:select wire:model.live="serviceConfigurationDiscountType">
+                                            <option value="percent">%</option>
+                                            <option value="amount">S/</option>
+                                        </flux:select>
+                                    </div>
+                                </div>
+
+                                <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                                    <div class="flex items-center justify-between">
+                                        <span>Subtotal</span>
+                                        <span>S/{{ number_format($serviceGrossSubtotal, 2) }}</span>
+                                    </div>
+                                    <div class="mt-1 flex items-center justify-between">
+                                        <span>Descuento</span>
+                                        <span>S/{{ number_format($serviceDiscountAmount, 2) }}</span>
+                                    </div>
+                                    <div class="mt-2 flex items-center justify-between border-t border-zinc-200 pt-2 text-base font-semibold text-zinc-900">
+                                        <span>Total</span>
+                                        <span>S/{{ number_format($serviceNetSubtotal, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 @elseif ($drawerStep === 'product-config')
@@ -516,7 +548,7 @@
                                 <div class="text-sm text-zinc-500">Producto seleccionado</div>
                                 <div class="mt-1 text-lg font-semibold text-zinc-900">{{ $selectedProduct->name }}</div>
                                 <div class="mt-1 text-sm text-zinc-500">
-                                    S/{{ number_format((float) $selectedProduct->public_sale_price, 2) }} · {{ $selectedProduct->brand?->name }} · {{ $selectedProduct->presentation?->name }}
+                                    S/{{ number_format((float) $selectedProduct->public_sale_price, 2) }} · {{ $selectedProduct->category?->name }} · {{ $selectedProduct->brand?->name }} · {{ $selectedProduct->presentation?->name }}
                                 </div>
                             </div>
                         @endif
@@ -721,9 +753,15 @@
                         Ir al carro ({{ count($saleForm['cart']) }})
                     </button>
                 @elseif ($drawerStep === 'service-professional')
-                    <button type="button" wire:click="backToItemPicker" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
-                        Volver a servicios
-                    </button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" wire:click="backToItemPicker" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white font-semibold text-zinc-700">
+                            Volver
+                        </button>
+
+                        <button type="button" wire:click="saveServiceConfiguration" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white disabled:opacity-50">
+                            Agregar al carro
+                        </button>
+                    </div>
                 @elseif ($drawerStep === 'product-config')
                     <button type="button" wire:click="saveProductConfiguration" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
                         Agregar al carro
