@@ -4,18 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Sale;
 use App\Models\User;
+use App\Services\Sales\SalesWorkbookExport;
 use App\Services\Sales\SaleListingQuery;
 use App\Services\Sales\SaleManagementGuard;
 use App\Services\Sales\SalePaymentMethodCatalog;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SaleReceiptController extends Controller
 {
     public function __construct(
         private readonly SaleManagementGuard $guard,
         private readonly SaleListingQuery $saleListingQuery,
+        private readonly SalesWorkbookExport $salesWorkbookExport,
     ) {}
 
     public function show(Request $request, int $sale): View
@@ -33,47 +35,15 @@ class SaleReceiptController extends Controller
         ]);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request): BinaryFileResponse
     {
         $this->guard->ensureCanView($this->authUser());
 
-        $sales = $this->saleListingQuery
-            ->handle($this->filtersFromRequest($request))
-            ->latest('sold_at')
-            ->get();
+        $path = $this->salesWorkbookExport->export($this->filtersFromRequest($request));
 
-        $filename = 'ventas-'.now()->format('Ymd-His').'.csv';
-
-        return response()->streamDownload(function () use ($sales): void {
-            $handle = fopen('php://output', 'wb');
-
-            if ($handle === false) {
-                return;
-            }
-
-            fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['Venta', 'Fecha', 'Estado', 'Cliente', 'Local', 'Metodos de pago', 'Total', 'Pagado'], ';');
-
-            foreach ($sales as $sale) {
-                fputcsv($handle, [
-                    $sale->sale_number ?? $sale->id,
-                    $sale->sold_at->format('d/m/Y H:i'),
-                    $sale->status,
-                    $sale->client?->fullName() ?? 'Consumidor final',
-                    $sale->branch->name,
-                    $sale->payments
-                        ->pluck('method')
-                        ->map(fn (string $method): string => SalePaymentMethodCatalog::options()[$method] ?? $method)
-                        ->implode(', '),
-                    number_format((float) $sale->total, 2, '.', ''),
-                    number_format((float) $sale->paid_total, 2, '.', ''),
-                ], ';');
-            }
-
-            fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+        return response()->download($path, 'ventas-'.now()->format('Ymd-His').'.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 
     /**

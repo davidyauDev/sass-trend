@@ -8,6 +8,7 @@ use App\Models\Professional;
 use App\Models\ProfessionalCommission;
 use App\Models\SaleItem;
 use App\Models\Service;
+use App\Services\Commissions\CommissionReportWorkbookExport;
 use Carbon\CarbonImmutable;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -16,7 +17,7 @@ use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Title('Reporte de comisiones')]
 class Report extends Component
@@ -65,38 +66,22 @@ class Report extends Component
         $this->sortDirection = 'desc';
     }
 
-    public function exportReport(): StreamedResponse
+    public function exportReport(): BinaryFileResponse
     {
-        $rows = $this->reportRows();
-        $filename = 'reporte-comisiones-'.$this->resolvedPeriod()['start']->format('Ymd').'-'.$this->resolvedPeriod()['end']->format('Ymd').'.csv';
+        $filename = 'reporte-comisiones-'.$this->resolvedPeriod()['start']->format('Ymd').'-'.$this->resolvedPeriod()['end']->format('Ymd').'.xlsx';
 
         Flux::toast(variant: 'success', text: 'Exportando reporte de comisiones.');
 
-        return response()->streamDownload(function () use ($rows): void {
-            $handle = fopen('php://output', 'wb');
-
-            if ($handle === false) {
-                return;
-            }
-
-            fputcsv($handle, [
-                'Profesional o Staff',
-                'Ventas totales',
-                'Monto comision',
-            ]);
-
-            foreach ($rows as $row) {
-                fputcsv($handle, [
-                    $row['professional_name'],
-                    number_format($row['sales_total'], 2, '.', ''),
-                    number_format($row['commission_amount'], 2, '.', ''),
-                ]);
-            }
-
-            fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+        $path = app(CommissionReportWorkbookExport::class)->export([
+            'period' => $this->period,
+            'branchId' => $this->branchId,
+            'userType' => $this->userType,
+            'professionalId' => $this->professionalId,
         ]);
+
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 
     #[Computed]

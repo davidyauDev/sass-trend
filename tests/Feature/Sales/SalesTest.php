@@ -224,11 +224,50 @@ test('puede ver comprobante y exportar ventas', function () {
     ]));
 
     $exportResponse->assertOk();
+    $exportResponse->assertDownload();
+    $exportResponse->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
-    expect($exportResponse->streamedContent())
-        ->toContain('Venta')
-        ->toContain((string) $sale->sale_number)
-        ->toContain('Tarjeta de Débito');
+    $filePath = $exportResponse->baseResponse->getFile()->getPathname();
+    $zip = new ZipArchive();
+
+    expect($zip->open($filePath))->toBeTrue();
+
+    $workbookXml = $zip->getFromName('xl/workbook.xml');
+    $sheet1Xml = $zip->getFromName('xl/worksheets/sheet1.xml');
+    $sheet2Xml = $zip->getFromName('xl/worksheets/sheet2.xml');
+    $sheet3Xml = $zip->getFromName('xl/worksheets/sheet3.xml');
+    $stylesXml = $zip->getFromName('xl/styles.xml');
+
+    $zip->close();
+
+    expect($workbookXml)
+        ->toContain('Resumen')
+        ->toContain('Ítems')
+        ->toContain('Ventas')
+        ->toContain('Transacciones');
+
+    expect($sheet1Xml)
+        ->toContain('Reporte de ventas')
+        ->toContain('Ventas por local')
+        ->toContain('Total ventas (S/)')
+        ->toContain('Corte de Cabello');
+
+    expect($sheet2Xml)
+        ->toContain('ID Venta')
+        ->toContain('Fecha venta')
+        ->toContain('Nombre item')
+        ->toContain('Precio unitario')
+        ->toContain('Prestador');
+
+    expect($sheet3Xml)
+        ->toContain('ID interno')
+        ->toContain('Monto a pagar')
+        ->toContain('Monto pendiente')
+        ->toContain('Venta de prueba')
+        ->toContain('David Yauri');
+
+    expect($stylesXml)
+        ->toContain('FF4B2E83');
 });
 
 test('solo usuarios autorizados pueden acceder al modulo de ventas', function () {
