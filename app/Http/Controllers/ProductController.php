@@ -35,17 +35,27 @@ class ProductController extends Controller
     public function index(Request $request): View
     {
         $search = trim((string) $request->string('q'));
+        $brandId = $request->integer('brand_id') ?: null;
+        $categoryId = $request->integer('category_id') ?: null;
+        $hasFilters = $search !== '' || $brandId !== null || $categoryId !== null;
 
         $products = Product::query()
             ->with(['brand', 'category', 'presentation'])
             ->search($search)
+            ->when($brandId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('brand_id', $brandId))
+            ->when($categoryId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('category_id', $categoryId))
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
         return view('products.index', [
             'search' => $search,
+            'brandId' => $brandId,
+            'categoryId' => $categoryId,
+            'hasFilters' => $hasFilters,
             'products' => $products,
+            'filterBrands' => ProductBrand::query()->orderBy('name')->get(['id', 'name']),
+            'filterCategories' => ProductCategory::query()->orderBy('name')->get(['id', 'name']),
             'inventoryConfig' => [
                 'csrf' => csrf_token(),
                 'endpoints' => [

@@ -41,6 +41,42 @@ test('puede ver el inventario de productos', function () {
         ->assertSee('Shampoo nutritivo');
 });
 
+test('puede filtrar productos por marca y categoria', function () {
+    actingAs(User::factory()->create());
+
+    $brandA = ProductBrand::query()->create(['name' => 'Redken']);
+    $brandB = ProductBrand::query()->create(['name' => 'Loreal']);
+    $categoryA = ProductCategory::query()->create(['name' => 'Capilar']);
+    $categoryB = ProductCategory::query()->create(['name' => 'Skin care']);
+    $presentation = ProductPresentation::query()->create(['name' => 'Unidad']);
+
+    Product::query()->create([
+        'name' => 'Shampoo Redken',
+        'brand_id' => $brandA->id,
+        'category_id' => $categoryA->id,
+        'presentation_id' => $presentation->id,
+        'public_sale_price' => 80,
+    ]);
+
+    Product::query()->create([
+        'name' => 'Crema Loreal',
+        'brand_id' => $brandB->id,
+        'category_id' => $categoryB->id,
+        'presentation_id' => $presentation->id,
+        'public_sale_price' => 90,
+    ]);
+
+    $response = $this->get(route('products.index', [
+        'brand_id' => $brandA->id,
+        'category_id' => $categoryA->id,
+    ]));
+
+    $response
+        ->assertOk()
+        ->assertSee('Shampoo Redken')
+        ->assertDontSee('Crema Loreal');
+});
+
 test('puede crear un producto', function () {
     actingAs(User::factory()->create());
 

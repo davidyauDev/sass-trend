@@ -3,7 +3,6 @@
         x-data="productInventory(@js($inventoryConfig))"
         x-cloak
         x-init="if ({{ $errors->has('inventory_file') ? 'true' : 'false' }}) { importInventoryOpen = true }"
-        class="w-full px-0 py-0 sm:py-2"
     >
         <div
             x-show="toast.visible"
@@ -19,37 +18,64 @@
 
         <div class="relative w-full overflow-hidden rounded-[24px]  ">
             <div class="space-y-3 px-4 py-2 sm:px-5 lg:px-6">
-                <div class="flex flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
-                    <div class="min-w-0">
-                        <flux:heading size="xl" class="mt-0">Inventario</flux:heading>
-
+                <div class="grid gap-3 xl:grid-cols-[auto_minmax(0,1fr)] xl:items-start">
+                    <div class="min-w-0 pt-0 xl:pt-2">
+                        <flux:heading size="xl" class="mt-0 leading-none">Inventario</flux:heading>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-2">
-                        <form method="GET" action="{{ route('products.index') }}" class="flex flex-wrap items-center gap-2">
+                    <div class="flex w-full flex-col gap-2 xl:w-auto xl:flex-row xl:items-end xl:justify-end">
+                        <form method="GET" action="{{ route('products.index') }}" class="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-[minmax(16rem,22rem)_minmax(12rem,14rem)_minmax(12rem,14rem)_auto] xl:items-end">
                             <flux:input
                                 name="q"
                                 value="{{ $search }}"
                                 type="search"
                                 icon="magnifying-glass"
                                 placeholder="Busca por nombre, marca o código"
-                                class="w-full min-w-[16rem] rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm xl:w-[22rem]"
+                                class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
                             />
 
-                            @if ($search !== '')
-                                <flux:button variant="ghost" href="{{ route('products.index') }}" icon="x-mark">
-                                    Limpiar
-                                </flux:button>
-                            @endif
+                            <flux:select
+                                name="brand_id"
+                                label="Marca"
+                                onchange="this.form.submit()"
+                                class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
+                            >
+                                <option value="">Todas las marcas</option>
+                                @foreach ($filterBrands as $brand)
+                                    <option value="{{ $brand->id }}" @selected((string) $brandId === (string) $brand->id)>{{ $brand->name }}</option>
+                                @endforeach
+                            </flux:select>
+
+                            <flux:select
+                                name="category_id"
+                                label="Categoría"
+                                onchange="this.form.submit()"
+                                class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
+                            >
+                                <option value="">Todas las categorías</option>
+                                @foreach ($filterCategories as $category)
+                                    <option value="{{ $category->id }}" @selected((string) $categoryId === (string) $category->id)>{{ $category->name }}</option>
+                                @endforeach
+                            </flux:select>
+
+                            <flux:button
+                                variant="ghost"
+                                href="{{ route('products.index') }}"
+                                icon="x-mark"
+                            >
+                                Limpiar
+                            </flux:button>
                         </form>
 
-                        <flux:button variant="outline" icon="arrow-up-tray" type="button" @click="openImportInventory()">
-                            Importar Excel
-                        </flux:button>
+                        <div class="flex w-full items-end gap-2 xl:w-auto">
+                            <flux:button variant="outline" icon="arrow-up-tray" type="button" @click="openImportInventory()">
+                                Importar Excel
+                            </flux:button>
 
-                        <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
-                            Nuevo producto
-                        </flux:button>
+                            <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
+                                Nuevo producto
+                            </flux:button>
+                        </div>
                     </div>
                 </div>
 
@@ -153,15 +179,25 @@
                             </div>
 
                             <div class="space-y-1">
-                                <flux:heading size="lg">No hay productos aún</flux:heading>
+                                <flux:heading size="lg">{{ $hasFilters ? 'No se encontraron productos' : 'No hay productos aún' }}</flux:heading>
                                 <flux:text class="text-sm text-zinc-500">
-                                    Crea tu primer producto para comenzar a registrar precios, stock y alarmas.
+                                    {{ $hasFilters
+                                        ? 'Prueba quitando los filtros o cambia la búsqueda para ver resultados.'
+                                        : 'Crea tu primer producto para comenzar a registrar precios, stock y alarmas.' }}
                                 </flux:text>
                             </div>
 
-                            <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
-                                Nuevo producto
-                            </flux:button>
+                            <div class="flex flex-wrap items-center justify-center gap-2">
+                                @if ($hasFilters)
+                                    <flux:button variant="ghost" href="{{ route('products.index') }}" icon="x-mark">
+                                        Limpiar filtros
+                                    </flux:button>
+                                @endif
+
+                                <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
+                                    Nuevo producto
+                                </flux:button>
+                            </div>
                         </div>
                     @else
                         <div class="space-y-2 px-0 pb-4 pt-0 md:hidden">
