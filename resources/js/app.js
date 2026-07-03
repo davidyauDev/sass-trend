@@ -415,6 +415,41 @@ document.addEventListener('alpine:init', () => {
 
             return Number.isInteger(number) ? String(number) : number.toFixed(2);
         },
+        normalizedProductPayload() {
+            const normalizeNumber = (value, fallback = null) => {
+                if (value === '' || value === null || value === undefined) {
+                    return fallback;
+                }
+
+                const number = Number.parseFloat(String(value));
+
+                return Number.isFinite(number) ? number : fallback;
+            };
+
+            const stockAlarmLimit = this.form.stock_alarm_enabled
+                ? normalizeNumber(this.form.stock_alarm_limit)
+                : null;
+
+            return {
+                name: String(this.form.name ?? '').trim(),
+                barcode: String(this.form.barcode ?? '').trim(),
+                brand_id: this.form.brand_id === '' ? '' : Number(this.form.brand_id),
+                category_id: this.form.category_id === '' ? '' : Number(this.form.category_id),
+                presentation_id: this.form.presentation_id === '' ? '' : Number(this.form.presentation_id),
+                public_sale_price: normalizeNumber(this.form.public_sale_price, 0),
+                current_stock: normalizeNumber(this.form.current_stock, 0),
+                purchase_cost: normalizeNumber(this.form.purchase_cost, 0),
+                internal_sale_price: normalizeNumber(this.form.internal_sale_price, 0),
+                sale_commission: normalizeNumber(this.form.sale_commission, 0),
+                commission_type: String(this.form.commission_type ?? 'percent'),
+                includes_tax: Boolean(this.form.includes_tax),
+                description: String(this.form.description ?? '').trim(),
+                stock_alarm_enabled: Boolean(this.form.stock_alarm_enabled),
+                stock_alarm_limit: stockAlarmLimit,
+                stock_alarm_emails: String(this.form.stock_alarm_emails ?? '').trim(),
+                is_active: Boolean(this.form.is_active),
+            };
+        },
         async saveProduct() {
             this.saving = true;
             this.errors = {};
