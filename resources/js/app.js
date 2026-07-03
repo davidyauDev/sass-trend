@@ -62,6 +62,9 @@ document.addEventListener('alpine:init', () => {
         stockAdjustmentProduct: null,
         stockAdjustmentBranches: [],
         stockAdjustmentForm: {},
+        importInventoryOpen: false,
+        importInventoryFileName: '',
+        importInventoryForm: null,
         quickCreateOpen: false,
         quickCreateSaving: false,
         quickCreateErrors: {},
@@ -83,6 +86,7 @@ document.addEventListener('alpine:init', () => {
         init() {
             this.form = this.blankForm();
             this.stockAdjustmentForm = this.blankStockAdjustmentForm();
+            this.importInventoryForm = null;
             this.restoreToast();
         },
         blankForm() {
@@ -151,6 +155,18 @@ document.addEventListener('alpine:init', () => {
             this.stockAdjustmentProduct = null;
             this.stockAdjustmentBranches = [];
             this.stockAdjustmentForm = this.blankStockAdjustmentForm();
+        },
+        openImportInventory() {
+            this.importInventoryOpen = true;
+        },
+        closeImportInventory() {
+            this.importInventoryOpen = false;
+            this.importInventoryFileName = '';
+            this.$refs.importInventoryForm?.reset();
+        },
+        onImportFileChange(event) {
+            const file = event?.target?.files?.[0] ?? null;
+            this.importInventoryFileName = file?.name ?? '';
         },
         openCreate() {
             this.isEditing = false;
@@ -350,6 +366,46 @@ document.addEventListener('alpine:init', () => {
         movementAdjustmentLabel(movement) {
             return `De ${movement.previous_stock} a ${movement.new_stock}`;
         },
+        productRequiredErrors() {
+            const errors = {};
+
+            if (String(this.form.name ?? '').trim() === '') {
+                errors.name = 'El nombre es obligatorio.';
+            }
+
+            if (String(this.form.brand_id ?? '') === '') {
+                errors.brand_id = 'La marca es obligatoria.';
+            }
+
+            if (String(this.form.category_id ?? '') === '') {
+                errors.category_id = 'La categoría es obligatoria.';
+            }
+
+            if (String(this.form.presentation_id ?? '') === '') {
+                errors.presentation_id = 'El formato/presentación es obligatorio.';
+            }
+
+            if (String(this.form.commission_type ?? '') === '') {
+                errors.commission_type = 'La comisión de venta es obligatoria.';
+            }
+
+            if (this.form.stock_alarm_enabled) {
+                if (String(this.form.stock_alarm_limit ?? '') === '') {
+                    errors.stock_alarm_limit = 'Debes indicar el stock límite.';
+                }
+
+                const emails = String(this.form.stock_alarm_emails ?? '').trim();
+
+                if (emails !== '' && emails.split(',').some((email) => email.trim() === '')) {
+                    errors.stock_alarm_emails = 'Ingresa correos válidos separados por coma.';
+                }
+            }
+
+            return errors;
+        },
+        canSubmitProduct() {
+            return Object.keys(this.productRequiredErrors()).length === 0;
+        },
         formatStock(value) {
             const number = Number.parseFloat(String(value ?? 0));
 
@@ -364,9 +420,19 @@ document.addEventListener('alpine:init', () => {
             this.errors = {};
 
             try {
+                const requiredErrors = this.productRequiredErrors();
+
+                if (Object.keys(requiredErrors).length > 0) {
+                    this.errors = requiredErrors;
+                    this.activeTab = 'basic';
+                    this.showToast('error', 'Revisa el formulario', 'Completa los campos obligatorios antes de agregar el producto.');
+                    return;
+                }
+
                 const url = this.isEditing
                     ? `${this.endpoints.updateBase}/${this.form.id}`
                     : this.endpoints.store;
+                const payload = this.normalizedProductPayload();
 
                 const response = await fetch(url, {
                     method: this.isEditing ? 'PUT' : 'POST',
@@ -375,7 +441,7 @@ document.addEventListener('alpine:init', () => {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': this.csrf,
                     },
-                    body: JSON.stringify(this.form),
+                    body: JSON.stringify(payload),
                 });
 
                 const data = await response.json().catch(() => ({}));

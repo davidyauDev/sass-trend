@@ -2,7 +2,8 @@
     <section
         x-data="productInventory(@js($inventoryConfig))"
         x-cloak
-        class="w-full px-0 py-6"
+        x-init="if ({{ $errors->has('inventory_file') ? 'true' : 'false' }}) { importInventoryOpen = true }"
+        class="w-full px-0 py-0 sm:py-2"
     >
         <div
             x-show="toast.visible"
@@ -16,12 +17,11 @@
             <div class="mt-1 text-sm opacity-90" x-text="toast.message"></div>
         </div>
 
-        <div class="relative w-full overflow-hidden rounded-[24px] border border-zinc-200/80 bg-white shadow-[0_20px_70px_rgba(122,80,210,0.08)]">
-            <div class="space-y-6 px-4 py-6 sm:px-5 lg:px-6">
-                <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div class="relative w-full overflow-hidden rounded-[24px]  ">
+            <div class="space-y-3 px-4 py-2 sm:px-5 lg:px-6">
+                <div class="flex flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
                     <div class="min-w-0">
-                        <flux:badge color="violet" size="sm" inset="left">Productos</flux:badge>
-                        <flux:heading size="xl" class="mt-3">Inventario</flux:heading>
+                        <flux:heading size="xl" class="mt-0">Inventario</flux:heading>
 
                     </div>
 
@@ -43,32 +43,9 @@
                             @endif
                         </form>
 
-                        <form
-                            method="POST"
-                            action="{{ route('products.import') }}"
-                            enctype="multipart/form-data"
-                            class="flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-3 py-2 shadow-sm"
-                            onsubmit="return confirm('Se eliminara el inventario actual y se reemplazara con el contenido del Excel. Deseas continuar?')"
-                        >
-                            @csrf
-
-                            <label for="inventory_file" class="sr-only">Archivo Excel de inventario</label>
-                            <input
-                                id="inventory_file"
-                                name="inventory_file"
-                                type="file"
-                                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                                required
-                                class="block max-w-[16rem] text-sm text-zinc-600 file:mr-3 file:rounded-xl file:border-0 file:bg-zinc-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-zinc-700 hover:file:bg-zinc-200"
-                            />
-
-                            <button
-                                type="submit"
-                                class="inline-flex h-10 items-center justify-center rounded-xl bg-amber-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600"
-                            >
-                                Importar Excel
-                            </button>
-                        </form>
+                        <flux:button variant="outline" icon="arrow-up-tray" type="button" @click="openImportInventory()">
+                            Importar Excel
+                        </flux:button>
 
                         <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
                             Nuevo producto
@@ -88,11 +65,85 @@
                     </div>
                 @endif
 
-                @if ($errors->has('inventory_file'))
-                    <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-                        {{ $errors->first('inventory_file') }}
+                <div
+                    x-show="importInventoryOpen"
+                    x-cloak
+                    x-transition.opacity
+                    class="fixed inset-0 z-[70] flex items-start justify-center bg-zinc-950/50 px-3 py-4 backdrop-blur-[2px] sm:items-center sm:px-4 sm:py-6"
+                    @keydown.escape.window="closeImportInventory()"
+                    @click.self="closeImportInventory()"
+                >
+                    <div class="relative w-full max-w-lg overflow-hidden rounded-[24px] bg-white shadow-[0_30px_100px_rgba(0,0,0,0.25)] ring-1 ring-violet-200">
+                        <div class="flex items-start justify-between gap-4 border-b border-violet-100 px-4 py-4 sm:px-6">
+                            <div>
+                                <flux:heading size="lg">Importar Excel</flux:heading>
+                                <flux:text class="mt-1 text-sm text-zinc-500">
+                                    Selecciona el archivo .xlsx para reemplazar el inventario actual.
+                                </flux:text>
+                            </div>
+
+                            <button
+                                type="button"
+                                class="rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+                                @click="closeImportInventory()"
+                                aria-label="Cerrar modal de importación"
+                            >
+                                <flux:icon name="x-mark" class="size-6" />
+                            </button>
+                        </div>
+
+                        <form
+                            x-ref="importInventoryForm"
+                            method="POST"
+                            action="{{ route('products.import') }}"
+                            enctype="multipart/form-data"
+                            class="space-y-5 px-4 py-4 sm:px-6"
+                            onsubmit="return confirm('Se eliminara el inventario actual y se reemplazara con el contenido del Excel. Deseas continuar?')"
+                        >
+                            @csrf
+
+                            <div class="space-y-2">
+                                <label for="inventory_file" class="text-sm font-medium text-zinc-700">Archivo Excel</label>
+                                <input
+                                    id="inventory_file"
+                                    name="inventory_file"
+                                    type="file"
+                                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                    required
+                                    @change="onImportFileChange($event)"
+                                    class="block w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-600 shadow-sm file:mr-3 file:rounded-xl file:border-0 file:bg-zinc-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-zinc-700 hover:file:bg-zinc-200"
+                                />
+                                <p class="text-xs text-zinc-500">
+                                    Formato aceptado: .xlsx
+                                </p>
+                                <p class="text-sm text-rose-600" x-show="{{ $errors->has('inventory_file') ? 'true' : 'false' }}" x-cloak>
+                                    {{ $errors->first('inventory_file') }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                                Esta acción reemplazará el inventario actual. Asegúrate de subir el archivo correcto.
+                            </div>
+
+                            <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                                <button
+                                    type="button"
+                                    class="inline-flex h-10 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-200"
+                                    @click="closeImportInventory()"
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    class="inline-flex h-10 items-center justify-center rounded-xl bg-amber-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600"
+                                >
+                                    Importar Excel
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                @endif
+                </div>
 
                 <flux:card class="overflow-hidden border border-zinc-200/80 bg-white shadow-sm">
                     @if ($products->isEmpty())
@@ -113,24 +164,161 @@
                             </flux:button>
                         </div>
                     @else
-                        <div class="overflow-x-auto">
+                        <div class="space-y-2 px-0 pb-4 pt-0 md:hidden">
+                            @foreach ($products as $product)
+                                @php
+                                    $productActionPayload = [
+                                        'id' => $product->id,
+                                        'name' => $product->name,
+                                    ];
+
+                                    $productEditPayload = [
+                                        'id' => $product->id,
+                                        'name' => $product->name,
+                                        'barcode' => $product->barcode ?? '',
+                                        'brand_id' => $product->brand_id,
+                                        'category_id' => $product->category_id,
+                                        'presentation_id' => $product->presentation_id,
+                                        'public_sale_price' => (string) $product->public_sale_price,
+                                        'current_stock' => (string) $product->current_stock,
+                                        'purchase_cost' => (string) $product->purchase_cost,
+                                        'internal_sale_price' => (string) $product->internal_sale_price,
+                                        'sale_commission' => (string) $product->sale_commission,
+                                        'commission_type' => $product->commission_type,
+                                        'includes_tax' => (bool) $product->includes_tax,
+                                        'description' => $product->description ?? '',
+                                        'stock_alarm_enabled' => (bool) $product->stock_alarm_enabled,
+                                        'stock_alarm_limit' => $product->stock_alarm_limit === null ? '' : (string) $product->stock_alarm_limit,
+                                        'stock_alarm_emails' => $product->stock_alarm_emails ?? '',
+                                        'is_active' => (bool) $product->is_active,
+                                    ];
+                                @endphp
+
+                                <article
+                                    x-data="{ expanded: false }"
+                                    class="rounded-none border-x-0 border-y border-zinc-200/80 bg-white shadow-sm first:border-t-0"
+                                >
+                                    <button
+                                        type="button"
+                                        class="flex w-full items-start gap-3 px-3 py-3 text-left sm:px-4"
+                                        @click="expanded = !expanded"
+                                    >
+                                        <div class="min-w-0 flex-1">
+                                            <div class="truncate text-base font-semibold leading-tight text-zinc-900">
+                                                {{ $product->name }}
+                                            </div>
+                                            <div class="mt-0.5 truncate text-xs text-zinc-500">
+                                                {{ $product->barcode ?: 'Sin código de barras' }}
+                                            </div>
+                                        </div>
+
+                                        <div class="shrink-0 text-right">
+                                            <div class="text-sm font-semibold leading-tight text-emerald-600">
+                                                S/ {{ number_format((float) $product->public_sale_price, 2) }}
+                                            </div>
+                                            <div class="text-xs text-zinc-500">
+                                                {{ number_format((float) $product->current_stock, 2) }} stock
+                                            </div>
+                                        </div>
+
+                                        <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition"
+                                            :class="expanded ? 'border-violet-300 text-violet-700' : ''">
+                                            <flux:icon name="chevron-down" class="size-4 transition-transform" :class="expanded ? 'rotate-180' : ''" />
+                                        </span>
+                                    </button>
+
+                                    <div x-show="expanded" x-cloak x-transition class="border-t border-zinc-100 px-3 py-4 sm:px-4">
+                                        <div class="grid grid-cols-2 gap-3 text-sm">
+                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2">
+                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500">Marca</div>
+                                                <div class="mt-1 font-medium text-zinc-900">{{ $product->brand?->name ?? 'Sin marca' }}</div>
+                                            </div>
+
+                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2">
+                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500">Categoría</div>
+                                                <div class="mt-1 font-medium text-zinc-900">{{ $product->category?->name ?? 'Sin categoría' }}</div>
+                                            </div>
+
+                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2">
+                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500">Formato</div>
+                                                <div class="mt-1 font-medium text-zinc-900">{{ $product->presentation?->name ?? 'Sin formato' }}</div>
+                                            </div>
+
+                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2">
+                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500">Activo</div>
+                                                <div class="mt-1 font-medium {{ $product->is_active ? 'text-emerald-600' : 'text-rose-600' }}">
+                                                    {{ $product->is_active ? 'Sí' : 'No' }}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 grid grid-cols-2 gap-2">
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
+                                                @click="openStockAdjustment('increase', @js($productActionPayload))"
+                                            >
+                                                <flux:icon name="plus" class="size-4" />
+                                                <span>Stock +</span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-100"
+                                                @click="openStockAdjustment('decrease', @js($productActionPayload))"
+                                            >
+                                                <flux:icon name="minus" class="size-4" />
+                                                <span>Stock -</span>
+                                            </button>
+                                        </div>
+
+                                        <div class="mt-3 flex gap-2">
+                                            <flux:button
+                                                class="flex-1"
+                                                size="sm"
+                                                variant="ghost"
+                                                icon="pencil-square"
+                                                type="button"
+                                                aria-label="Editar producto"
+                                                title="Editar producto"
+                                                @click="openEdit(@js($productEditPayload))"
+                                            />
+
+                                            <flux:button
+                                                class="flex-1"
+                                                size="sm"
+                                                variant="danger"
+                                                icon="trash"
+                                                type="button"
+                                                aria-label="Eliminar producto"
+                                                title="Eliminar producto"
+                                                @click="deleteProduct({{ $product->id }}, @js($product->name))"
+                                            />
+                                        </div>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+
+                        <div class="hidden md:block">
+                            <div class="overflow-x-auto">
                             <flux:table>
                                 <flux:table.columns>
-                                    <flux:table.column>Producto</flux:table.column>
-                                    <flux:table.column>Marca</flux:table.column>
-                                    <flux:table.column>Categoría</flux:table.column>
-                                    <flux:table.column>Formato</flux:table.column>
-                                    <flux:table.column>Precio</flux:table.column>
-                                    <flux:table.column>Stock</flux:table.column>
-                                    <flux:table.column class="whitespace-nowrap text-center">+Stock</flux:table.column>
-                                    <flux:table.column class="whitespace-nowrap text-center">-Stock</flux:table.column>
-                                    <flux:table.column class="text-right">Opciones</flux:table.column>
+                                    <flux:table.column class="px-2 py-2">Producto</flux:table.column>
+                                    <flux:table.column class="px-2 py-2">Marca</flux:table.column>
+                                    <flux:table.column class="px-2 py-2">Categoría</flux:table.column>
+                                    <flux:table.column class="px-2 py-2">Formato</flux:table.column>
+                                    <flux:table.column class="px-2 py-2">Precio</flux:table.column>
+                                    <flux:table.column class="px-2 py-2">Stock</flux:table.column>
+                                    <flux:table.column class="whitespace-nowrap px-2 py-2 text-center">+Stock</flux:table.column>
+                                    <flux:table.column class="whitespace-nowrap px-2 py-2 text-center">-Stock</flux:table.column>
+                                    <flux:table.column class="px-2 py-2 text-center">Opciones</flux:table.column>
                                 </flux:table.columns>
 
                                 <flux:table.rows>
                                     @foreach ($products as $product)
                                         <flux:table.row :key="$product->id">
-                                            <flux:table.cell>
+                                            <flux:table.cell class="px-2 py-2">
                                                 <div class="min-w-0">
                                                     <div class="font-medium text-zinc-900">{{ $product->name }}</div>
                                                     <div class="text-xs text-zinc-500">
@@ -138,12 +326,12 @@
                                                     </div>
                                                 </div>
                                             </flux:table.cell>
-                                            <flux:table.cell>{{ $product->brand?->name ?? 'Sin marca' }}</flux:table.cell>
-                                            <flux:table.cell>{{ $product->category?->name ?? 'Sin categoría' }}</flux:table.cell>
-                                            <flux:table.cell>{{ $product->presentation?->name ?? 'Sin formato' }}</flux:table.cell>
-                                            <flux:table.cell>S/ {{ number_format((float) $product->public_sale_price, 2) }}</flux:table.cell>
-                                            <flux:table.cell>{{ number_format((float) $product->current_stock, 2) }}</flux:table.cell>
-                                            <flux:table.cell>
+                                            <flux:table.cell class="px-2 py-2">{{ $product->brand?->name ?? 'Sin marca' }}</flux:table.cell>
+                                            <flux:table.cell class="px-2 py-2">{{ $product->category?->name ?? 'Sin categoría' }}</flux:table.cell>
+                                            <flux:table.cell class="px-2 py-2">{{ $product->presentation?->name ?? 'Sin formato' }}</flux:table.cell>
+                                            <flux:table.cell class="px-2 py-2">S/ {{ number_format((float) $product->public_sale_price, 2) }}</flux:table.cell>
+                                            <flux:table.cell class="px-2 py-2">{{ number_format((float) $product->current_stock, 2) }}</flux:table.cell>
+                                            <flux:table.cell class="px-2 py-2">
                                                 <button
                                                     type="button"
                                                     class="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-sky-700 transition hover:text-sky-900"
@@ -156,7 +344,7 @@
                                                     <span>Stock</span>
                                                 </button>
                                             </flux:table.cell>
-                                            <flux:table.cell>
+                                            <flux:table.cell class="px-2 py-2">
                                                 <button
                                                     type="button"
                                                     class="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-sky-700 transition hover:text-sky-900"
@@ -169,11 +357,11 @@
                                                     <span>Stock</span>
                                                 </button>
                                             </flux:table.cell>
-                                            <flux:table.cell>
-                                                <div class="flex items-center justify-end gap-2">
+                                            <flux:table.cell class="px-2 py-2 text-center">
+                                                <div class="inline-flex items-center justify-center gap-1.5">
                                                     <flux:button
                                                         size="sm"
-                                                        variant="ghost"
+                                                        variant="subtle"
                                                         icon="pencil-square"
                                                         type="button"
                                                         aria-label="Editar producto"
@@ -215,9 +403,10 @@
                                     @endforeach
                                 </flux:table.rows>
                             </flux:table>
+                            </div>
                         </div>
 
-                        <div class="border-t border-zinc-200/80 px-5 py-4">
+                        <div class="border-t border-zinc-200/80 px-2 py-3 md:px-4">
                             {{ $products->links() }}
                         </div>
                     @endif
@@ -228,12 +417,12 @@
         <div
             x-show="isOpen"
             x-transition.opacity
-            class="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/50 px-3 py-6 backdrop-blur-[2px]"
+            class="fixed inset-0 z-[60] flex items-start justify-center bg-zinc-950/50 px-0 py-0 backdrop-blur-[2px] sm:items-center sm:px-3 sm:py-6"
             @keydown.escape.window="closeModal()"
             @click.self="closeModal()"
         >
-            <div class="relative flex w-full max-w-[1500px] max-h-[92vh] flex-col overflow-hidden rounded-[30px] bg-white shadow-[0_30px_100px_rgba(0,0,0,0.25)] ring-1 ring-violet-200">
-                <div class="flex items-start justify-between gap-4 border-b border-violet-100 px-6 py-5">
+            <div class="relative flex h-full w-full max-w-[1500px] max-h-[100vh] flex-col overflow-hidden rounded-none bg-white shadow-[0_30px_100px_rgba(0,0,0,0.25)] ring-1 ring-violet-200 sm:max-h-[92vh] sm:rounded-[30px]">
+                <div class="flex items-start justify-between gap-4 border-b border-violet-100 px-4 py-4 sm:px-6 sm:py-5">
                     <div>
                         <flux:heading size="lg" x-text="modalTitle()"></flux:heading>
                         <flux:text class="mt-1 text-sm text-zinc-500">
@@ -251,11 +440,11 @@
                     </button>
                 </div>
 
-                <div class="border-b border-violet-200 px-6 pt-4">
-                    <div class="flex flex-wrap gap-2">
+                <div class="border-b border-violet-200 px-0 pt-3 sm:px-6 sm:pt-4">
+                    <div class="flex gap-2 overflow-x-auto px-4 pb-1 sm:flex-wrap sm:px-0">
                         <button
                             type="button"
-                            class="rounded-t-2xl border px-4 py-3 text-sm font-medium transition"
+                            class="shrink-0 rounded-t-2xl border px-3 py-2.5 text-sm font-medium transition sm:px-4 sm:py-3"
                             :class="activeTab === 'basic'
                                 ? 'border-violet-300 bg-violet-50 text-violet-700 shadow-sm'
                                 : 'border-transparent bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
@@ -266,7 +455,7 @@
 
                         <button
                             type="button"
-                            class="rounded-t-2xl border px-4 py-3 text-sm font-medium transition"
+                            class="shrink-0 rounded-t-2xl border px-3 py-2.5 text-sm font-medium transition sm:px-4 sm:py-3"
                             :class="activeTab === 'advanced'
                                 ? 'border-violet-300 bg-violet-50 text-violet-700 shadow-sm'
                                 : 'border-transparent bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
@@ -277,7 +466,7 @@
 
                         <button
                             type="button"
-                            class="rounded-t-2xl border px-4 py-3 text-sm font-medium transition"
+                            class="shrink-0 rounded-t-2xl border px-3 py-2.5 text-sm font-medium transition sm:px-4 sm:py-3"
                             :class="activeTab === 'alarms'
                                 ? 'border-violet-300 bg-violet-50 text-violet-700 shadow-sm'
                                 : 'border-transparent bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
@@ -290,7 +479,7 @@
                             x-show="isEditing"
                             x-cloak
                             type="button"
-                            class="rounded-t-2xl border px-4 py-3 text-sm font-medium transition"
+                            class="shrink-0 rounded-t-2xl border px-3 py-2.5 text-sm font-medium transition sm:px-4 sm:py-3"
                             :class="activeTab === 'movements'
                                 ? 'border-violet-300 bg-violet-50 text-violet-700 shadow-sm'
                                 : 'border-transparent bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
@@ -302,7 +491,7 @@
                 </div>
 
                 <form @submit.prevent="saveProduct" class="flex min-h-0 flex-1 flex-col">
-                    <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
                         <div x-show="activeTab === 'basic'" x-cloak class="space-y-4">
                             <div class="rounded-[24px] border border-zinc-200/80 p-5">
                                 <div class="mb-5">
@@ -532,13 +721,13 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div class="text-sm text-zinc-500" x-text="footerMessage()"></div>
+                    <div class="flex flex-col-reverse gap-3 border-t border-zinc-200 bg-zinc-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                        <div class="text-xs text-zinc-500 sm:text-sm" x-text="footerMessage()"></div>
 
-                        <div class="flex items-center gap-3">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
                             <button
                                 type="button"
-                                class="inline-flex h-10 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-200"
+                                class="inline-flex h-10 w-full items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-200 sm:w-auto"
                                 @click="closeModal()"
                             >
                                 Cancelar
@@ -546,8 +735,8 @@
 
                             <button
                                 type="submit"
-                                class="inline-flex h-10 items-center justify-center rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                x-bind:disabled="saving"
+                                class="inline-flex h-10 w-full items-center justify-center rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                                x-bind:disabled="saving || !canSubmitProduct()"
                             >
                                 <span x-text="submitLabel()"></span>
                             </button>
