@@ -158,8 +158,8 @@
 
     @if ($isDrawerOpen)
         <div class="fixed inset-0 z-[70] bg-zinc-950/30" wire:click="closeDrawer"></div>
-        <aside class="fixed inset-y-0 right-0 z-[71] flex w-full max-w-[420px] flex-col bg-white shadow-[0_0_40px_rgba(15,23,42,0.2)]">
-            <div class="flex items-center justify-between border-b border-zinc-200 px-4 sm:px-5 py-4">
+        <aside class="fixed inset-0 z-[71] flex h-[100dvh] w-full max-w-none flex-col bg-white shadow-[0_0_40px_rgba(15,23,42,0.2)] sm:inset-y-0 sm:right-0 sm:left-auto sm:max-w-[420px] sm:rounded-none">
+            <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-4 sm:px-5">
                 <div class="flex items-center gap-3">
                     @if ($drawerStep !== 'cart' && $drawerStep !== 'success')
                         @if (in_array($drawerStep, ['service-professional', 'product-config'], true))
@@ -197,7 +197,7 @@
                 @endif
             </div>
 
-            <div class="min-h-0 flex-1 overflow-y-auto px-3 sm:px-4 py-4">
+            <div class="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
                 @if ($drawerStep === 'cart')
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
@@ -738,44 +738,44 @@
                 @endif
             </div>
 
-            <div class="border-t border-zinc-200 bg-white px-4 sm:px-5 py-4">
+            <div class="border-t border-zinc-200 bg-white px-4 py-4 sm:px-5">
                 <div class="mb-3 flex items-center justify-between">
                     <div class="text-xl sm:text-2xl font-semibold text-zinc-800">Total:</div>
                     <div class="text-xl sm:text-2xl font-semibold text-zinc-800">S/{{ number_format($drawerStep === 'success' && $selectedSale ? (float) $selectedSale->total : collect($saleForm['cart'])->sum(fn ($item) => (float) $item['subtotal']), 0) }}</div>
                 </div>
 
                 @if ($drawerStep === 'cart')
-                    <button type="button" wire:click="proceedToPayment" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white disabled:opacity-50">
+                    <button type="button" wire:click="proceedToPayment" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white disabled:opacity-50 sm:h-12">
                         Continuar
                     </button>
                 @elseif ($drawerStep === 'item-picker')
-                    <button type="button" wire:click="backToCart" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                    <button type="button" wire:click="backToCart" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white sm:h-12">
                         Ir al carro ({{ count($saleForm['cart']) }})
                     </button>
                 @elseif ($drawerStep === 'service-professional')
                     <div class="grid grid-cols-2 gap-3">
-                        <button type="button" wire:click="backToItemPicker" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white font-semibold text-zinc-700">
+                        <button type="button" wire:click="backToItemPicker" class="flex h-11 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white font-semibold text-zinc-700 sm:h-12">
                             Volver
                         </button>
 
-                        <button type="button" wire:click="saveServiceConfiguration" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white disabled:opacity-50">
+                        <button type="button" wire:click="saveServiceConfiguration" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white disabled:opacity-50 sm:h-12">
                             Agregar al carro
                         </button>
                     </div>
                 @elseif ($drawerStep === 'product-config')
-                    <button type="button" wire:click="saveProductConfiguration" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                    <button type="button" wire:click="saveProductConfiguration" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white sm:h-12">
                         Agregar al carro
                     </button>
                 @elseif ($drawerStep === 'client-create')
-                    <button type="button" wire:click="saveInlineClient" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                    <button type="button" wire:click="saveInlineClient" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white sm:h-12">
                         Guardar cliente
                     </button>
                 @elseif ($drawerStep === 'payment')
-                    <div class="flex h-11 sm:h-12 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-600">
+                    <div class="flex h-11 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-600 sm:h-12">
                         Selecciona un método de pago para registrar la venta
                     </div>
                 @elseif ($drawerStep === 'success')
-                    <button type="button" wire:click="closeDrawer" class="flex h-11 sm:h-12 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white">
+                    <button type="button" wire:click="closeDrawer" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white sm:h-12">
                         Cerrar
                     </button>
                 @endif
