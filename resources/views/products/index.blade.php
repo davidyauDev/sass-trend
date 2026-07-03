@@ -24,7 +24,7 @@
                     </div>
 
                     <div class="flex w-full flex-col gap-3 lg:items-end lg:justify-end">
-                        <form method="GET" action="{{ route('products.index') }}" class="grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(18rem,22rem)_minmax(11rem,13rem)_minmax(11rem,13rem)_auto] lg:items-end">
+                        <form method="GET" action="{{ route('products.index') }}" class="grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(18rem,22rem)_minmax(10rem,12rem)_minmax(10rem,12rem)_minmax(10rem,12rem)_auto] lg:items-end">
                             <flux:input
                                 name="q"
                                 value="{{ $search }}"
@@ -62,14 +62,20 @@
                                 </flux:select>
                             </div>
 
-                            <flux:button
-                                variant="ghost"
-                                href="{{ route('products.index') }}"
-                                icon="x-mark"
-                                class="justify-self-start lg:justify-self-end"
-                            >
-                                Limpiar
-                            </flux:button>
+                            <div class="space-y-1">
+                                <label class="text-sm font-medium text-zinc-700">Formato</label>
+                                <flux:select
+                                    name="presentation_id"
+                                    onchange="this.form.submit()"
+                                    class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
+                                >
+                                    <option value="">Todos los formatos</option>
+                                    @foreach ($filterPresentations as $presentation)
+                                        <option value="{{ $presentation->id }}" @selected((string) $presentationId === (string) $presentation->id)>{{ $presentation->name }}</option>
+                                    @endforeach
+                                </flux:select>
+                            </div>
+
                         </form>
 
                         <div class="flex w-full flex-wrap items-end gap-2 lg:w-auto lg:justify-end">

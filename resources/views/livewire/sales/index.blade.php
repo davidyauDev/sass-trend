@@ -10,8 +10,8 @@
     }
 @endphp
 
-<section class="w-full px-4 py-6 sm:px-6 lg:px-8">
-    <div class="space-y-6">
+<section class="w-full px-4 pt-2 pb-6 sm:px-6 sm:py-6 lg:px-8">
+    <div class="space-y-5 sm:space-y-6">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <flux:heading size="xl">Ventas</flux:heading>
@@ -22,7 +22,7 @@
             </flux:button>
         </div>
 
-        <div class="rounded-[28px] border border-zinc-200/80 bg-white p-4 shadow-sm">
+        <div >
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div class="rounded-[22px] border border-zinc-200 bg-zinc-50 px-4 py-6 text-center sm:px-6 sm:py-8">
                     <div class="text-xs uppercase tracking-wide text-zinc-500 sm:text-sm">Todas las ventas</div>
@@ -77,7 +77,7 @@
             </div>
         </div>
 
-        <div class="rounded-[28px] border border-zinc-200/80 bg-white p-4 shadow-sm">
+        <div >
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3 pb-4">
                 <button type="button" wire:click="sortColumnsToggle" class="text-sm font-medium text-zinc-700 underline underline-offset-4">
                     Editar columnas
@@ -363,13 +363,19 @@
                                 <button
                                     type="button"
                                     wire:click="setItemPickerTab('{{ $tab }}')"
-                                    class="{{ $itemPickerTab === $tab ? 'border-zinc-300 bg-white text-zinc-900' : 'border-zinc-200 bg-zinc-50 text-zinc-500' }} inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium"
+                                    class="{{ $itemPickerTab === $tab
+                                        ? 'border-violet-500 bg-violet-600 text-white shadow-[0_8px_20px_rgba(124,58,237,0.25)] ring-2 ring-violet-100 -translate-y-px'
+                                        : 'border-zinc-200 bg-zinc-50 text-zinc-500 hover:border-zinc-300 hover:bg-zinc-100' }} inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition"
                                 >
                                     {{ $label }}
                                     @if ($tab === 'services')
-                                        <span class="rounded-full bg-emerald-500 px-1.5 text-xs text-white">{{ $this->servicesCatalog->count() }}</span>
+                                        <span class="{{ $itemPickerTab === $tab ? 'bg-white/20 text-white' : 'bg-emerald-500 text-white' }} rounded-full px-1.5 text-xs">
+                                            {{ $this->servicesCatalog->count() }}
+                                        </span>
                                     @elseif ($tab === 'products')
-                                        <span class="rounded-full bg-emerald-500 px-1.5 text-xs text-white">{{ $this->productsCatalog->count() }}</span>
+                                        <span class="{{ $itemPickerTab === $tab ? 'bg-white/20 text-white' : 'bg-emerald-500 text-white' }} rounded-full px-1.5 text-xs">
+                                            {{ $this->productsCatalog->count() }}
+                                        </span>
                                     @endif
                                 </button>
                             @endforeach

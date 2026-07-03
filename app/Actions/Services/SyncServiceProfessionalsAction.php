@@ -2,7 +2,9 @@
 
 namespace App\Actions\Services;
 
+use App\Models\Professional;
 use App\Models\Service;
+use Illuminate\Support\Facades\DB;
 
 final class SyncServiceProfessionalsAction
 {
@@ -11,6 +13,18 @@ final class SyncServiceProfessionalsAction
      */
     public function handle(Service $service, array $professionalIds): void
     {
-        $service->professionalProfiles()->sync($professionalIds);
+        DB::transaction(function () use ($service, $professionalIds): void {
+            $service->professionalProfiles()->sync($professionalIds);
+
+            $userIds = Professional::query()
+                ->whereKey($professionalIds)
+                ->pluck('user_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $service->professionals()->sync($userIds);
+        });
     }
 }

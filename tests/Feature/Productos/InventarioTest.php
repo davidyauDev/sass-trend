@@ -77,6 +77,40 @@ test('puede filtrar productos por marca y categoria', function () {
         ->assertDontSee('Crema Loreal');
 });
 
+test('puede filtrar productos por formato', function () {
+    actingAs(User::factory()->create());
+
+    $brand = ProductBrand::query()->create(['name' => 'Redken']);
+    $category = ProductCategory::query()->create(['name' => 'Capilar']);
+    $presentationA = ProductPresentation::query()->create(['name' => 'Unidad']);
+    $presentationB = ProductPresentation::query()->create(['name' => 'Pack']);
+
+    Product::query()->create([
+        'name' => 'Shampoo Unitario',
+        'brand_id' => $brand->id,
+        'category_id' => $category->id,
+        'presentation_id' => $presentationA->id,
+        'public_sale_price' => 80,
+    ]);
+
+    Product::query()->create([
+        'name' => 'Shampoo Pack',
+        'brand_id' => $brand->id,
+        'category_id' => $category->id,
+        'presentation_id' => $presentationB->id,
+        'public_sale_price' => 120,
+    ]);
+
+    $response = $this->get(route('products.index', [
+        'presentation_id' => $presentationA->id,
+    ]));
+
+    $response
+        ->assertOk()
+        ->assertSee('Shampoo Unitario')
+        ->assertDontSee('Shampoo Pack');
+});
+
 test('puede crear un producto', function () {
     actingAs(User::factory()->create());
 

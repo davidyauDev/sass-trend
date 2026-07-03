@@ -52,7 +52,11 @@ class Index extends Component
 
     public ?int $serviceIdPendingDeletion = null;
 
+    public bool $showUpsertModal = false;
+
     public bool $showCategoryModal = false;
+
+    public bool $showDeleteModal = false;
 
     public string $categoryName = '';
 
@@ -96,8 +100,7 @@ class Index extends Component
         $this->showProfessionalPicker = true;
         $this->resetValidation();
         $this->resetErrorBag();
-
-        $this->modal('upsert-service')->show();
+        $this->showUpsertModal = true;
     }
 
     public function openEditModal(int $serviceId): void
@@ -113,8 +116,7 @@ class Index extends Component
         $this->showProfessionalPicker = true;
         $this->resetValidation();
         $this->resetErrorBag();
-
-        $this->modal('upsert-service')->show();
+        $this->showUpsertModal = true;
     }
 
     public function closeModal(): void
@@ -124,6 +126,7 @@ class Index extends Component
         $this->showProfessionalPicker = true;
         $this->resetValidation();
         $this->resetErrorBag();
+        $this->showUpsertModal = false;
     }
 
     public function selectAllProfessionals(): void
@@ -151,8 +154,6 @@ class Index extends Component
         $this->resetValidation('categoryName');
         $this->resetErrorBag('categoryName');
         $this->showCategoryModal = true;
-
-        $this->modal('create-service-category')->show();
     }
 
     public function closeCategoryModal(): void
@@ -161,8 +162,6 @@ class Index extends Component
         $this->categoryName = '';
         $this->resetValidation('categoryName');
         $this->resetErrorBag('categoryName');
-
-        $this->modal('create-service-category')->close();
     }
 
     public function saveCategory(): void
@@ -209,7 +208,6 @@ class Index extends Component
         }
 
         $this->closeModal();
-        $this->modal('upsert-service')->close();
 
         Flux::toast(
             variant: 'success',
@@ -220,13 +218,13 @@ class Index extends Component
     public function confirmDelete(int $serviceId): void
     {
         $this->serviceIdPendingDeletion = $serviceId;
-
-        $this->modal('delete-service')->show();
+        $this->showDeleteModal = true;
     }
 
     public function closeDeleteModal(): void
     {
         $this->serviceIdPendingDeletion = null;
+        $this->showDeleteModal = false;
     }
 
     public function delete(DeleteServiceAction $deleteService): void
@@ -241,7 +239,6 @@ class Index extends Component
         $result = $deleteService->handle($this->authUser(), $service);
 
         $this->closeDeleteModal();
-        $this->modal('delete-service')->close();
 
         Flux::toast(
             variant: 'success',

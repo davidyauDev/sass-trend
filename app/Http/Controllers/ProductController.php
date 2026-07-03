@@ -37,13 +37,15 @@ class ProductController extends Controller
         $search = trim((string) $request->string('q'));
         $brandId = $request->integer('brand_id') ?: null;
         $categoryId = $request->integer('category_id') ?: null;
-        $hasFilters = $search !== '' || $brandId !== null || $categoryId !== null;
+        $presentationId = $request->integer('presentation_id') ?: null;
+        $hasFilters = $search !== '' || $brandId !== null || $categoryId !== null || $presentationId !== null;
 
         $products = Product::query()
             ->with(['brand', 'category', 'presentation'])
             ->search($search)
             ->when($brandId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('brand_id', $brandId))
             ->when($categoryId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('category_id', $categoryId))
+            ->when($presentationId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('presentation_id', $presentationId))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -52,10 +54,12 @@ class ProductController extends Controller
             'search' => $search,
             'brandId' => $brandId,
             'categoryId' => $categoryId,
+            'presentationId' => $presentationId,
             'hasFilters' => $hasFilters,
             'products' => $products,
             'filterBrands' => ProductBrand::query()->orderBy('name')->get(['id', 'name']),
             'filterCategories' => ProductCategory::query()->orderBy('name')->get(['id', 'name']),
+            'filterPresentations' => ProductPresentation::query()->orderBy('name')->get(['id', 'name']),
             'inventoryConfig' => [
                 'csrf' => csrf_token(),
                 'endpoints' => [

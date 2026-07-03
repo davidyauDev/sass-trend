@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\Role;
 use App\Models\Service;
 use App\Models\ServiceCategory;
+use App\Models\Professional;
 use App\Models\User;
 use App\Services\Agenda\AppointmentStatusCatalog;
 use Database\Seeders\PermissionSeeder;
@@ -57,7 +58,7 @@ test('puede crear servicio', function () {
     actingAs(createAdminUser());
 
     $category = ServiceCategory::factory()->create();
-    $professional = User::factory()->create();
+    $professional = Professional::factory()->create();
 
     Livewire::test(ServicesIndex::class)
         ->call('openCreateModal')
@@ -120,8 +121,8 @@ test('puede asignar profesionales', function () {
     actingAs(createAdminUser());
 
     $category = ServiceCategory::factory()->create();
-    $professionalA = User::factory()->create();
-    $professionalB = User::factory()->create();
+    $professionalA = Professional::factory()->create();
+    $professionalB = Professional::factory()->create();
 
     Livewire::test(ServicesIndex::class)
         ->call('openCreateModal')
@@ -135,7 +136,7 @@ test('puede asignar profesionales', function () {
 
     $service = Service::query()->where('name', 'Consulta integral')->firstOrFail();
 
-    expect($service->professionals()->count())->toBe(2);
+    expect($service->professionalProfiles()->count())->toBe(2);
 });
 
 test('puede activar y desactivar reserva online', function () {
