@@ -29,9 +29,6 @@ class Index extends Component
     #[Url]
     public string $sortDirection = 'desc';
 
-    #[Url]
-    public int $perPage = 10;
-
     /** @var array<string, string|null> */
     public array $form = [
         'first_name' => '',
@@ -52,6 +49,12 @@ class Index extends Component
 
     public ?int $clientIdPendingDeletion = null;
 
+    public bool $createClientOpen = false;
+
+    public bool $showClientOpen = false;
+
+    public bool $deleteClientOpen = false;
+
     public function mount(): void
     {
         $this->resetForm();
@@ -59,15 +62,6 @@ class Index extends Component
 
     public function updatedSearch(): void
     {
-        $this->resetPage();
-    }
-
-    public function updatedPerPage(): void
-    {
-        if (! in_array($this->perPage, [10, 25, 50], true)) {
-            $this->perPage = 10;
-        }
-
         $this->resetPage();
     }
 
@@ -92,8 +86,7 @@ class Index extends Component
         $this->resetForm();
         $this->resetValidation();
         $this->resetErrorBag();
-
-        $this->modal('create-client')->show();
+        $this->createClientOpen = true;
     }
 
     public function closeCreateModal(): void
@@ -101,6 +94,7 @@ class Index extends Component
         $this->resetForm();
         $this->resetValidation();
         $this->resetErrorBag();
+        $this->createClientOpen = false;
     }
 
     public function save(CreateClientAction $createClient): void
@@ -112,7 +106,6 @@ class Index extends Component
         $createClient->handle($validated);
 
         $this->closeCreateModal();
-        $this->modal('create-client')->close();
 
         Flux::toast(variant: 'success', text: 'Cliente creado correctamente.');
     }
@@ -120,25 +113,25 @@ class Index extends Component
     public function showClient(int $clientId): void
     {
         $this->selectedClientId = $clientId;
-
-        $this->modal('show-client')->show();
+        $this->showClientOpen = true;
     }
 
     public function closeShowClientModal(): void
     {
         $this->selectedClientId = null;
+        $this->showClientOpen = false;
     }
 
     public function confirmDelete(int $clientId): void
     {
         $this->clientIdPendingDeletion = $clientId;
-
-        $this->modal('delete-client')->show();
+        $this->deleteClientOpen = true;
     }
 
     public function closeDeleteModal(): void
     {
         $this->clientIdPendingDeletion = null;
+        $this->deleteClientOpen = false;
     }
 
     public function delete(DeleteClientAction $deleteClient): void
@@ -148,7 +141,6 @@ class Index extends Component
         $deleteClient->handle($client);
 
         $this->closeDeleteModal();
-        $this->modal('delete-client')->close();
 
         if ($this->selectedClientId === $client->id) {
             $this->selectedClientId = null;
@@ -166,7 +158,6 @@ class Index extends Component
         $this->reset(['search']);
         $this->sortBy = 'created_at';
         $this->sortDirection = 'desc';
-        $this->perPage = 10;
         $this->resetPage();
     }
 
@@ -270,6 +261,6 @@ class Index extends Component
                 });
             })
             ->orderBy($this->sortBy, $sortDirection)
-            ->paginate($this->perPage);
+            ->paginate(10);
     }
 }

@@ -18,13 +18,13 @@
 
         <div class="relative w-full overflow-hidden rounded-[24px]  ">
             <div class="space-y-3 px-4 py-2 sm:px-5 lg:px-6">
-                <div class="grid gap-3 xl:grid-cols-[auto_minmax(0,1fr)] xl:items-start">
-                    <div class="min-w-0 pt-0 xl:pt-2">
+                <div class="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+                    <div class="min-w-0 pt-0 lg:pt-2">
                         <flux:heading size="xl" class="mt-0 leading-none">Inventario</flux:heading>
                     </div>
 
-                    <div class="flex w-full flex-col gap-2 xl:w-auto xl:flex-row xl:items-end xl:justify-end">
-                        <form method="GET" action="{{ route('products.index') }}" class="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-[minmax(16rem,22rem)_minmax(12rem,14rem)_minmax(12rem,14rem)_auto] xl:items-end">
+                    <div class="flex w-full flex-col gap-3 lg:items-end lg:justify-end">
+                        <form method="GET" action="{{ route('products.index') }}" class="grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(18rem,22rem)_minmax(11rem,13rem)_minmax(11rem,13rem)_auto] lg:items-end">
                             <flux:input
                                 name="q"
                                 value="{{ $search }}"
@@ -34,40 +34,45 @@
                                 class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
                             />
 
-                            <flux:select
-                                name="brand_id"
-                                label="Marca"
-                                onchange="this.form.submit()"
-                                class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
-                            >
-                                <option value="">Todas las marcas</option>
-                                @foreach ($filterBrands as $brand)
-                                    <option value="{{ $brand->id }}" @selected((string) $brandId === (string) $brand->id)>{{ $brand->name }}</option>
-                                @endforeach
-                            </flux:select>
+                            <div class="space-y-1">
+                                <label class="text-sm font-medium text-zinc-700">Marca</label>
+                                <flux:select
+                                    name="brand_id"
+                                    onchange="this.form.submit()"
+                                    class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
+                                >
+                                    <option value="">Todas las marcas</option>
+                                    @foreach ($filterBrands as $brand)
+                                        <option value="{{ $brand->id }}" @selected((string) $brandId === (string) $brand->id)>{{ $brand->name }}</option>
+                                    @endforeach
+                                </flux:select>
+                            </div>
 
-                            <flux:select
-                                name="category_id"
-                                label="Categoría"
-                                onchange="this.form.submit()"
-                                class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
-                            >
-                                <option value="">Todas las categorías</option>
-                                @foreach ($filterCategories as $category)
-                                    <option value="{{ $category->id }}" @selected((string) $categoryId === (string) $category->id)>{{ $category->name }}</option>
-                                @endforeach
-                            </flux:select>
+                            <div class="space-y-1">
+                                <label class="text-sm font-medium text-zinc-700">Categoría</label>
+                                <flux:select
+                                    name="category_id"
+                                    onchange="this.form.submit()"
+                                    class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
+                                >
+                                    <option value="">Todas las categorías</option>
+                                    @foreach ($filterCategories as $category)
+                                        <option value="{{ $category->id }}" @selected((string) $categoryId === (string) $category->id)>{{ $category->name }}</option>
+                                    @endforeach
+                                </flux:select>
+                            </div>
 
                             <flux:button
                                 variant="ghost"
                                 href="{{ route('products.index') }}"
                                 icon="x-mark"
+                                class="justify-self-start lg:justify-self-end"
                             >
                                 Limpiar
                             </flux:button>
                         </form>
 
-                        <div class="flex w-full items-end gap-2 xl:w-auto">
+                        <div class="flex w-full flex-wrap items-end gap-2 lg:w-auto lg:justify-end">
                             <flux:button variant="outline" icon="arrow-up-tray" type="button" @click="openImportInventory()">
                                 Importar Excel
                             </flux:button>
