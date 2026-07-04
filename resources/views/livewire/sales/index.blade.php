@@ -97,7 +97,112 @@
                 </div>
             @endif
 
-            <div class="overflow-x-auto rounded-[20px] border border-zinc-200">
+            <div class="sm:hidden space-y-3">
+                @forelse ($sales as $sale)
+                    @php
+                        $saleStatus = (string) $sale->status;
+                        $statusLabel = match ($saleStatus) {
+                            'paid' => 'Pagada',
+                            'partial' => 'Abono',
+                            'draft' => 'Borrador',
+                            default => ucfirst($saleStatus),
+                        };
+                        $statusBadgeClass = match ($saleStatus) {
+                            'paid' => 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+                            'partial' => 'bg-amber-50 text-amber-700 ring-amber-100',
+                            'draft' => 'bg-zinc-100 text-zinc-600 ring-zinc-200',
+                            default => 'bg-zinc-100 text-zinc-600 ring-zinc-200',
+                        };
+                    @endphp
+
+                    <article x-data="{ expanded: false }" class="overflow-hidden rounded-[22px] border border-zinc-200 bg-white shadow-sm">
+                        <button type="button" class="flex w-full items-start gap-3 px-4 py-4 text-left" @click="expanded = !expanded">
+                            <div class="min-w-0 flex-1">
+                                <div class="truncate text-base font-semibold leading-tight text-zinc-900">
+                                    #{{ $sale->sale_number ?? $sale->id }}
+                                </div>
+                                <div class="mt-0.5 truncate text-xs text-zinc-500">
+                                    {{ $sale->client?->fullName() ?? 'Consumidor final' }}
+                                </div>
+                                <div class="mt-1 truncate text-xs text-zinc-400">
+                                    {{ $sale->sold_at?->format('d/m/Y - h:i a') }} · {{ $sale->branch?->name ?? 'N/A' }}
+                                </div>
+                            </div>
+
+                            <div class="shrink-0 text-right">
+                                <div class="text-sm font-semibold leading-tight text-emerald-600">
+                                    S/ {{ number_format((float) $sale->total, 2) }}
+                                </div>
+                                <div class="mt-0.5 text-xs text-zinc-500">
+                                    {{ $sale->user?->name ?? 'Sin usuario' }}
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <span class="{{ $statusBadgeClass }} inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset">
+                                    {{ $statusLabel }}
+                                </span>
+
+                                <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition"
+                                    :class="expanded ? 'border-violet-300 text-violet-700' : ''">
+                                    <flux:icon.chevron-down class="size-4 transition-transform" :class="expanded ? 'rotate-180' : ''" />
+                                </span>
+                            </div>
+                        </button>
+
+                        <div x-show="expanded" x-cloak x-transition class="border-t border-zinc-100 px-4 py-4">
+                            <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div class="rounded-2xl bg-zinc-50 px-3 py-2">
+                                    <div class="text-[11px] uppercase tracking-wide text-zinc-500">Cliente</div>
+                                    <div class="mt-1 font-medium text-zinc-900">{{ $sale->client?->fullName() ?? 'Consumidor final' }}</div>
+                                </div>
+
+                                <div class="rounded-2xl bg-zinc-50 px-3 py-2">
+                                    <div class="text-[11px] uppercase tracking-wide text-zinc-500">Registrado por</div>
+                                    <div class="mt-1 font-medium text-zinc-900">{{ $sale->user?->name ?? 'Sin usuario' }}</div>
+                                </div>
+
+                                <div class="rounded-2xl bg-zinc-50 px-3 py-2">
+                                    <div class="text-[11px] uppercase tracking-wide text-zinc-500">Local</div>
+                                    <div class="mt-1 font-medium text-zinc-900">{{ $sale->branch?->name ?? 'N/A' }}</div>
+                                </div>
+
+                                <div class="rounded-2xl bg-zinc-50 px-3 py-2">
+                                    <div class="text-[11px] uppercase tracking-wide text-zinc-500">Estado</div>
+                                    <div class="mt-1 font-medium {{ $saleStatus === 'paid' ? 'text-emerald-600' : ($saleStatus === 'partial' ? 'text-amber-600' : 'text-zinc-600') }}">
+                                        {{ $statusLabel }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 grid grid-cols-2 gap-2">
+                                <button type="button" wire:click="openSaleDetail({{ $sale->id }})" class="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition active:scale-[0.99]">
+                                    <flux:icon.eye class="size-4" />
+                                    Ver detalle
+                                </button>
+
+                                <a href="{{ route('sales.receipt.show', $sale->id) }}" target="_blank" class="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-medium text-violet-600 shadow-sm transition active:scale-[0.99]">
+                                    <flux:icon.document-text class="size-4" />
+                                    Comprobante
+                                </a>
+
+                                @if (! $sale->trashed())
+                                    <button type="button" wire:click="confirmDelete({{ $sale->id }})" class="col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition active:scale-[0.99]">
+                                        <flux:icon.trash class="size-4" />
+                                        Eliminar
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    </article>
+                @empty
+                    <div class="rounded-[22px] border border-zinc-200 bg-white px-5 py-12 text-center text-zinc-500 shadow-sm">
+                        No hay ventas para mostrar.
+                    </div>
+                @endforelse
+            </div>
+
+            <div class="hidden overflow-x-auto rounded-[20px] border border-zinc-200 sm:block">
                 <table class="min-w-full divide-y divide-zinc-200">
                     <thead class="bg-white">
                         <tr class="text-left text-xs sm:text-sm font-semibold text-zinc-700">
@@ -105,6 +210,7 @@
                             @if ($visibleColumns['date']) <th class="hidden sm:table-cell px-3 sm:px-5 py-4">Fecha</th> @endif
                             @if ($visibleColumns['amount']) <th class="px-3 sm:px-5 py-4">Monto</th> @endif
                             @if ($visibleColumns['client']) <th class="hidden md:table-cell px-3 sm:px-5 py-4">Cliente</th> @endif
+                            <th class="hidden md:table-cell px-3 sm:px-5 py-4">Registrado por</th>
                             @if ($visibleColumns['branch']) <th class="hidden lg:table-cell px-3 sm:px-5 py-4">Local</th> @endif
                             @if ($visibleColumns['status']) <th class="hidden xl:table-cell px-3 sm:px-5 py-4">Estado</th> @endif
                             <th class="px-3 sm:px-5 py-4 text-right">Acciones</th>
@@ -117,6 +223,7 @@
                                 @if ($visibleColumns['date']) <td class="hidden sm:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->sold_at?->format('d/m/Y - h:i a') }}</td> @endif
                                 @if ($visibleColumns['amount']) <td class="px-3 sm:px-5 py-4 sm:py-5 font-medium">S/{{ number_format((float) $sale->total, 0) }}</td> @endif
                                 @if ($visibleColumns['client']) <td class="hidden md:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->client?->fullName() ?? 'Consumidor final' }}</td> @endif
+                                <td class="hidden md:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->user?->name ?? 'Sin usuario' }}</td>
                                 @if ($visibleColumns['branch']) <td class="hidden lg:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->branch?->name ?? 'N/A' }}</td> @endif
                                 @if ($visibleColumns['status']) <td class="hidden xl:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->status }}</td> @endif
                                 <td class="px-3 sm:px-5 py-4 sm:py-5">
@@ -143,7 +250,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-5 py-16 text-center text-zinc-500">No hay ventas para mostrar.</td>
+                                <td colspan="8" class="px-5 py-16 text-center text-zinc-500">No hay ventas para mostrar.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -197,7 +304,25 @@
                 @endif
             </div>
 
-            <div class="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
+            <div
+                class="relative min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 transition-[opacity,transform,filter] duration-200 ease-out motion-reduce:transition-none"
+                wire:loading.class="opacity-60 blur-[1px] scale-[0.995]"
+                wire:target="openItemPicker,backToItemPicker,openServiceProfessionalPicker,openProductConfiguration,selectServiceProfessional,selectClient,openClientSearch,openClientCreate,backToCart"
+            >
+                <div
+                    wire:loading.delay.shorter
+                    wire:target="openItemPicker,backToItemPicker,openServiceProfessionalPicker,openProductConfiguration,selectServiceProfessional,selectClient,openClientSearch,openClientCreate,backToCart"
+                    class="absolute inset-0 z-20 flex items-start justify-center bg-white/65 px-4 pt-20 backdrop-blur-[2px]"
+                >
+                    <div class="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white/95 px-4 py-3 shadow-[0_20px_40px_rgba(15,23,42,0.12)]">
+                        <div class="size-5 animate-spin rounded-full border-2 border-zinc-200 border-t-violet-600"></div>
+                        <div>
+                            <div class="text-sm font-semibold text-zinc-900">Preparando vista</div>
+                            <div class="text-xs text-zinc-500">Un momento, estamos cargando tus opciones.</div>
+                        </div>
+                    </div>
+                </div>
+
                 @if ($drawerStep === 'cart')
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
@@ -222,9 +347,22 @@
 
                         <div class="space-y-3">
                             <div class="rounded-xl border border-zinc-200">
-                                <button type="button" wire:click="openItemPicker" class="flex w-full items-center justify-center gap-2 px-4 py-3 text-violet-600">
-                                    <flux:icon.plus class="size-5" />
-                                    Agregar al carro
+                                <button
+                                    type="button"
+                                    wire:click="openItemPicker"
+                                    wire:target="openItemPicker"
+                                    wire:loading.attr="disabled"
+                                    class="flex w-full items-center justify-center gap-2 px-4 py-3 text-violet-600 transition-transform duration-200 ease-out active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                    <span wire:loading.remove wire:target="openItemPicker" class="inline-flex items-center gap-2">
+                                        <flux:icon.plus class="size-5" />
+                                        Agregar al carro
+                                    </span>
+
+                                    <span wire:loading.inline-flex wire:target="openItemPicker" class="inline-flex items-center gap-2">
+                                        <span class="size-4 animate-spin rounded-full border-2 border-violet-200 border-t-violet-600"></span>
+                                        Abriendo...
+                                    </span>
                                 </button>
                             </div>
 
@@ -355,114 +493,7 @@
                         </div>
                     </div>
                 @elseif ($drawerStep === 'item-picker')
-                    <div class="space-y-4">
-                        <flux:input wire:model.live.debounce.300ms="itemSearch" icon="magnifying-glass" placeholder="Busca y agrega entre tus servicios y productos" />
-
-                        <div class="flex gap-2 overflow-x-auto pb-1">
-                            @foreach (['recent' => 'Recientes', 'services' => 'Servicios', 'products' => 'Productos'] as $tab => $label)
-                                <button
-                                    type="button"
-                                    wire:click="setItemPickerTab('{{ $tab }}')"
-                                    class="{{ $itemPickerTab === $tab
-                                        ? 'border-violet-500 bg-violet-600 text-white shadow-[0_8px_20px_rgba(124,58,237,0.25)] ring-2 ring-violet-100 -translate-y-px'
-                                        : 'border-zinc-200 bg-zinc-50 text-zinc-500 hover:border-zinc-300 hover:bg-zinc-100' }} inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition"
-                                >
-                                    {{ $label }}
-                                    @if ($tab === 'services')
-                                        <span class="{{ $itemPickerTab === $tab ? 'bg-white/20 text-white' : 'bg-emerald-500 text-white' }} rounded-full px-1.5 text-xs">
-                                            {{ $this->servicesCatalog->count() }}
-                                        </span>
-                                    @elseif ($tab === 'products')
-                                        <span class="{{ $itemPickerTab === $tab ? 'bg-white/20 text-white' : 'bg-emerald-500 text-white' }} rounded-full px-1.5 text-xs">
-                                            {{ $this->productsCatalog->count() }}
-                                        </span>
-                                    @endif
-                                </button>
-                            @endforeach
-                        </div>
-
-                        <div class="rounded-2xl border border-zinc-200">
-                            @if ($itemPickerTab === 'services')
-                                @forelse ($this->filteredServicesCatalog as $service)
-                                    <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-4 last:border-b-0">
-                                        <div>
-                                            <div class="font-medium text-zinc-900">{{ $service->name }}</div>
-                                            <div class="mt-1 text-sm text-zinc-500">S/{{ number_format((float) $service->price, 0) }} | {{ $service->duration_minutes }} min</div>
-                                        </div>
-                                        @if ($service->professionalProfiles->isNotEmpty())
-                                            <button type="button" wire:click="openServiceProfessionalPicker({{ $service->id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
-                                                <flux:icon.plus class="size-5 text-violet-600" />
-                                            </button>
-                                        @else
-                                            <button type="button" disabled class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-300 shadow-sm">
-                                                <flux:icon.plus class="size-5" />
-                                            </button>
-                                        @endif
-                                    </div>
-                                @empty
-                                    <div class="px-4 py-6 text-sm text-zinc-500">No se encontraron servicios.</div>
-                                @endforelse
-                            @elseif ($itemPickerTab === 'products')
-                                @forelse ($this->filteredProductsCatalog as $product)
-                                    <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-4 last:border-b-0">
-                                        <div>
-                                        <div class="font-medium text-zinc-900">{{ $product->name }}</div>
-                                        <div class="mt-1 text-sm text-zinc-500">S/{{ number_format((float) $product->public_sale_price, 2) }} | {{ $product->category?->name }} | {{ $product->brand?->name }} | {{ $product->presentation?->name }}</div>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        @if ($this->cartQuantityForProduct($product->id) > 0)
-                                            <div class="flex size-10 items-center justify-center rounded-xl bg-violet-600 text-sm font-semibold text-white shadow-sm">
-                                                {{ $this->cartQuantityForProduct($product->id) }}
-                                            </div>
-                                        @endif
-
-                                        <button type="button" wire:click="addProductToCart({{ $product->id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
-                                                <flux:icon.plus class="size-5 text-violet-600" />
-                                        </button>
-                                    </div>
-                                </div>
-                                @empty
-                                    <div class="px-4 py-6 text-sm text-zinc-500">No se encontraron productos.</div>
-                                @endforelse
-                            @elseif ($itemPickerTab === 'recent')
-                                @forelse ($this->filteredRecentItems as $item)
-                                    <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-4 last:border-b-0">
-                                        <div>
-                                            <div class="font-medium text-zinc-900">{{ $item->item_name }}</div>
-                                            <div class="mt-1 text-sm text-zinc-500">{{ $item->item_detail ?: 'Ítem reciente' }}</div>
-                                        </div>
-                                        @if ($item->item_type === 'service' && $item->service_id)
-                                            @if ($item->service?->professionalProfiles?->isNotEmpty())
-                                                <button type="button" wire:click="openServiceProfessionalPicker({{ $item->service_id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
-                                                    <flux:icon.plus class="size-5 text-violet-600" />
-                                                </button>
-                                            @else
-                                                <button type="button" disabled class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-300 shadow-sm">
-                                                    <flux:icon.plus class="size-5" />
-                                                </button>
-                                            @endif
-                                        @elseif ($item->item_type === 'product' && $item->product_id)
-                                            <div class="flex items-center gap-3">
-                                                @if ($this->cartQuantityForProduct($item->product_id) > 0)
-                                                    <div class="flex size-10 items-center justify-center rounded-xl bg-violet-600 text-sm font-semibold text-white shadow-sm">
-                                                        {{ $this->cartQuantityForProduct($item->product_id) }}
-                                                    </div>
-                                                @endif
-
-                                                <button type="button" wire:click="addProductToCart({{ $item->product_id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
-                                                    <flux:icon.plus class="size-5 text-violet-600" />
-                                                </button>
-                                            </div>
-                                        @endif
-                                    </div>
-                                @empty
-                                    <div class="px-4 py-6 text-sm text-zinc-500">No hay ítems recientes.</div>
-                                @endforelse
-                            @else
-                                <div class="px-4 py-8 text-sm text-zinc-500">Giftcards estará disponible pronto.</div>
-                            @endif
-                        </div>
-                    </div>
+                    <livewire:sales.item-picker :cart-quantities="$this->itemPickerCartQuantities()" :key="'sales-item-picker'" />
                 @elseif ($drawerStep === 'service-professional')
                     @php
                         $selectedService = $this->serviceProfessionalPickerService;

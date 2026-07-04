@@ -14,7 +14,7 @@ final class SaleListingQuery
     public function handle(array $filters = []): Builder
     {
         $query = Sale::query()
-            ->with(['client', 'branch', 'payments']);
+            ->with(['client', 'branch', 'payments', 'user']);
 
         $search = trim((string) ($filters['search'] ?? ''));
 

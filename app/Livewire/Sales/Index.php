@@ -10,7 +10,6 @@ use App\Models\Client;
 use App\Models\Product;
 use App\Models\Professional;
 use App\Models\Sale;
-use App\Models\SaleItem;
 use App\Models\Service;
 use App\Models\User;
 use App\Services\Sales\SaleListingQuery;
@@ -25,6 +24,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -34,8 +34,6 @@ use Livewire\WithPagination;
 class Index extends Component
 {
     use WithPagination;
-
-    private const ITEM_PICKER_TABS = ['recent', 'services', 'products'];
 
     #[Url(as: 'q')]
     public string $search = '';
@@ -63,9 +61,6 @@ class Index extends Component
     /** @var 'cart'|'client-search'|'client-create'|'item-picker'|'product-config'|'service-professional'|'payment'|'success' */
     public string $drawerStep = 'cart';
 
-    /** @var 'recent'|'services'|'products' */
-    public string $itemPickerTab = 'recent';
-
     public ?int $serviceProfessionalPickerServiceId = null;
 
     public ?int $serviceProfessionalPickerProfessionalId = null;
@@ -89,8 +84,6 @@ class Index extends Component
     public string $productConfigurationDiscountType = 'percent';
 
     public string $productConfigurationDiscountValue = '0';
-
-    public string $itemSearch = '';
 
     /** @var 'success'|'detail' */
     public string $saleSummaryMode = 'success';
@@ -175,12 +168,10 @@ class Index extends Component
         $this->resetSaleForm();
         $this->resetClientCreateForm();
         $this->drawerStep = 'cart';
-        $this->itemPickerTab = 'recent';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
         $this->resetServiceConfiguration();
         $this->resetProductConfiguration();
-        $this->itemSearch = '';
         $this->clientSearch = '';
         $this->selectedSaleId = null;
         $this->saleSummaryMode = 'success';
@@ -193,12 +184,10 @@ class Index extends Component
     {
         $this->isDrawerOpen = false;
         $this->drawerStep = 'cart';
-        $this->itemPickerTab = 'recent';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
         $this->resetServiceConfiguration();
         $this->resetProductConfiguration();
-        $this->itemSearch = '';
         $this->saleSummaryMode = 'success';
         $this->resetSaleForm();
         $this->resetClientCreateForm();
@@ -245,24 +234,13 @@ class Index extends Component
         $this->resetErrorBag();
     }
 
-    public function openItemPicker(string $tab = 'recent'): void
+    public function openItemPicker(): void
     {
         $this->drawerStep = 'item-picker';
-        $this->itemPickerTab = in_array($tab, self::ITEM_PICKER_TABS, true) ? $tab : 'recent';
-        $this->itemSearch = '';
         $this->serviceProfessionalPickerServiceId = null;
         $this->serviceProfessionalPickerProfessionalId = null;
         $this->resetServiceConfiguration();
         $this->resetProductConfiguration();
-    }
-
-    public function setItemPickerTab(string $tab): void
-    {
-        if (! in_array($tab, self::ITEM_PICKER_TABS, true)) {
-            return;
-        }
-
-        $this->itemPickerTab = $tab;
     }
 
     public function openServiceProfessionalPicker(int $serviceId): void
@@ -310,6 +288,18 @@ class Index extends Component
         $this->drawerStep = 'product-config';
         $this->resetValidation();
         $this->resetErrorBag();
+    }
+
+    #[On('sales-item-picker-service-selected')]
+    public function openServiceProfessionalFromPicker(int $serviceId): void
+    {
+        $this->openServiceProfessionalPicker($serviceId);
+    }
+
+    #[On('sales-item-picker-product-selected')]
+    public function openProductConfigurationFromPicker(int $productId): void
+    {
+        $this->openProductConfiguration($productId);
     }
 
     public function selectServiceProfessional(int $professionalId): void
@@ -811,6 +801,35 @@ class Index extends Component
         }
     }
 
+    /**
+     * @return array{products: array<int, int>, services: array<int, int>}
+     */
+    #[Computed]
+    public function itemPickerCartQuantities(): array
+    {
+        $products = [];
+        $services = [];
+
+        foreach ($this->saleForm['cart'] ?? [] as $item) {
+            $quantity = max(1, (int) round((float) ($item['quantity'] ?? 0)));
+
+            if (($item['item_type'] ?? null) === 'product' && isset($item['product_id'])) {
+                $productId = (int) $item['product_id'];
+                $products[$productId] = ($products[$productId] ?? 0) + $quantity;
+            }
+
+            if (($item['item_type'] ?? null) === 'service' && isset($item['service_id'])) {
+                $serviceId = (int) $item['service_id'];
+                $services[$serviceId] = ($services[$serviceId] ?? 0) + $quantity;
+            }
+        }
+
+        return [
+            'products' => $products,
+            'services' => $services,
+        ];
+    }
+
     public function saveDraft(CreateSaleAction $createSale): void
     {
         $sale = $createSale->handle($this->authUser(), $this->salePayloadForAction(SaleStatusCatalog::DRAFT));
@@ -913,103 +932,6 @@ class Index extends Component
             ->get();
     }
 
-    /**
-     * @return Collection<int, Service>
-     */
-    #[Computed]
-    public function servicesCatalog(): Collection
-    {
-        return Service::query()
-            ->with(['professionalProfiles'])
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, Product>
-     */
-    #[Computed]
-    public function productsCatalog(): Collection
-    {
-        return Product::query()
-            ->with(['brand', 'category', 'presentation'])
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, SaleItem>
-     */
-    #[Computed]
-    public function recentItems(): Collection
-    {
-        $items = SaleItem::query()
-            ->with(['product.brand', 'product.presentation', 'service.professionalProfiles'])
-            ->where('item_type', '!=', 'giftcard')
-            ->latest()
-            ->limit(12)
-            ->get();
-
-        return $items->unique(function (SaleItem $item): string {
-            $professionalId = data_get($item->meta, 'professional_id');
-
-            return $item->item_type.':'.($item->service_id ?? $item->product_id).':'.($professionalId ?? '');
-        })->values();
-    }
-
-    /**
-     * @return Collection<int, Service>
-     */
-    #[Computed]
-    public function filteredServicesCatalog(): Collection
-    {
-        return Service::query()
-            ->with(['professionalProfiles' => fn ($query) => $query->where('is_active', true)->orderBy('public_name')])
-            ->where('is_active', true)
-            ->search(trim($this->itemSearch))
-            ->orderBy('name')
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, Product>
-     */
-    #[Computed]
-    public function filteredProductsCatalog(): Collection
-    {
-        return Product::query()
-            ->with(['brand', 'category', 'presentation'])
-            ->where('is_active', true)
-            ->search(trim($this->itemSearch))
-            ->orderBy('name')
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, SaleItem>
-     */
-    #[Computed]
-    public function filteredRecentItems(): Collection
-    {
-        $term = mb_strtolower(trim($this->itemSearch));
-
-        if ($term === '') {
-            return $this->recentItems();
-        }
-
-        return $this->recentItems()
-            ->filter(function (SaleItem $item) use ($term): bool {
-                $haystack = mb_strtolower(trim(implode(' ', array_filter([
-                    $item->item_name,
-                    $item->item_detail,
-                ]))));
-
-                return str_contains($haystack, $term);
-            })
-            ->values();
-    }
 
     /**
      * @return array<string, string>
