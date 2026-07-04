@@ -38,6 +38,9 @@ class ProductController extends Controller
         $brandId = $request->integer('brand_id') ?: null;
         $categoryId = $request->integer('category_id') ?: null;
         $presentationId = $request->integer('presentation_id') ?: null;
+        $perPage = in_array($request->integer('per_page'), [10, 25, 50], true)
+            ? $request->integer('per_page')
+            : 10;
         $hasFilters = $search !== '' || $brandId !== null || $categoryId !== null || $presentationId !== null;
 
         $products = Product::query()
@@ -47,7 +50,7 @@ class ProductController extends Controller
             ->when($categoryId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('category_id', $categoryId))
             ->when($presentationId !== null, fn (EloquentBuilder $query): EloquentBuilder => $query->where('presentation_id', $presentationId))
             ->latest()
-            ->paginate(10)
+            ->paginate($perPage)
             ->withQueryString();
 
         return view('products.index', [
@@ -55,6 +58,7 @@ class ProductController extends Controller
             'brandId' => $brandId,
             'categoryId' => $categoryId,
             'presentationId' => $presentationId,
+            'perPage' => $perPage,
             'hasFilters' => $hasFilters,
             'products' => $products,
             'filterBrands' => ProductBrand::query()->orderBy('name')->get(['id', 'name']),

@@ -16,79 +16,84 @@
             <div class="mt-1 text-sm opacity-90" x-text="toast.message"></div>
         </div>
 
-        <div class="relative w-full overflow-hidden rounded-[24px]  ">
-            <div class="space-y-3 px-4 py-2 sm:px-5 lg:px-6">
-                <div class="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
-                    <div class="min-w-0 pt-0 lg:pt-2">
-                        <flux:heading size="xl" class="mt-0 leading-none">Inventario</flux:heading>
+        <div class="relative w-full overflow-hidden rounded-[24px]">
+            <div class="space-y-5 px-1 py-2 sm:px-3 lg:px-0">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="min-w-0">
+                        <h1 class="text-[2rem] font-semibold tracking-tight text-slate-900">Inventario</h1>
+                        <p class="mt-2 text-sm text-slate-600">Gestiona todos los productos, marcas y categorías de tu negocio.</p>
                     </div>
 
-                    <div class="flex w-full flex-col gap-3 lg:items-end lg:justify-end">
-                        <form method="GET" action="{{ route('products.index') }}" class="grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(18rem,22rem)_minmax(10rem,12rem)_minmax(10rem,12rem)_minmax(10rem,12rem)_auto] lg:items-end">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                        <flux:button variant="outline" icon="arrow-up-tray" type="button" @click="openImportInventory()" class="h-11 rounded-xl border-zinc-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm">
+                            Importar Excel
+                        </flux:button>
+
+                        <flux:button variant="primary" icon="plus" type="button" @click="openCreate()" class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+                            Nuevo producto
+                        </flux:button>
+                    </div>
+                </div>
+
+                <form method="GET" action="{{ route('products.index') }}" class="rounded-[24px] border border-zinc-200 bg-white p-4 shadow-sm">
+                    <input type="hidden" name="per_page" value="{{ $perPage }}">
+
+                    <div class="grid items-end gap-4 lg:grid-cols-[minmax(18rem,1.6fr)_minmax(10rem,0.9fr)_minmax(10rem,0.9fr)_minmax(10rem,0.9fr)]">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-transparent select-none">Buscar</label>
                             <flux:input
                                 name="q"
                                 value="{{ $search }}"
                                 type="search"
                                 icon="magnifying-glass"
-                                placeholder="Busca por nombre, marca o código"
-                                class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
+                                placeholder="Buscar por nombre, marca o código..."
+                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none"
                             />
+                        </div>
 
-                            <div class="space-y-1">
-                                <label class="text-sm font-medium text-zinc-700">Marca</label>
-                                <flux:select
-                                    name="brand_id"
-                                    onchange="this.form.submit()"
-                                    class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
-                                >
-                                    <option value="">Todas las marcas</option>
-                                    @foreach ($filterBrands as $brand)
-                                        <option value="{{ $brand->id }}" @selected((string) $brandId === (string) $brand->id)>{{ $brand->name }}</option>
-                                    @endforeach
-                                </flux:select>
-                            </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">Marca</label>
+                            <flux:select
+                                name="brand_id"
+                                onchange="this.form.submit()"
+                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none"
+                            >
+                                <option value="">Todas las marcas</option>
+                                @foreach ($filterBrands as $brand)
+                                    <option value="{{ $brand->id }}" @selected((string) $brandId === (string) $brand->id)>{{ $brand->name }}</option>
+                                @endforeach
+                            </flux:select>
+                        </div>
 
-                            <div class="space-y-1">
-                                <label class="text-sm font-medium text-zinc-700">Categoría</label>
-                                <flux:select
-                                    name="category_id"
-                                    onchange="this.form.submit()"
-                                    class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
-                                >
-                                    <option value="">Todas las categorías</option>
-                                    @foreach ($filterCategories as $category)
-                                        <option value="{{ $category->id }}" @selected((string) $categoryId === (string) $category->id)>{{ $category->name }}</option>
-                                    @endforeach
-                                </flux:select>
-                            </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">Categoría</label>
+                            <flux:select
+                                name="category_id"
+                                onchange="this.form.submit()"
+                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none"
+                            >
+                                <option value="">Todas las categorías</option>
+                                @foreach ($filterCategories as $category)
+                                    <option value="{{ $category->id }}" @selected((string) $categoryId === (string) $category->id)>{{ $category->name }}</option>
+                                @endforeach
+                            </flux:select>
+                        </div>
 
-                            <div class="space-y-1">
-                                <label class="text-sm font-medium text-zinc-700">Formato</label>
-                                <flux:select
-                                    name="presentation_id"
-                                    onchange="this.form.submit()"
-                                    class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
-                                >
-                                    <option value="">Todos los formatos</option>
-                                    @foreach ($filterPresentations as $presentation)
-                                        <option value="{{ $presentation->id }}" @selected((string) $presentationId === (string) $presentation->id)>{{ $presentation->name }}</option>
-                                    @endforeach
-                                </flux:select>
-                            </div>
-
-                        </form>
-
-                        <div class="flex w-full flex-wrap items-end gap-2 lg:w-auto lg:justify-end">
-                            <flux:button variant="outline" icon="arrow-up-tray" type="button" @click="openImportInventory()">
-                                Importar Excel
-                            </flux:button>
-
-                            <flux:button variant="primary" icon="plus" type="button" @click="openCreate()">
-                                Nuevo producto
-                            </flux:button>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">Formato</label>
+                            <flux:select
+                                name="presentation_id"
+                                onchange="this.form.submit()"
+                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none"
+                            >
+                                <option value="">Todos los formatos</option>
+                                @foreach ($filterPresentations as $presentation)
+                                    <option value="{{ $presentation->id }}" @selected((string) $presentationId === (string) $presentation->id)>{{ $presentation->name }}</option>
+                                @endforeach
+                            </flux:select>
                         </div>
                     </div>
-                </div>
+                </form>
 
                 @if (session('success'))
                     <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
@@ -182,7 +187,7 @@
                     </div>
                 </div>
 
-                <flux:card class="overflow-hidden border border-zinc-200/80 bg-white shadow-sm">
+                <div class="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm">
                     @if ($products->isEmpty())
                         <div class="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
                             <div class="flex size-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
@@ -264,7 +269,7 @@
                                                 S/ {{ number_format((float) $product->public_sale_price, 2) }}
                                             </div>
                                             <div class="text-xs text-zinc-500">
-                                                {{ number_format((float) $product->current_stock, 2) }} stock
+                                                {{ rtrim(rtrim(number_format((float) $product->current_stock, 2, '.', ''), '0'), '.') }} stock
                                             </div>
                                         </div>
 
@@ -349,115 +354,136 @@
 
                         <div class="hidden md:block">
                             <div class="overflow-x-auto">
-                            <flux:table>
-                                <flux:table.columns>
-                                    <flux:table.column class="px-2 py-2">Producto</flux:table.column>
-                                    <flux:table.column class="px-2 py-2">Marca</flux:table.column>
-                                    <flux:table.column class="px-2 py-2">Categoría</flux:table.column>
-                                    <flux:table.column class="px-2 py-2">Formato</flux:table.column>
-                                    <flux:table.column class="px-2 py-2">Precio</flux:table.column>
-                                    <flux:table.column class="px-2 py-2">Stock</flux:table.column>
-                                    <flux:table.column class="whitespace-nowrap px-2 py-2 text-center">+Stock</flux:table.column>
-                                    <flux:table.column class="whitespace-nowrap px-2 py-2 text-center">-Stock</flux:table.column>
-                                    <flux:table.column class="px-2 py-2 text-center">Opciones</flux:table.column>
-                                </flux:table.columns>
-
-                                <flux:table.rows>
-                                    @foreach ($products as $product)
-                                        <flux:table.row :key="$product->id">
-                                            <flux:table.cell class="px-2 py-2">
-                                                <div class="min-w-0">
-                                                    <div class="font-medium text-zinc-900">{{ $product->name }}</div>
-                                                    <div class="text-xs text-zinc-500">
-                                                        {{ $product->barcode ?: 'Sin código de barras' }}
+                                <table class="min-w-full table-auto">
+                                    <thead>
+                                        <tr class="border-b border-zinc-200 bg-white text-left text-xs font-semibold text-slate-800">
+                                            <th class="px-4 py-4">Producto</th>
+                                            <th class="px-4 py-4">Marca</th>
+                                            <th class="px-4 py-4">Categoría</th>
+                                            <th class="px-4 py-4">Formato</th>
+                                            <th class="px-4 py-4">Precio</th>
+                                            <th class="px-4 py-4">Stock</th>
+                                            <th class="px-4 py-4 text-center">+Stock</th>
+                                            <th class="px-4 py-4 text-center">-Stock</th>
+                                            <th class="px-4 py-4 text-center">Opciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-zinc-200">
+                                        @foreach ($products as $product)
+                                            <tr class="text-sm text-slate-700">
+                                                <td class="px-4 py-5 align-middle">
+                                                    <div class="min-w-0">
+                                                        <div class="font-semibold text-slate-900">{{ $product->name }}</div>
+                                                        <div class="mt-1 text-xs text-slate-500">
+                                                            {{ $product->barcode ?: 'Sin código de barras' }}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </flux:table.cell>
-                                            <flux:table.cell class="px-2 py-2">{{ $product->brand?->name ?? 'Sin marca' }}</flux:table.cell>
-                                            <flux:table.cell class="px-2 py-2">{{ $product->category?->name ?? 'Sin categoría' }}</flux:table.cell>
-                                            <flux:table.cell class="px-2 py-2">{{ $product->presentation?->name ?? 'Sin formato' }}</flux:table.cell>
-                                            <flux:table.cell class="px-2 py-2">S/ {{ number_format((float) $product->public_sale_price, 2) }}</flux:table.cell>
-                                            <flux:table.cell class="px-2 py-2">{{ number_format((float) $product->current_stock, 2) }}</flux:table.cell>
-                                            <flux:table.cell class="px-2 py-2">
-                                                <button
-                                                    type="button"
-                                                    class="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-sky-700 transition hover:text-sky-900"
-                                                    @click="openStockAdjustment('increase', @js([
-                                                        'id' => $product->id,
-                                                        'name' => $product->name,
-                                                    ]))"
-                                                >
-                                                    <flux:icon name="plus" class="size-4" />
-                                                    <span>Stock</span>
-                                                </button>
-                                            </flux:table.cell>
-                                            <flux:table.cell class="px-2 py-2">
-                                                <button
-                                                    type="button"
-                                                    class="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-sky-700 transition hover:text-sky-900"
-                                                    @click="openStockAdjustment('decrease', @js([
-                                                        'id' => $product->id,
-                                                        'name' => $product->name,
-                                                    ]))"
-                                                >
-                                                    <flux:icon name="minus" class="size-4" />
-                                                    <span>Stock</span>
-                                                </button>
-                                            </flux:table.cell>
-                                            <flux:table.cell class="px-2 py-2 text-center">
-                                                <div class="inline-flex items-center justify-center gap-1.5">
-                                                    <flux:button
-                                                        size="sm"
-                                                        variant="subtle"
-                                                        icon="pencil-square"
+                                                </td>
+                                                <td class="px-4 py-5 align-middle">{{ $product->brand?->name ?? 'Sin marca' }}</td>
+                                                <td class="px-4 py-5 align-middle">{{ $product->category?->name ?? 'Sin categoría' }}</td>
+                                                <td class="px-4 py-5 align-middle">{{ $product->presentation?->name ?? 'Sin formato' }}</td>
+                                                <td class="px-4 py-5 align-middle whitespace-nowrap text-slate-600">S/ {{ number_format((float) $product->public_sale_price, 2) }}</td>
+                                                <td class="px-4 py-5 align-middle whitespace-nowrap text-slate-600">{{ rtrim(rtrim(number_format((float) $product->current_stock, 2, '.', ''), '0'), '.') }}</td>
+                                                <td class="px-4 py-5 align-middle text-center">
+                                                    <button
                                                         type="button"
-                                                        aria-label="Editar producto"
-                                                        title="Editar producto"
-                                                        @click="openEdit(@js([
+                                                        class="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-sky-600 transition hover:text-sky-700"
+                                                        @click="openStockAdjustment('increase', @js([
                                                             'id' => $product->id,
                                                             'name' => $product->name,
-                                                            'barcode' => $product->barcode ?? '',
-                                                            'brand_id' => $product->brand_id,
-                                                            'category_id' => $product->category_id,
-                                                            'presentation_id' => $product->presentation_id,
-                                                            'public_sale_price' => (string) $product->public_sale_price,
-                                                            'current_stock' => (string) $product->current_stock,
-                                                            'purchase_cost' => (string) $product->purchase_cost,
-                                                            'internal_sale_price' => (string) $product->internal_sale_price,
-                                                            'sale_commission' => (string) $product->sale_commission,
-                                                            'commission_type' => $product->commission_type,
-                                                            'includes_tax' => (bool) $product->includes_tax,
-                                                            'description' => $product->description ?? '',
-                                                            'stock_alarm_enabled' => (bool) $product->stock_alarm_enabled,
-                                                            'stock_alarm_limit' => $product->stock_alarm_limit === null ? '' : (string) $product->stock_alarm_limit,
-                                                            'stock_alarm_emails' => $product->stock_alarm_emails ?? '',
-                                                            'is_active' => (bool) $product->is_active,
                                                         ]))"
-                                                    />
-
-                                                    <flux:button
-                                                        size="sm"
-                                                        variant="danger"
-                                                        icon="trash"
+                                                    >
+                                                        <flux:icon name="plus" class="size-4" />
+                                                        <span>Stock</span>
+                                                    </button>
+                                                </td>
+                                                <td class="px-4 py-5 align-middle text-center">
+                                                    <button
                                                         type="button"
-                                                        aria-label="Eliminar producto"
-                                                        title="Eliminar producto"
-                                                        @click="deleteProduct({{ $product->id }}, @js($product->name))"
-                                                    />
-                                                </div>
-                                            </flux:table.cell>
-                                        </flux:table.row>
-                                    @endforeach
-                                </flux:table.rows>
-                            </flux:table>
+                                                        class="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-sky-600 transition hover:text-sky-700"
+                                                        @click="openStockAdjustment('decrease', @js([
+                                                            'id' => $product->id,
+                                                            'name' => $product->name,
+                                                        ]))"
+                                                    >
+                                                        <flux:icon name="minus" class="size-4" />
+                                                        <span>Stock</span>
+                                                    </button>
+                                                </td>
+                                                <td class="px-4 py-5 align-middle text-center">
+                                                    <div class="inline-flex items-center justify-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-slate-500 shadow-sm transition hover:border-zinc-300 hover:text-slate-700"
+                                                            aria-label="Editar producto"
+                                                            title="Editar producto"
+                                                            @click="openEdit(@js([
+                                                                'id' => $product->id,
+                                                                'name' => $product->name,
+                                                                'barcode' => $product->barcode ?? '',
+                                                                'brand_id' => $product->brand_id,
+                                                                'category_id' => $product->category_id,
+                                                                'presentation_id' => $product->presentation_id,
+                                                                'public_sale_price' => (string) $product->public_sale_price,
+                                                                'current_stock' => (string) $product->current_stock,
+                                                                'purchase_cost' => (string) $product->purchase_cost,
+                                                                'internal_sale_price' => (string) $product->internal_sale_price,
+                                                                'sale_commission' => (string) $product->sale_commission,
+                                                                'commission_type' => $product->commission_type,
+                                                                'includes_tax' => (bool) $product->includes_tax,
+                                                                'description' => $product->description ?? '',
+                                                                'stock_alarm_enabled' => (bool) $product->stock_alarm_enabled,
+                                                                'stock_alarm_limit' => $product->stock_alarm_limit === null ? '' : (string) $product->stock_alarm_limit,
+                                                                'stock_alarm_emails' => $product->stock_alarm_emails ?? '',
+                                                                'is_active' => (bool) $product->is_active,
+                                                            ]))"
+                                                        >
+                                                            <flux:icon name="pencil-square" class="size-4" />
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            class="inline-flex size-9 items-center justify-center rounded-xl bg-rose-500 text-white shadow-sm transition hover:bg-rose-600"
+                                                            aria-label="Eliminar producto"
+                                                            title="Eliminar producto"
+                                                            @click="deleteProduct({{ $product->id }}, @js($product->name))"
+                                                        >
+                                                            <flux:icon name="trash" class="size-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 
-                        <div class="border-t border-zinc-200/80 px-2 py-3 md:px-4">
-                            {{ $products->links() }}
+                        <div class="flex flex-col gap-3 border-t border-zinc-200 px-4 py-4 md:flex-row md:items-center md:justify-between">
+                            <div class="text-sm text-slate-500">
+                                Mostrando {{ $products->firstItem() ?? 0 }} a {{ $products->lastItem() ?? 0 }} de {{ $products->total() }} productos
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <div>
+                                    {{ $products->onEachSide(1)->links() }}
+                                </div>
+
+                                <form method="GET" action="{{ route('products.index') }}" class="min-w-[8rem]">
+                                    <input type="hidden" name="q" value="{{ $search }}">
+                                    <input type="hidden" name="brand_id" value="{{ $brandId }}">
+                                    <input type="hidden" name="category_id" value="{{ $categoryId }}">
+                                    <input type="hidden" name="presentation_id" value="{{ $presentationId }}">
+                                    <flux:select name="per_page" onchange="this.form.submit()" class="h-11 rounded-xl border-zinc-200 bg-white shadow-none">
+                                        @foreach ([10, 25, 50] as $size)
+                                            <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} por página</option>
+                                        @endforeach
+                                    </flux:select>
+                                </form>
+                            </div>
                         </div>
                     @endif
-                </flux:card>
+                </div>
             </div>
         </div>
 
