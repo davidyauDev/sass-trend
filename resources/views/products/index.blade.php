@@ -20,22 +20,22 @@
             <div class="space-y-5 px-1 py-2 sm:px-3 lg:px-0">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div class="min-w-0">
-                        <h1 class="text-[2rem] font-semibold tracking-tight text-slate-900">Inventario</h1>
-                        <p class="mt-2 text-sm text-slate-600">Gestiona todos los productos, marcas y categorías de tu negocio.</p>
+                        <h1 class="text-[2rem] font-semibold tracking-tight text-slate-900 dark:text-white">Inventario</h1>
+                        <p class="mt-2 text-sm text-slate-600 dark:text-zinc-400">Gestiona todos los productos, marcas y categorías de tu negocio.</p>
                     </div>
 
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                        <flux:button variant="outline" icon="arrow-up-tray" type="button" @click="openImportInventory()" class="h-11 rounded-xl border-zinc-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm">
+                        <flux:button variant="outline" icon="arrow-up-tray" type="button" @click="openImportInventory()" class="h-11 rounded-xl border-zinc-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm dark:border-white/10 dark:bg-white/[0.02] dark:text-white dark:shadow-none">
                             Importar Excel
                         </flux:button>
 
-                        <flux:button variant="primary" icon="plus" type="button" @click="openCreate()" class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+                        <flux:button variant="primary" icon="plus" type="button" @click="openCreate()" class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-600 dark:shadow-none">
                             Nuevo producto
                         </flux:button>
                     </div>
                 </div>
 
-                <form method="GET" action="{{ route('products.index') }}" class="rounded-[24px] border border-zinc-200 bg-white p-4 shadow-sm">
+                <form method="GET" action="{{ route('products.index') }}" class="rounded-[24px] border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
                     <input type="hidden" name="per_page" value="{{ $perPage }}">
 
                     <div class="grid items-end gap-4 lg:grid-cols-[minmax(18rem,1.6fr)_minmax(10rem,0.9fr)_minmax(10rem,0.9fr)_minmax(10rem,0.9fr)]">
@@ -47,16 +47,16 @@
                                 type="search"
                                 icon="magnifying-glass"
                                 placeholder="Buscar por nombre, marca o código..."
-                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none"
+                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
                             />
                         </div>
 
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">Marca</label>
+                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Marca</label>
                             <flux:select
                                 name="brand_id"
                                 onchange="this.form.submit()"
-                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none"
+                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
                             >
                                 <option value="">Todas las marcas</option>
                                 @foreach ($filterBrands as $brand)
@@ -66,11 +66,11 @@
                         </div>
 
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">Categoría</label>
+                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Categoría</label>
                             <flux:select
                                 name="category_id"
                                 onchange="this.form.submit()"
-                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none"
+                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
                             >
                                 <option value="">Todas las categorías</option>
                                 @foreach ($filterCategories as $category)
@@ -80,11 +80,11 @@
                         </div>
 
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">Formato</label>
+                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Formato</label>
                             <flux:select
                                 name="presentation_id"
                                 onchange="this.form.submit()"
-                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none"
+                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
                             >
                                 <option value="">Todos los formatos</option>
                                 @foreach ($filterPresentations as $presentation)
@@ -187,7 +187,7 @@
                     </div>
                 </div>
 
-                <div class="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm">
+                <div class="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
                     @if ($products->isEmpty())
                         <div class="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
                             <div class="flex size-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
@@ -248,7 +248,7 @@
 
                                 <article
                                     x-data="{ expanded: false }"
-                                    class="rounded-none border-x-0 border-y border-zinc-200/80 bg-white shadow-sm first:border-t-0"
+                                    class="rounded-none border-x-0 border-y border-zinc-200/80 bg-white shadow-sm first:border-t-0 dark:border-white/10 dark:bg-[#111820] dark:shadow-none"
                                 >
                                     <button
                                         type="button"
@@ -256,10 +256,10 @@
                                         @click="expanded = !expanded"
                                     >
                                         <div class="min-w-0 flex-1">
-                                            <div class="truncate text-base font-semibold leading-tight text-zinc-900">
+                                            <div class="truncate text-base font-semibold leading-tight text-zinc-900 dark:text-white">
                                                 {{ $product->name }}
                                             </div>
-                                            <div class="mt-0.5 truncate text-xs text-zinc-500">
+                                            <div class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
                                                 {{ $product->barcode ?: 'Sin código de barras' }}
                                             </div>
                                         </div>
@@ -268,36 +268,36 @@
                                             <div class="text-sm font-semibold leading-tight text-emerald-600">
                                                 S/ {{ number_format((float) $product->public_sale_price, 2) }}
                                             </div>
-                                            <div class="text-xs text-zinc-500">
+                                            <div class="text-xs text-zinc-500 dark:text-zinc-400">
                                                 {{ rtrim(rtrim(number_format((float) $product->current_stock, 2, '.', ''), '0'), '.') }} stock
                                             </div>
                                         </div>
 
-                                        <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition"
-                                            :class="expanded ? 'border-violet-300 text-violet-700' : ''">
+                                        <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition dark:border-white/10 dark:bg-white/[0.02] dark:text-zinc-300"
+                                            :class="expanded ? 'border-violet-300 text-violet-700 dark:border-emerald-500/50 dark:text-emerald-400' : ''">
                                             <flux:icon name="chevron-down" class="size-4 transition-transform" :class="expanded ? 'rotate-180' : ''" />
                                         </span>
                                     </button>
 
-                                    <div x-show="expanded" x-cloak x-transition class="border-t border-zinc-100 px-3 py-4 sm:px-4">
+                                    <div x-show="expanded" x-cloak x-transition class="border-t border-zinc-100 px-3 py-4 sm:px-4 dark:border-white/10">
                                         <div class="grid grid-cols-2 gap-3 text-sm">
-                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500">Marca</div>
-                                                <div class="mt-1 font-medium text-zinc-900">{{ $product->brand?->name ?? 'Sin marca' }}</div>
+                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2 dark:bg-white/[0.03]">
+                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-500">Marca</div>
+                                                <div class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $product->brand?->name ?? 'Sin marca' }}</div>
                                             </div>
 
-                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500">Categoría</div>
-                                                <div class="mt-1 font-medium text-zinc-900">{{ $product->category?->name ?? 'Sin categoría' }}</div>
+                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2 dark:bg-white/[0.03]">
+                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-500">Categoría</div>
+                                                <div class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $product->category?->name ?? 'Sin categoría' }}</div>
                                             </div>
 
-                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500">Formato</div>
-                                                <div class="mt-1 font-medium text-zinc-900">{{ $product->presentation?->name ?? 'Sin formato' }}</div>
+                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2 dark:bg-white/[0.03]">
+                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-500">Formato</div>
+                                                <div class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $product->presentation?->name ?? 'Sin formato' }}</div>
                                             </div>
 
-                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500">Activo</div>
+                                            <div class="rounded-2xl bg-zinc-50 px-3 py-2 dark:bg-white/[0.03]">
+                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-500">Activo</div>
                                                 <div class="mt-1 font-medium {{ $product->is_active ? 'text-emerald-600' : 'text-rose-600' }}">
                                                     {{ $product->is_active ? 'Sí' : 'No' }}
                                                 </div>
@@ -356,7 +356,7 @@
                             <div class="overflow-x-auto">
                                 <table class="min-w-full table-auto">
                                     <thead>
-                                        <tr class="border-b border-zinc-200 bg-white text-left text-xs font-semibold text-slate-800">
+                                        <tr class="border-b border-zinc-200 bg-white text-left text-xs font-semibold text-slate-800 dark:border-white/10 dark:bg-[#111820] dark:text-zinc-200">
                                             <th class="px-4 py-4">Producto</th>
                                             <th class="px-4 py-4">Marca</th>
                                             <th class="px-4 py-4">Categoría</th>
@@ -370,11 +370,11 @@
                                     </thead>
                                     <tbody class="divide-y divide-zinc-200">
                                         @foreach ($products as $product)
-                                            <tr class="text-sm text-slate-700">
+                                            <tr class="text-sm text-slate-700 dark:text-zinc-300">
                                                 <td class="px-4 py-5 align-middle">
                                                     <div class="min-w-0">
-                                                        <div class="font-semibold text-slate-900">{{ $product->name }}</div>
-                                                        <div class="mt-1 text-xs text-slate-500">
+                                                        <div class="font-semibold text-slate-900 dark:text-white">{{ $product->name }}</div>
+                                                        <div class="mt-1 text-xs text-slate-500 dark:text-zinc-500">
                                                             {{ $product->barcode ?: 'Sin código de barras' }}
                                                         </div>
                                                     </div>
@@ -382,8 +382,8 @@
                                                 <td class="px-4 py-5 align-middle">{{ $product->brand?->name ?? 'Sin marca' }}</td>
                                                 <td class="px-4 py-5 align-middle">{{ $product->category?->name ?? 'Sin categoría' }}</td>
                                                 <td class="px-4 py-5 align-middle">{{ $product->presentation?->name ?? 'Sin formato' }}</td>
-                                                <td class="px-4 py-5 align-middle whitespace-nowrap text-slate-600">S/ {{ number_format((float) $product->public_sale_price, 2) }}</td>
-                                                <td class="px-4 py-5 align-middle whitespace-nowrap text-slate-600">{{ rtrim(rtrim(number_format((float) $product->current_stock, 2, '.', ''), '0'), '.') }}</td>
+                                                <td class="px-4 py-5 align-middle whitespace-nowrap text-slate-600 dark:text-zinc-300">S/ {{ number_format((float) $product->public_sale_price, 2) }}</td>
+                                                <td class="px-4 py-5 align-middle whitespace-nowrap text-slate-600 dark:text-zinc-300">{{ rtrim(rtrim(number_format((float) $product->current_stock, 2, '.', ''), '0'), '.') }}</td>
                                                 <td class="px-4 py-5 align-middle text-center">
                                                     <button
                                                         type="button"
@@ -414,7 +414,7 @@
                                                     <div class="inline-flex items-center justify-center gap-2">
                                                         <button
                                                             type="button"
-                                                            class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-slate-500 shadow-sm transition hover:border-zinc-300 hover:text-slate-700"
+                                                            class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-slate-500 shadow-sm transition hover:border-zinc-300 hover:text-slate-700 dark:border-white/10 dark:bg-white/[0.02] dark:text-zinc-300 dark:shadow-none dark:hover:border-white/20 dark:hover:text-white"
                                                             aria-label="Editar producto"
                                                             title="Editar producto"
                                                             @click="openEdit(@js([
@@ -459,14 +459,14 @@
                             </div>
                         </div>
 
-                        <div class="flex flex-col gap-3 border-t border-zinc-200 px-4 py-4 md:flex-row md:items-center md:justify-between">
-                            <div class="text-sm text-slate-500">
+                        <div class="flex flex-col gap-3 border-t border-zinc-200 px-4 py-4 md:flex-row md:items-center md:justify-between dark:border-white/10">
+                            <div class="text-sm text-slate-500 dark:text-zinc-400">
                                 Mostrando {{ $products->firstItem() ?? 0 }} a {{ $products->lastItem() ?? 0 }} de {{ $products->total() }} productos
                             </div>
 
                             <div class="flex items-center gap-3">
                                 <div>
-                                    {{ $products->onEachSide(1)->links() }}
+                                    {{ $products->onEachSide(1)->links('vendor.pagination.products-table') }}
                                 </div>
 
                                 <form method="GET" action="{{ route('products.index') }}" class="min-w-[8rem]">
@@ -474,7 +474,7 @@
                                     <input type="hidden" name="brand_id" value="{{ $brandId }}">
                                     <input type="hidden" name="category_id" value="{{ $categoryId }}">
                                     <input type="hidden" name="presentation_id" value="{{ $presentationId }}">
-                                    <flux:select name="per_page" onchange="this.form.submit()" class="h-11 rounded-xl border-zinc-200 bg-white shadow-none">
+                                    <flux:select name="per_page" onchange="this.form.submit()" class="h-11 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
                                         @foreach ([10, 25, 50] as $size)
                                             <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} por página</option>
                                         @endforeach
