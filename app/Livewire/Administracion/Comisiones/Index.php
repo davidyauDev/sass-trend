@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 #[Title('Comisiones')]
@@ -28,6 +29,9 @@ class Index extends Component
     public ?int $selectedProfessionalId = null;
 
     public ?int $selectedProductId = null;
+
+    #[Validate('required|numeric|min:0|max:100')]
+    public string $bulkProductCommissionPercentage = '10';
 
     public ProfessionalDefaultCommissionForm $professionalDefaultForm;
 
@@ -186,6 +190,22 @@ class Index extends Component
 
         $this->closeProductModal();
         Flux::toast(variant: 'success', text: 'Comisión del producto actualizada.');
+    }
+
+    public function applyCommissionToAllProducts(): void
+    {
+        $this->validate([
+            'bulkProductCommissionPercentage' => ['required', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        Product::query()
+            ->where('is_active', true)
+            ->update([
+                'sale_commission' => (float) $this->bulkProductCommissionPercentage,
+                'commission_type' => 'percent',
+            ]);
+
+        Flux::toast(variant: 'success', text: 'Comisión aplicada a todos los productos activos.');
     }
 
     /**

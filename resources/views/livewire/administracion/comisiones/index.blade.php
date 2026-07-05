@@ -120,9 +120,9 @@
                     </div>
                 @else
                     <div class="p-4 sm:p-6">
-                        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                            <div>
-                                <h2 class="text-xl font-semibold text-slate-900 dark:text-white">Comisiones de productos</h2>
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div class="min-w-0">
+                                <h2 class="text-[1.55rem] font-semibold tracking-tight text-slate-900 dark:text-white">Comisiones de productos</h2>
                                 <p class="mt-2 text-sm text-slate-600 dark:text-zinc-400">
                                     Configura la comisión por defecto de cada producto activo.
                                 </p>
@@ -139,15 +139,65 @@
                             </div>
                         </div>
 
+                        <form wire:submit.prevent="applyCommissionToAllProducts" class="mt-6 rounded-[18px] border border-emerald-100 bg-emerald-50/35 px-4 py-4 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/5 sm:px-5">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+                                <div class="flex min-w-0 flex-1 items-start gap-4">
+                                    <div class="flex size-14 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-8 ring-emerald-100/40 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-transparent">
+                                        <flux:icon name="tag" class="size-7" />
+                                    </div>
+
+                                    <div class="min-w-0">
+                                        <div class="text-base font-semibold text-slate-900 dark:text-white">
+                                            Aplicar porcentaje a todos los productos
+                                        </div>
+                                        <p class="mt-1 text-sm text-slate-500 dark:text-zinc-400">
+                                            Establece un porcentaje de comisión para todos los productos activos.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="grid w-full gap-4 lg:w-auto lg:grid-cols-[11rem_15rem] lg:items-end">
+                                    <div class="min-w-0">
+                                        <label class="mb-2 block text-sm font-medium text-slate-500 dark:text-zinc-400">
+                                            Porcentaje de comisión
+                                        </label>
+
+                                        <div class="flex h-10 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a]">
+                                            <flux:input
+                                                wire:model="bulkProductCommissionPercentage"
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                                class="h-full flex-1 rounded-none border-0 bg-transparent shadow-none ring-0 focus:ring-0 dark:text-white"
+                                            />
+                                            <div class="inline-flex h-full shrink-0 items-center border-l border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-500 dark:border-white/10 dark:bg-[#0d131a] dark:text-zinc-400">
+                                                %
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <flux:button
+                                        type="submit"
+                                        variant="primary"
+                                        icon="check-circle"
+                                        class="h-10 w-full self-end rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 dark:bg-emerald-600 dark:shadow-none"
+                                        wire:target="applyCommissionToAllProducts"
+                                        wire:loading.attr="disabled"
+                                    >
+                                        Aplicar a todos
+                                    </flux:button>
+                                </div>
+                            </div>
+                        </form>
+
                         <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                             @forelse ($this->products as $product)
                                 <div class="rounded-[22px] border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-zinc-300 dark:border-white/10 dark:bg-[#0f1720] dark:shadow-none">
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div class="min-w-0">
-                                            <div class="truncate text-base font-semibold text-slate-900 dark:text-white">{{ $product->name }}</div>
-                                            <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                                                {{ $this->commissionBadge((float) $product->sale_commission, $product->commission_type) }}
-                                            </div>
+                                    <div class="min-w-0">
+                                        <div class="truncate text-base font-semibold text-slate-900 dark:text-white">{{ $product->name }}</div>
+                                        <div class="mt-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                                            {{ $this->commissionBadge((float) $product->sale_commission, $product->commission_type) }}
                                         </div>
                                     </div>
 
@@ -155,7 +205,7 @@
                                         <button
                                             type="button"
                                             wire:click="openProductModal({{ $product->id }})"
-                                            class="inline-flex items-center rounded-lg bg-amber-400 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-500"
+                                            class="inline-flex h-10 items-center rounded-xl border border-zinc-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.02] dark:text-white dark:hover:bg-white/[0.05]"
                                         >
                                             <flux:icon name="pencil-square" class="mr-1.5 size-3.5" />
                                             Editar

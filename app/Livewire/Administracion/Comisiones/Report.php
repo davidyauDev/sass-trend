@@ -13,15 +13,19 @@ use Carbon\CarbonImmutable;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Title('Reporte de comisiones')]
 class Report extends Component
 {
+    use WithPagination;
+
     public string $period = 'last_7_days';
 
     public string $branchId = '';
@@ -33,6 +37,8 @@ class Report extends Component
     public string $sortField = 'commission_amount';
 
     public string $sortDirection = 'desc';
+
+    public int $perPage = 10;
 
     public function mount(): void
     {
@@ -52,18 +58,27 @@ class Report extends Component
         ) {
             $this->professionalId = 'all';
         }
+
+        $this->resetPage();
     }
 
     public function sortBy(string $field): void
     {
         if ($this->sortField === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+            $this->resetPage();
 
             return;
         }
 
         $this->sortField = $field;
         $this->sortDirection = 'desc';
+        $this->resetPage();
+    }
+
+    public function updatedPerPage(): void
+    {
+        $this->resetPage();
     }
 
     public function exportReport(): BinaryFileResponse
@@ -105,11 +120,29 @@ class Report extends Component
             ->get();
     }
 
-    /**
-     * @return Collection<int, array{professional_id:int,professional_name:string,sales_total:float,commission_amount:float}>
-     */
     #[Computed]
-    public function reportRows(): Collection
+    public function reportRowsPaginator(): LengthAwarePaginator
+    {
+        $rows = $this->reportRowsCollection();
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $perPage = max(1, $this->perPage);
+
+        return new LengthAwarePaginator(
+            $rows->forPage($page, $perPage)->values(),
+            $rows->count(),
+            $perPage,
+            $page,
+            [
+                'path' => request()->url(),
+                'query' => request()->query(),
+            ],
+        );
+    }
+
+    /**
+     * @return Collection<int, array{professional_id:int,professional_name:string,is_active:bool,sales_total:float,commission_amount:float}>
+     */
+    private function reportRowsCollection(): Collection
     {
         $professionals = Professional::query()
             ->when($this->userType === 'active_professionals', fn ($query) => $query->where('is_active', true))
@@ -163,6 +196,7 @@ class Report extends Component
             $current = $rows->get($professionalId, [
                 'professional_id' => $professionalId,
                 'professional_name' => $professional->public_name,
+                'is_active' => $professional->is_active,
                 'sales_total' => 0.0,
                 'commission_amount' => 0.0,
             ]);
@@ -302,6 +336,15 @@ class Report extends Component
         $formatted = rtrim(rtrim($formatted, '0'), ',');
 
         return 'S/'.$formatted;
+    }
+
+    public function percentOf(float $amount, float $total): string
+    {
+        if ($total <= 0) {
+            return '0%';
+        }
+
+        return number_format(($amount / $total) * 100, 2).'%';
     }
 
     public function sortIndicator(string $field): string
