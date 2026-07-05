@@ -407,21 +407,21 @@
 
     @if ($isDrawerOpen)
         <div class="fixed inset-0 z-[70] bg-zinc-950/30" wire:click="closeDrawer"></div>
-        <aside class="fixed inset-0 z-[71] flex h-[100dvh] w-full max-w-none flex-col bg-white shadow-[0_0_40px_rgba(15,23,42,0.2)] sm:inset-y-0 sm:right-0 sm:left-auto sm:max-w-[420px] sm:rounded-none">
-            <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-4 sm:px-5">
+        <aside class="fixed inset-0 z-[71] flex h-[100dvh] w-full max-w-none flex-col bg-white text-zinc-900 shadow-[0_0_40px_rgba(15,23,42,0.2)] dark:bg-[#0b1118] dark:text-white sm:inset-y-0 sm:right-0 sm:left-auto sm:max-w-[420px] sm:rounded-none">
+            <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-4 dark:border-white/10 sm:px-5">
                 <div class="flex items-center gap-3">
                     @if ($drawerStep !== 'cart' && $drawerStep !== 'success')
                         @if (in_array($drawerStep, ['service-professional', 'product-config'], true))
-                            <button type="button" wire:click="backToItemPicker" class="text-zinc-500">
+                            <button type="button" wire:click="backToItemPicker" class="text-zinc-500 dark:text-zinc-300">
                                 <flux:icon.chevron-left class="size-6" />
                             </button>
                         @else
-                            <button type="button" wire:click="backToCart" class="text-zinc-500">
+                            <button type="button" wire:click="backToCart" class="text-zinc-500 dark:text-zinc-300">
                                 <flux:icon.chevron-left class="size-6" />
                             </button>
                         @endif
                     @elseif ($drawerStep === 'success')
-                        <button type="button" wire:click="openCreateSale" class="text-zinc-500">
+                        <button type="button" wire:click="openCreateSale" class="text-zinc-500 dark:text-zinc-300">
                             <flux:icon.chevron-left class="size-6" />
                         </button>
                     @endif
@@ -440,7 +440,7 @@
                 </div>
 
                 @if ($drawerStep !== 'success')
-                    <button type="button" wire:click="closeDrawer" class="text-zinc-500">
+                    <button type="button" wire:click="closeDrawer" class="text-zinc-500 dark:text-zinc-300">
                         <flux:icon.x-mark class="size-5 sm:size-6" />
                     </button>
                 @endif
@@ -454,183 +454,242 @@
                 <div
                     wire:loading.delay.shorter
                     wire:target="openItemPicker,backToItemPicker,openServiceProfessionalPicker,openProductConfiguration,selectServiceProfessional,selectClient,openClientSearch,openClientCreate,backToCart"
-                    class="absolute inset-0 z-20 flex items-start justify-center bg-white/65 px-4 pt-20 backdrop-blur-[2px]"
+                    class="absolute inset-0 z-20 flex items-start justify-center bg-white/65 px-4 pt-20 backdrop-blur-[2px] dark:bg-[#0b1118]/80"
                 >
-                    <div class="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white/95 px-4 py-3 shadow-[0_20px_40px_rgba(15,23,42,0.12)]">
-                        <div class="size-5 animate-spin rounded-full border-2 border-zinc-200 border-t-violet-600"></div>
+                    <div class="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white/95 px-4 py-3 shadow-[0_20px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-[#0f1720] dark:shadow-none">
+                        <div class="size-5 animate-spin rounded-full border-2 border-zinc-200 border-t-violet-600 dark:border-white/10 dark:border-t-emerald-500"></div>
                         <div>
-                            <div class="text-sm font-semibold text-zinc-900">Preparando vista</div>
-                            <div class="text-xs text-zinc-500">Un momento, estamos cargando tus opciones.</div>
+                            <div class="text-sm font-semibold text-zinc-900 dark:text-white">Preparando vista</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">Un momento, estamos cargando tus opciones.</div>
                         </div>
                     </div>
                 </div>
 
                 @if ($drawerStep === 'cart')
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <button type="button" wire:click="openClientSearch" class="inline-flex size-11 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
-                                <flux:icon.users class="size-5 text-zinc-500" />
+                    @php
+                        $cartSubtotal = collect($saleForm['cart'])->sum(fn ($item): float => ((float) ($item['quantity'] ?? 0) * (float) ($item['unit_price'] ?? 0)));
+                        $cartDiscounts = collect($saleForm['cart'])->sum(fn ($item): float => (float) data_get($item, 'meta.discount_amount', 0));
+                        $cartTotal = collect($saleForm['cart'])->sum(fn ($item): float => (float) ($item['subtotal'] ?? 0));
+                    @endphp
+
+                    <div class="space-y-5">
+                        <div class="rounded-[22px] border border-dashed border-zinc-200 bg-white p-2 dark:border-white/10 dark:bg-white">
+                            <button
+                                type="button"
+                                wire:click="openItemPicker"
+                                wire:target="openItemPicker"
+                                wire:loading.attr="disabled"
+                                class="relative flex w-full flex-col items-center justify-center gap-1 rounded-[18px] px-4 py-5 text-emerald-600 transition-transform duration-200 ease-out active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                                <span wire:loading.remove wire:target="openItemPicker" class="inline-flex items-center gap-2 text-sm font-semibold">
+                                    <flux:icon.plus class="size-5" />
+                                    Agregar productos o servicios
+                                </span>
+
+                                <span class="text-sm text-zinc-500 dark:text-zinc-500">Buscar en catalogo</span>
+
+                                <span wire:loading.inline-flex wire:target="openItemPicker" class="inline-flex items-center gap-2 text-sm font-semibold">
+                                    <span class="size-4 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600"></span>
+                                    Abriendo...
+                                </span>
                             </button>
-
-                            <flux:dropdown position="bottom" align="end">
-                                <flux:button variant="ghost">Más opciones</flux:button>
-                                <flux:menu>
-                                    <flux:menu.item icon="trash" wire:click="openCreateSale">
-                                        Vaciar carrito
-                                    </flux:menu.item>
-                                    @if ($saleForm['client_id'])
-                                        <flux:menu.item icon="user-minus" wire:click="clearClient">
-                                            Quitar cliente
-                                        </flux:menu.item>
-                                    @endif
-                                </flux:menu>
-                            </flux:dropdown>
                         </div>
 
-                        <div class="space-y-3">
-                            <div class="rounded-xl border border-zinc-200">
-                                <button
-                                    type="button"
-                                    wire:click="openItemPicker"
-                                    wire:target="openItemPicker"
-                                    wire:loading.attr="disabled"
-                                    class="flex w-full items-center justify-center gap-2 px-4 py-3 text-violet-600 transition-transform duration-200 ease-out active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
-                                >
-                                    <span wire:loading.remove wire:target="openItemPicker" class="inline-flex items-center gap-2">
-                                        <flux:icon.plus class="size-5" />
-                                        Agregar al carro
-                                    </span>
+                        @if ($saleForm['client_id'])
+                            @php
+                                $client = $this->clientsCatalog->firstWhere('id', $saleForm['client_id']);
+                            @endphp
+                            <button type="button" wire:click="openClientSearch" class="flex w-full items-center justify-between rounded-[22px] border border-zinc-200 bg-white px-4 py-4 text-left shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none">
+                                <div class="flex min-w-0 items-center gap-3">
+                                    <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                        <flux:icon.users class="size-5" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="truncate font-semibold text-zinc-900 dark:text-white">{{ $client?->fullName() ?? 'Cliente' }}</div>
+                                        <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $client?->phone ?? 'Sin telefono' }}</div>
+                                        <div class="mt-2 inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                            Cliente frecuente
+                                        </div>
+                                    </div>
+                                </div>
 
-                                    <span wire:loading.inline-flex wire:target="openItemPicker" class="inline-flex items-center gap-2">
-                                        <span class="size-4 animate-spin rounded-full border-2 border-violet-200 border-t-violet-600"></span>
-                                        Abriendo...
-                                    </span>
-                                </button>
+                                <div class="flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                                    <span>Cambiar cliente</span>
+                                    <flux:icon.chevron-right class="size-4" />
+                                </div>
+                            </button>
+                        @endif
+
+                        @if (count($saleForm['cart']) === 0)
+                            <div class="flex flex-col items-center justify-center px-4 py-6 text-center">
+                                <div class="relative flex size-28 items-center justify-center rounded-full bg-gradient-to-br from-emerald-50 to-zinc-50 dark:from-emerald-50 dark:to-zinc-100">
+                                    <span class="absolute left-4 top-6 text-emerald-200 dark:text-emerald-300">+</span>
+                                    <span class="absolute right-5 top-5 text-emerald-200 dark:text-emerald-300">+</span>
+                                    <span class="absolute left-7 bottom-7 text-emerald-200 dark:text-emerald-300">+</span>
+                                    <flux:icon.shopping-cart class="size-10 text-emerald-600" />
+                                </div>
+
+                                <div class="mt-5 text-xl font-semibold text-zinc-900 dark:text-white">Tu carrito esta vacio</div>
+                                <div class="mt-2 max-w-[15rem] text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                                    Agrega productos o servicios para comenzar la venta.
+                                </div>
                             </div>
-
-                            @if ($saleForm['client_id'])
-                                @php
-                                    $client = $this->clientsCatalog->firstWhere('id', $saleForm['client_id']);
-                                @endphp
-                                <button type="button" wire:click="openClientSearch" class="flex w-full items-center justify-between rounded-2xl border border-zinc-200 px-4 py-4 text-left">
-                                    <span class="font-semibold text-zinc-900">{{ $client?->fullName() ?? 'Cliente' }}</span>
-                                    <flux:icon.chevron-right class="size-5 text-zinc-400" />
-                                </button>
-                            @endif
-
-                            @forelse ($saleForm['cart'] as $item)
-                                <div class="flex items-start justify-between gap-3 rounded-2xl border border-zinc-200 px-3 sm:px-4 py-3 sm:py-4">
-                                    <div class="min-w-0 flex-1">
-                                        <div class="font-medium text-zinc-900">
-                                            {{ $item['item_name'] }}
-                                            <span class="text-xs sm:text-sm text-zinc-400">x{{ rtrim(rtrim((string) $item['quantity'], '0'), '.') }}</span>
-                                        </div>
-
-                                        @if (($item['meta']['professional_name'] ?? null) || $item['item_detail'])
-                                            <div class="mt-1 text-xs sm:text-sm text-zinc-500">{{ $item['item_detail'] }}</div>
-                                        @endif
-
-                                        @if ($item['item_type'] === 'product' && ($item['meta']['professional_name'] ?? null))
-                                            <div class="mt-1 inline-flex items-center gap-1 sm:gap-2 rounded-full bg-violet-50 px-2 sm:px-3 py-1 text-xs font-medium text-violet-700">
-                                                <span>Vendedor</span>
-                                                <span>{{ $item['meta']['professional_name'] }}</span>
-                                            </div>
-                                        @endif
-
-                                        @if ($item['item_type'] === 'service' && ($item['meta']['professional_name'] ?? null))
-                                            <div class="mt-1 inline-flex items-center gap-1 sm:gap-2 rounded-full bg-violet-50 px-2 sm:px-3 py-1 text-xs font-medium text-violet-700">
-                                                <span>Profesional</span>
-                                                <span>{{ $item['meta']['professional_name'] }}</span>
-                                            </div>
-                                        @endif
-
-                                        @if (($item['meta']['discount_amount'] ?? 0) > 0)
-                                            <div class="mt-1 text-xs text-emerald-600">
-                                                Descuento: S/{{ number_format((float) $item['meta']['discount_amount'], 2) }}
-                                            </div>
-                                        @endif
+                        @else
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+                                        Carrito ({{ count($saleForm['cart']) }} {{ count($saleForm['cart']) === 1 ? 'articulo' : 'articulos' }})
                                     </div>
-                                    <div class="flex items-center gap-1 sm:gap-2">
-                                        <div class="text-right">
-                                            <div class="font-semibold text-zinc-900 text-xs sm:text-sm">S/{{ number_format((float) $item['subtotal'], 2) }}</div>
-                                            @if (($item['meta']['discount_amount'] ?? 0) > 0)
-                                                <div class="text-xs text-zinc-400">Antes S/{{ number_format(((float) $item['quantity'] * (float) $item['unit_price']), 2) }}</div>
-                                            @endif
+
+                                    <button
+                                        type="button"
+                                        wire:click="openCreateSale"
+                                        class="inline-flex items-center gap-2 text-sm font-medium text-rose-500 transition hover:text-rose-600"
+                                    >
+                                        <flux:icon.trash class="size-4" />
+                                        Vaciar carrito
+                                    </button>
+                                </div>
+
+                                @foreach ($saleForm['cart'] as $item)
+                                    @php
+                                        $itemQuantity = max(1, (float) ($item['quantity'] ?? 1));
+                                        $itemUnitPrice = (float) ($item['unit_price'] ?? 0);
+                                        $itemGross = $itemQuantity * $itemUnitPrice;
+                                        $itemDiscount = (float) data_get($item, 'meta.discount_amount', 0);
+                                        $itemIsService = ($item['item_type'] ?? null) === 'service';
+                                    @endphp
+
+                                    <div class="rounded-[22px] border border-zinc-200 bg-white px-4 py-4 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none">
+                                        <div class="flex items-start gap-3">
+                                            <div class="mt-1 flex size-11 shrink-0 items-center justify-center rounded-2xl {{ $itemIsService ? 'bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300' }}">
+                                                @if ($itemIsService)
+                                                    <flux:icon.scissors class="size-5" />
+                                                @else
+                                                    <flux:icon.archive-box class="size-5" />
+                                                @endif
+                                            </div>
+
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex items-start justify-between gap-3">
+                                                    <div class="min-w-0">
+                                                        <div class="font-semibold text-zinc-900 dark:text-white">{{ $item['item_name'] }}</div>
+                                                        @if ($item['item_detail'])
+                                                            <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $item['item_detail'] }}</div>
+                                                        @endif
+
+                                                        @if (($item['meta']['professional_name'] ?? null))
+                                                            <div class="mt-1 text-sm text-violet-600 dark:text-violet-300">
+                                                                {{ $itemIsService ? 'Profesional' : 'Vendedor' }}: {{ $item['meta']['professional_name'] }}
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="shrink-0 text-right">
+                                                        <div class="text-2xl font-semibold leading-none text-zinc-900 dark:text-white">S/{{ number_format((float) $item['subtotal'], 2) }}</div>
+                                                        @if ($itemDiscount > 0)
+                                                            <div class="mt-2 text-sm text-zinc-400 dark:text-zinc-500">Antes S/{{ number_format($itemGross, 2) }}</div>
+                                                            <div class="mt-1 text-sm font-medium text-emerald-600 dark:text-emerald-400">Descuento -S/{{ number_format($itemDiscount, 2) }}</div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+
+                                                <div class="mt-4 flex items-center justify-between gap-3">
+                                                    <div class="inline-flex items-center overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-white/10 dark:bg-white/[0.03]">
+                                                        <button
+                                                            type="button"
+                                                            wire:click="decreaseCartItem('{{ $item['key'] }}')"
+                                                            @disabled((float) $item['quantity'] <= 1)
+                                                            class="inline-flex size-10 items-center justify-center text-zinc-500 transition hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-40"
+                                                        >
+                                                            <flux:icon.minus class="size-4" />
+                                                        </button>
+
+                                                        <div class="flex h-10 min-w-10 items-center justify-center border-x border-zinc-200 px-4 text-sm font-semibold text-zinc-900 dark:border-white/10 dark:text-white">
+                                                            {{ rtrim(rtrim((string) $item['quantity'], '0'), '.') }}
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            wire:click="increaseCartItem('{{ $item['key'] }}')"
+                                                            class="inline-flex size-10 items-center justify-center text-emerald-600 transition hover:bg-zinc-50 dark:text-emerald-400 dark:hover:bg-white/[0.05]"
+                                                        >
+                                                            <flux:icon.plus class="size-4" />
+                                                        </button>
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        wire:click="removeCartItem('{{ $item['key'] }}')"
+                                                        class="inline-flex items-center gap-2 text-sm font-medium text-rose-500 transition hover:text-rose-600"
+                                                    >
+                                                        <flux:icon.trash class="size-4" />
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="flex items-center gap-1">
-                                            <button
-                                                type="button"
-                                                wire:click="decreaseCartItem('{{ $item['key'] }}')"
-                                                @disabled((float) $item['quantity'] <= 1)
-                                                class="inline-flex size-7 sm:size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
-                                            >
-                                                <flux:icon.minus class="size-3 sm:size-4" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                wire:click="increaseCartItem('{{ $item['key'] }}')"
-                                                class="inline-flex size-7 sm:size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-sm"
-                                            >
-                                                <flux:icon.plus class="size-3 sm:size-4" />
-                                            </button>
-                                        </div>
-                                        <button type="button" wire:click="removeCartItem('{{ $item['key'] }}')" class="rounded-xl border border-zinc-200 p-1.5 sm:p-2 text-rose-500 shadow-sm">
-                                            <flux:icon.trash class="size-3 sm:size-4" />
-                                        </button>
                                     </div>
-                                </div>
-                            @empty
-                                <div class="pt-8 text-center text-zinc-500">
-                                    <p>El carro está vacío.</p>
-                                    <p>Agrega ítems usando el botón "Agregar al carro"</p>
-                                </div>
-                            @endforelse
-                        </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 @elseif ($drawerStep === 'client-search')
                     <div class="space-y-4">
                         <div>
-                            <div class="text-sm font-medium text-zinc-700">Búsqueda de cliente</div>
-                            <div class="mt-1 text-sm text-zinc-400">La búsqueda inicia a partir de 3 caracteres</div>
+                            <div class="text-base font-semibold text-zinc-900 dark:text-white">Busqueda de cliente</div>
+                            <div class="mt-1 text-sm text-zinc-400 dark:text-zinc-500">La busqueda inicia a partir de 3 caracteres</div>
                         </div>
 
-                        <flux:input wire:model.live.debounce.300ms="clientSearch" icon="magnifying-glass" placeholder="Busca por nombre, apellido, rut, email" />
+                        <flux:input
+                            wire:model.live.debounce.300ms="clientSearch"
+                            icon="magnifying-glass"
+                            placeholder="Busca por nombre, apellido, DNI, email o telefono"
+                            class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                        />
 
-                        <button type="button" wire:click="openClientCreate" class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-3 text-violet-600 shadow-sm">
+                        <button type="button" wire:click="openClientCreate" class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-emerald-600 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:text-emerald-400 dark:shadow-none">
                             <flux:icon.user-plus class="size-5" />
                             Crear nuevo cliente
                         </button>
 
-                        <div class="rounded-2xl border border-zinc-200">
+                        <div class="overflow-hidden rounded-[22px] border border-zinc-200 bg-white dark:border-white/10 dark:bg-white/[0.03]">
                             @if (mb_strlen(trim($clientSearch)) >= 3)
                                 @forelse ($this->searchedClients as $client)
-                                    <button type="button" wire:click="selectClient({{ $client->id }})" class="flex w-full flex-col border-b border-zinc-200 px-4 py-4 text-left last:border-b-0 hover:bg-zinc-50">
-                                        <span class="font-semibold text-zinc-900">{{ $client->fullName() }}</span>
-                                        <span class="mt-1 text-sm text-zinc-500">{{ $client->email ?: 'Sin email' }} | {{ $client->phone ?: 'Sin teléfono' }}</span>
+                                    <button type="button" wire:click="selectClient({{ $client->id }})" class="flex w-full items-start gap-3 border-b border-zinc-200 px-4 py-4 text-left transition last:border-b-0 hover:bg-zinc-50 dark:border-white/10 dark:hover:bg-white/[0.05]">
+                                        <div class="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-sm font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                            {{ strtoupper(substr($client->first_name ?? 'C', 0, 1).substr($client->last_name ?? '', 0, 1)) }}
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <span class="block font-semibold text-zinc-900 dark:text-white">{{ $client->fullName() }}</span>
+                                            <span class="mt-1 block text-sm text-zinc-500 dark:text-zinc-400">{{ $client->email ?: 'Sin email' }}</span>
+                                            <span class="mt-1 block text-sm text-zinc-500 dark:text-zinc-400">{{ $client->phone ?: 'Sin telefono' }}</span>
+                                        </div>
+                                        <flux:icon.chevron-right class="mt-1 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
                                     </button>
                                 @empty
-                                    <div class="px-4 py-6 text-sm text-zinc-500">No se encontraron clientes.</div>
+                                    <div class="px-4 py-8 text-sm text-zinc-500 dark:text-zinc-400">No se encontraron clientes.</div>
                                 @endforelse
                             @else
-                                <div class="px-4 py-6 text-sm text-zinc-500">Ingresa al menos 3 caracteres para buscar.</div>
+                                <div class="px-4 py-8 text-sm text-zinc-500 dark:text-zinc-400">Ingresa al menos 3 caracteres para buscar.</div>
                             @endif
                         </div>
                     </div>
                 @elseif ($drawerStep === 'client-create')
                     <div class="space-y-4">
-                        <div class="rounded-2xl border border-zinc-200 p-4">
-                            <div class="text-base font-medium text-zinc-700">Información requerida</div>
+                        <div class="rounded-[22px] border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                            <div class="text-base font-semibold text-zinc-900 dark:text-white">Informacion requerida</div>
                             <div class="mt-4 grid gap-4">
-                                <flux:input wire:model="clientCreateForm.first_name" label="Nombre" />
-                                <flux:input wire:model="clientCreateForm.last_name" label="Apellido" />
+                                <flux:input wire:model="clientCreateForm.first_name" label="Nombre" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white" />
+                                <flux:input wire:model="clientCreateForm.last_name" label="Apellido" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white" />
                             </div>
                         </div>
 
-                        <div class="rounded-2xl border border-zinc-200 p-4">
-                            <div class="text-base font-medium text-zinc-700">Información adicional</div>
+                        <div class="rounded-[22px] border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                            <div class="text-base font-semibold text-zinc-900 dark:text-white">Informacion adicional</div>
                             <div class="mt-4 grid gap-4">
-                                <flux:input wire:model="clientCreateForm.email" label="Email" />
-                                <flux:input wire:model="clientCreateForm.phone" label="Teléfono" />
+                                <flux:input wire:model="clientCreateForm.email" label="Email" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white" />
+                                <flux:input wire:model="clientCreateForm.phone" label="Telefono" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white" />
                             </div>
                         </div>
                     </div>
@@ -651,23 +710,23 @@
 
                     <div class="space-y-4">
                         @if ($selectedService)
-                            <div class="rounded-[24px] border border-zinc-200 bg-zinc-50 px-4 py-4">
-                                <div class="text-sm text-zinc-500">Servicio seleccionado</div>
-                                <div class="mt-1 text-lg font-semibold text-zinc-900">{{ $selectedService->name }}</div>
-                                <div class="mt-1 text-sm text-zinc-500">S/{{ number_format((float) $selectedService->price, 0) }} · {{ $selectedService->duration_minutes }} min</div>
+                            <div class="rounded-[24px] border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-white/10 dark:bg-white/[0.03]">
+                                <div class="text-sm text-zinc-500 dark:text-zinc-400">Servicio seleccionado</div>
+                                <div class="mt-1 text-lg font-semibold text-zinc-900 dark:text-white">{{ $selectedService->name }}</div>
+                                <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">S/{{ number_format((float) $selectedService->price, 0) }} · {{ $selectedService->duration_minutes }} min</div>
                             </div>
                         @endif
 
-                        <div class="rounded-[24px] border border-zinc-200 bg-white px-4 py-4">
+                        <div class="rounded-[24px] border border-zinc-200 bg-white px-4 py-4 dark:border-white/10 dark:bg-white/[0.03]">
                             <div class="space-y-4">
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-zinc-700">
+                                    <div class="text-sm font-medium text-zinc-700 dark:text-zinc-200">
                                         Profesional <span class="text-rose-500">*</span>
                                     </div>
 
                                     <flux:select
                                         wire:model.live="serviceProfessionalPickerProfessionalId"
-                                        class="{{ $errors->has('serviceProfessionalPickerProfessionalId') ? 'border-rose-500 ring-2 ring-rose-100' : '' }}"
+                                        class="{{ $errors->has('serviceProfessionalPickerProfessionalId') ? 'border-rose-500 ring-2 ring-rose-100' : '' }} dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
                                     >
                                         <option value="">Selecciona un profesional</option>
 
@@ -684,22 +743,22 @@
                                 </div>
 
                                 <div>
-                                    <div class="mb-2 text-sm font-medium text-zinc-700">Precio</div>
-                                    <flux:input wire:model.live="serviceConfigurationPrice" type="number" min="0" step="0.01" />
+                                    <div class="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-200">Precio</div>
+                                    <flux:input wire:model.live="serviceConfigurationPrice" type="number" min="0" step="0.01" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white" />
                                 </div>
 
                                 <div>
-                                    <div class="mb-2 text-sm font-medium text-zinc-700">Descuento</div>
+                                    <div class="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-200">Descuento</div>
                                     <div class="grid grid-cols-[minmax(0,1fr)_5rem] gap-2">
-                                        <flux:input wire:model.live="serviceConfigurationDiscountValue" type="number" min="0" step="0.01" />
-                                        <flux:select wire:model.live="serviceConfigurationDiscountType">
+                                        <flux:input wire:model.live="serviceConfigurationDiscountValue" type="number" min="0" step="0.01" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white" />
+                                        <flux:select wire:model.live="serviceConfigurationDiscountType" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
                                             <option value="percent">%</option>
                                             <option value="amount">S/</option>
                                         </flux:select>
                                     </div>
                                 </div>
 
-                                <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                                <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/[0.02] dark:text-zinc-300">
                                     <div class="flex items-center justify-between">
                                         <span>Subtotal</span>
                                         <span>S/{{ number_format($serviceGrossSubtotal, 2) }}</span>
@@ -708,7 +767,7 @@
                                         <span>Descuento</span>
                                         <span>S/{{ number_format($serviceDiscountAmount, 2) }}</span>
                                     </div>
-                                    <div class="mt-2 flex items-center justify-between border-t border-zinc-200 pt-2 text-base font-semibold text-zinc-900">
+                                    <div class="mt-2 flex items-center justify-between border-t border-zinc-200 pt-2 text-base font-semibold text-zinc-900 dark:border-white/10 dark:text-white">
                                         <span>Total</span>
                                         <span>S/{{ number_format($serviceNetSubtotal, 2) }}</span>
                                     </div>
@@ -723,10 +782,10 @@
 
                     <div class="space-y-4">
                         @if ($selectedProduct)
-                            <div class="rounded-[24px] border border-zinc-200 bg-zinc-50 px-4 py-4">
-                                <div class="text-sm text-zinc-500">Producto seleccionado</div>
-                                <div class="mt-1 text-lg font-semibold text-zinc-900">{{ $selectedProduct->name }}</div>
-                                <div class="mt-1 text-sm text-zinc-500">
+                            <div class="rounded-[24px] border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-white/10 dark:bg-white/[0.03]">
+                                <div class="text-sm text-zinc-500 dark:text-zinc-400">Producto seleccionado</div>
+                                <div class="mt-1 text-lg font-semibold text-zinc-900 dark:text-white">{{ $selectedProduct->name }}</div>
+                                <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                                     S/{{ number_format((float) $selectedProduct->public_sale_price, 2) }} · {{ $selectedProduct->category?->name }} · {{ $selectedProduct->brand?->name }} · {{ $selectedProduct->presentation?->name }}
                                 </div>
                             </div>
@@ -736,29 +795,29 @@
                             <button
                                 type="button"
                                 wire:click="decreaseProductConfigurationQuantity"
-                                class="inline-flex size-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-rose-500 shadow-sm"
+                                class="inline-flex size-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-rose-500 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none"
                             >
                                 <flux:icon.trash class="size-5" />
                             </button>
 
-                            <div class="min-w-8 text-center text-lg font-medium text-zinc-800">
+                            <div class="min-w-8 text-center text-lg font-medium text-zinc-800 dark:text-white">
                                 {{ $productConfigurationQuantity }}
                             </div>
 
                             <button
                                 type="button"
                                 wire:click="increaseProductConfigurationQuantity"
-                                class="inline-flex size-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-violet-600 shadow-sm"
+                                class="inline-flex size-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-violet-600 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none"
                             >
                                 <flux:icon.plus class="size-5" />
                             </button>
                         </div>
 
-                        <div class="rounded-[24px] border border-zinc-200 bg-white px-4 py-4">
+                        <div class="rounded-[24px] border border-zinc-200 bg-white px-4 py-4 dark:border-white/10 dark:bg-white/[0.03]">
                             <div class="space-y-4">
                                 <div>
-                                    <div class="mb-2 text-sm font-medium text-zinc-700">Vendedor</div>
-                                    <flux:select wire:model.live="productConfigurationProfessionalId">
+                                    <div class="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-200">Vendedor</div>
+                                    <flux:select wire:model.live="productConfigurationProfessionalId" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
                                         <option value="">Selecciona un vendedor</option>
                                         @forelse ($this->professionalsCatalog as $professional)
                                             <option value="{{ $professional->id }}">{{ $professional->public_name }}</option>
@@ -769,15 +828,15 @@
                                 </div>
 
                                 <div>
-                                    <div class="mb-2 text-sm font-medium text-zinc-700">Precio</div>
-                                    <flux:input wire:model.live="productConfigurationPrice" type="number" min="0" step="0.01" />
+                                    <div class="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-200">Precio</div>
+                                    <flux:input wire:model.live="productConfigurationPrice" type="number" min="0" step="0.01" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white" />
                                 </div>
 
                                 <div>
-                                    <div class="mb-2 text-sm font-medium text-zinc-700">Descuento</div>
+                                    <div class="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-200">Descuento</div>
                                     <div class="grid grid-cols-[minmax(0,1fr)_5rem] gap-2">
-                                        <flux:input wire:model.live="productConfigurationDiscountValue" type="number" min="0" step="0.01" />
-                                        <flux:select wire:model.live="productConfigurationDiscountType">
+                                        <flux:input wire:model.live="productConfigurationDiscountValue" type="number" min="0" step="0.01" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white" />
+                                        <flux:select wire:model.live="productConfigurationDiscountType" class="dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
                                             <option value="percent">%</option>
                                             <option value="amount">S/</option>
                                         </flux:select>
@@ -795,7 +854,7 @@
                                     $netSubtotal = round(max(0, $grossSubtotal - $discountAmount), 2);
                                 @endphp
 
-                                <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                                <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/[0.02] dark:text-zinc-300">
                                     <div class="flex items-center justify-between">
                                         <span>Subtotal</span>
                                         <span>S/{{ number_format($grossSubtotal, 2) }}</span>
@@ -804,7 +863,7 @@
                                         <span>Descuento</span>
                                         <span>S/{{ number_format($discountAmount, 2) }}</span>
                                     </div>
-                                    <div class="mt-2 flex items-center justify-between border-t border-zinc-200 pt-2 text-base font-semibold text-zinc-900">
+                                    <div class="mt-2 flex items-center justify-between border-t border-zinc-200 pt-2 text-base font-semibold text-zinc-900 dark:border-white/10 dark:text-white">
                                         <span>Total</span>
                                         <span>S/{{ number_format($netSubtotal, 2) }}</span>
                                     </div>
@@ -814,98 +873,194 @@
                     </div>
                 @elseif ($drawerStep === 'payment')
                     <div class="space-y-6">
-                        <div class="grid grid-cols-2 gap-2 sm:gap-3">
+                        <div>
+                            <div class="text-[1.05rem] font-medium leading-8 text-slate-700 dark:text-zinc-300">
+                                Como deseas recibir el pago de esta venta?
+                            </div>
+                        </div>
+
+                        @php
+                            $paymentCardMeta = [
+                                'bank_transfer' => [
+                                    'title' => 'Transferencia Bancaria',
+                                    'description' => 'Transferencia desde cuentas bancarias.',
+                                    'icon' => 'arrows-right-left',
+                                    'icon_class' => 'text-violet-600 dark:text-violet-300',
+                                ],
+                                'debit_card' => [
+                                    'title' => 'Tarjeta de Debito',
+                                    'description' => 'Pago con tarjeta de debito.',
+                                    'icon' => 'credit-card',
+                                    'icon_class' => 'text-violet-600 dark:text-violet-300',
+                                ],
+                                'credit_card' => [
+                                    'title' => 'Tarjeta de Credito',
+                                    'description' => 'Pago con tarjeta de credito.',
+                                    'icon' => 'credit-card',
+                                    'icon_class' => 'text-violet-600 dark:text-violet-300',
+                                ],
+                                'cash' => [
+                                    'title' => 'Efectivo',
+                                    'description' => 'Pago en efectivo.',
+                                    'icon' => 'banknotes',
+                                    'icon_class' => 'text-violet-600 dark:text-violet-300',
+                                ],
+                                'yape' => [
+                                    'title' => 'Yape',
+                                    'description' => 'Pago a traves de Yape.',
+                                    'icon' => null,
+                                    'icon_class' => '',
+                                ],
+                                'plin' => [
+                                    'title' => 'Plin',
+                                    'description' => 'Pago a traves de Plin.',
+                                    'icon' => null,
+                                    'icon_class' => '',
+                                ],
+                            ];
+                        @endphp
+
+                        <div class="grid grid-cols-2 gap-3">
                             @foreach ($this->paymentMethods as $key => $label)
+                                @php
+                                    $meta = $paymentCardMeta[$key] ?? [
+                                        'title' => $label,
+                                        'description' => 'Selecciona este metodo de pago.',
+                                        'icon' => 'credit-card',
+                                        'icon_class' => 'text-violet-600 dark:text-violet-300',
+                                    ];
+                                    $isSelected = $saleForm['selected_payment_method'] === $key;
+                                @endphp
+
                                 <button
                                     type="button"
                                     wire:click="completeSale('{{ $key }}')"
-                                    class="{{ $saleForm['selected_payment_method'] === $key ? 'border-violet-400 ring-2 ring-violet-100' : 'border-zinc-200' }} rounded-2xl border px-3 sm:px-4 py-4 sm:py-6 text-center text-xs sm:text-sm font-medium text-zinc-700"
+                                    class="{{ $isSelected
+                                        ? 'border-violet-400 bg-violet-50/60 ring-2 ring-violet-100 dark:border-violet-400/50 dark:bg-violet-500/10 dark:ring-violet-500/10'
+                                        : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:hover:bg-white/[0.05]' }} relative flex min-h-[13rem] flex-col items-center justify-center rounded-[28px] border px-4 py-6 text-center transition"
                                 >
-                                    {{ $label }}
+                                    @if ($isSelected)
+                                        <span class="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm dark:bg-violet-500">
+                                            <flux:icon.check class="size-5" />
+                                        </span>
+                                    @endif
+
+                                    @if ($key === 'yape')
+                                        <div class="mb-5 flex h-14 items-center justify-center">
+                                            <div class="text-[2.1rem] font-black italic leading-none text-violet-600 dark:text-violet-300">
+                                                yape
+                                            </div>
+                                        </div>
+                                    @elseif ($key === 'plin')
+                                        <div class="mb-5 flex h-14 items-center justify-center">
+                                            <div class="flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-emerald-400 text-2xl font-bold text-white shadow-sm">
+                                                plin
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="mb-5 flex h-14 items-center justify-center">
+                                            <flux:icon :name="$meta['icon']" class="size-12 {{ $meta['icon_class'] }}" />
+                                        </div>
+                                    @endif
+
+                                    <div class="text-[1.05rem] font-semibold leading-snug text-slate-900 dark:text-white">
+                                        {{ $meta['title'] }}
+                                    </div>
+                                    <div class="mt-3 text-sm leading-6 text-slate-500 dark:text-zinc-400">
+                                        {{ $meta['description'] }}
+                                    </div>
                                 </button>
                             @endforeach
                         </div>
-                        <div class="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-500">
-                            Al tocar un método de pago, la venta se registra automáticamente.
+
+                        <div class="rounded-[24px] border border-violet-200 bg-violet-50 px-4 py-4 text-sm text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-200">
+                            <div class="flex items-start gap-3">
+                                <div class="mt-0.5">
+                                    <flux:icon.information-circle class="size-6" />
+                                </div>
+                                <div class="leading-6">
+                                    Al seleccionar un metodo de pago, la venta se registrara automaticamente.
+                                </div>
+                            </div>
                         </div>
                     </div>
                 @elseif ($drawerStep === 'success')
                     @if ($selectedSale)
                         <div class="space-y-4 sm:space-y-6 pb-6">
-                            <div class="rounded-[28px] border border-zinc-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-                                <div class="border-b border-zinc-200/80 px-4 sm:px-5 py-4 text-center">
-                                    <div class="mx-auto flex size-12 sm:size-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_10px_25px_rgba(16,185,129,0.3)]">
+                            <div class="rounded-[28px] border border-zinc-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none">
+                                <div class="border-b border-zinc-200/80 px-4 py-4 text-center dark:border-white/10 sm:px-5">
+                                    <div class="mx-auto flex size-12 sm:size-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_10px_25px_rgba(16,185,129,0.3)] dark:shadow-none">
                                         <flux:icon.check class="size-6 sm:size-8" />
                                     </div>
 
-                                    <div class="mt-4 sm:mt-5 text-xl sm:text-2xl font-semibold text-zinc-800">
+                                    <div class="mt-4 text-xl font-semibold text-zinc-800 dark:text-white sm:mt-5 sm:text-2xl">
                                         El pago se realizó con éxito
                                     </div>
-                                    <div class="mt-1 text-xs sm:text-sm text-zinc-500">
+                                    <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">
                                         Venta #{{ $selectedSale->ticket_number }}
                                     </div>
                                 </div>
 
-                                <div class="space-y-4 sm:space-y-5 px-4 sm:px-5 py-4 sm:py-5">
+                                <div class="space-y-4 px-4 py-4 sm:space-y-5 sm:px-5 sm:py-5">
                                     <div>
-                                        <div class="text-sm text-zinc-400">Cliente</div>
-                                        <div class="mt-2 text-base font-semibold text-zinc-900">
+                                        <div class="text-sm text-zinc-400 dark:text-zinc-500">Cliente</div>
+                                        <div class="mt-2 text-base font-semibold text-zinc-900 dark:text-white">
                                             {{ $selectedSale->client?->fullName() ?? 'Consumidor final' }}
                                         </div>
 
                                         @if ($selectedSale->client?->email)
-                                            <div class="mt-1 flex items-center gap-2 text-sm text-zinc-500">
+                                            <div class="mt-1 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                                                 <flux:icon.envelope class="size-4" />
                                                 <span>{{ $selectedSale->client?->email }}</span>
                                             </div>
                                         @endif
 
                                         @if ($selectedSale->client?->phone)
-                                            <div class="mt-1 flex items-center gap-2 text-sm text-zinc-500">
+                                            <div class="mt-1 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                                                 <flux:icon.phone class="size-4" />
                                                 <span>{{ $selectedSale->client?->phone }}</span>
                                             </div>
                                         @endif
                                     </div>
 
-                                    <div class="border-t border-zinc-200 pt-5">
-                                        <div class="text-sm text-zinc-400">Medio de pago</div>
+                                    <div class="border-t border-zinc-200 pt-5 dark:border-white/10">
+                                        <div class="text-sm text-zinc-400 dark:text-zinc-500">Medio de pago</div>
                                         @forelse ($selectedSale->payments as $payment)
                                             <div class="mt-3 flex items-start justify-between gap-3">
                                                 <div>
-                                                    <div class="font-medium text-zinc-900">{{ $this->paymentMethods[$payment->method] ?? $payment->method }}</div>
-                                                    <div class="text-sm text-zinc-500">#{{ $selectedSale->ticket_number }} · {{ $selectedSale->sold_at?->format('d-m-Y') }}</div>
+                                                    <div class="font-medium text-zinc-900 dark:text-white">{{ $this->paymentMethods[$payment->method] ?? $payment->method }}</div>
+                                                    <div class="text-sm text-zinc-500 dark:text-zinc-400">#{{ $selectedSale->ticket_number }} · {{ $selectedSale->sold_at?->format('d-m-Y') }}</div>
                                                 </div>
-                                                <div class="font-medium text-zinc-900">S/{{ number_format((float) $payment->amount, 0) }}</div>
+                                                <div class="font-medium text-zinc-900 dark:text-white">S/{{ number_format((float) $payment->amount, 0) }}</div>
                                             </div>
                                         @empty
-                                            <div class="mt-3 text-sm text-zinc-500">No hay pagos registrados para esta venta.</div>
+                                            <div class="mt-3 text-sm text-zinc-500 dark:text-zinc-400">No hay pagos registrados para esta venta.</div>
                                         @endforelse
                                     </div>
 
-                                    <div class="border-t border-zinc-200 pt-5">
-                                        <div class="text-sm text-zinc-400">Detalle del pago</div>
-                                        <div class="mt-3 space-y-2 text-zinc-700">
+                                    <div class="border-t border-zinc-200 pt-5 dark:border-white/10">
+                                        <div class="text-sm text-zinc-400 dark:text-zinc-500">Detalle del pago</div>
+                                        <div class="mt-3 space-y-2 text-zinc-700 dark:text-zinc-300">
                                             <div class="flex items-center justify-between"><span>Subtotal</span><span>S/{{ number_format((float) $selectedSale->subtotal, 0) }}</span></div>
                                             <div class="flex items-center justify-between"><span>Vuelto</span><span>S/{{ number_format((float) $selectedSale->change_total, 0) }}</span></div>
                                             <div class="flex items-center justify-between"><span>Descuentos</span><span>S/{{ number_format((float) $selectedSale->discount_total, 0) }}</span></div>
-                                            <div class="flex items-center justify-between font-semibold text-zinc-900"><span>Total:</span><span>S/{{ number_format((float) $selectedSale->total, 0) }}</span></div>
+                                            <div class="flex items-center justify-between font-semibold text-zinc-900 dark:text-white"><span>Total:</span><span>S/{{ number_format((float) $selectedSale->total, 0) }}</span></div>
                                         </div>
                                     </div>
 
-                                    <div class="border-t border-zinc-200 pt-5">
+                                    <div class="border-t border-zinc-200 pt-5 dark:border-white/10">
                                         <div class="space-y-3">
                                             @if ($emailReceiptUrl)
-                                                <a href="{{ $emailReceiptUrl }}" class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-violet-600 shadow-sm transition hover:bg-violet-50">
+                                                <a href="{{ $emailReceiptUrl }}" class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-violet-600 shadow-sm transition hover:bg-violet-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-violet-300 dark:hover:bg-white/[0.05] dark:shadow-none">
                                                     Enviar comprobante
                                                 </a>
                                             @else
-                                                <button type="button" disabled class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-zinc-400 shadow-sm">
+                                                <button type="button" disabled class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-zinc-400 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-500 dark:shadow-none">
                                                     Enviar comprobante
                                                 </button>
                                             @endif
 
-                                            <a href="{{ $receiptUrl }}" target="_blank" class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-violet-600 shadow-sm transition hover:bg-violet-50">
+                                            <a href="{{ $receiptUrl }}" target="_blank" class="flex w-full items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-violet-600 shadow-sm transition hover:bg-violet-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-violet-300 dark:hover:bg-white/[0.05] dark:shadow-none">
                                                 Ver comprobante
                                             </a>
                                         </div>
@@ -917,46 +1072,90 @@
                 @endif
             </div>
 
-            <div class="border-t border-zinc-200 bg-white px-4 py-4 sm:px-5">
-                <div class="mb-3 flex items-center justify-between">
-                    <div class="text-xl sm:text-2xl font-semibold text-zinc-800">Total:</div>
-                    <div class="text-xl sm:text-2xl font-semibold text-zinc-800">S/{{ number_format($drawerStep === 'success' && $selectedSale ? (float) $selectedSale->total : collect($saleForm['cart'])->sum(fn ($item) => (float) $item['subtotal']), 0) }}</div>
-                </div>
-
+            <div class="border-t border-zinc-200 bg-white px-4 py-4 dark:border-white/10 dark:bg-[#0b1118] sm:px-5">
                 @if ($drawerStep === 'cart')
-                    <button type="button" wire:click="proceedToPayment" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white disabled:opacity-50 sm:h-12">
-                        Continuar
-                    </button>
+                    @php
+                        $drawerSubtotal = collect($saleForm['cart'])->sum(fn ($item): float => ((float) ($item['quantity'] ?? 0) * (float) ($item['unit_price'] ?? 0)));
+                        $drawerDiscounts = collect($saleForm['cart'])->sum(fn ($item): float => (float) data_get($item, 'meta.discount_amount', 0));
+                        $drawerTotal = collect($saleForm['cart'])->sum(fn ($item): float => (float) ($item['subtotal'] ?? 0));
+                    @endphp
+
+                    <div class="space-y-4">
+                        <div class="border-t border-zinc-100 pt-4">
+                            <div class="flex items-center justify-between">
+                                <div class="text-base font-semibold text-zinc-900 dark:text-white">Resumen de venta</div>
+                                @if (count($saleForm['cart']) > 0)
+                                    <div class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                        {{ count($saleForm['cart']) }} {{ count($saleForm['cart']) === 1 ? 'articulo' : 'articulos' }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="mt-4 space-y-3 text-sm text-zinc-600 dark:text-zinc-300">
+                                <div class="flex items-center justify-between">
+                                    <span>Subtotal</span>
+                                    <span>S/{{ number_format($drawerSubtotal, 2) }}</span>
+                                </div>
+
+                                <div class="flex items-center justify-between">
+                                    <span>Descuentos</span>
+                                    <div class="flex items-center gap-3">
+                                        <button type="button" class="text-sm font-medium text-emerald-600 dark:text-emerald-400">+ Agregar</button>
+                                        <span class="dark:text-zinc-400">- S/{{ number_format($drawerDiscounts, 2) }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="rounded-2xl bg-emerald-50/60 px-4 py-3 dark:bg-emerald-500/10">
+                                    <div class="flex items-center justify-between text-lg font-semibold text-emerald-700 dark:text-emerald-300">
+                                        <span>Total</span>
+                                        <span>S/{{ number_format($drawerTotal, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" wire:click="proceedToPayment" class="flex h-11 w-full items-center justify-between rounded-xl bg-emerald-600 px-4 font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50 sm:h-12">
+                            <span class="mx-auto">Continuar</span>
+                            @if (count($saleForm['cart']) > 0)
+                                <span class="text-sm font-semibold">S/{{ number_format($drawerTotal, 2) }}</span>
+                            @endif
+                        </button>
+                    </div>
                 @elseif ($drawerStep === 'item-picker')
-                    <button type="button" wire:click="backToCart" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white sm:h-12">
+                    <button type="button" wire:click="backToCart" class="flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:h-12">
                         Ir al carro ({{ count($saleForm['cart']) }})
                     </button>
                 @elseif ($drawerStep === 'service-professional')
                     <div class="grid grid-cols-2 gap-3">
-                        <button type="button" wire:click="backToItemPicker" class="flex h-11 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white font-semibold text-zinc-700 sm:h-12">
+                        <button type="button" wire:click="backToItemPicker" class="flex h-11 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white font-semibold text-zinc-700 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 sm:h-12">
                             Volver
                         </button>
 
-                        <button type="button" wire:click="saveServiceConfiguration" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white disabled:opacity-50 sm:h-12">
+                        <button type="button" wire:click="saveServiceConfiguration" class="flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 font-semibold text-white disabled:opacity-50 sm:h-12">
                             Agregar al carro
                         </button>
                     </div>
                 @elseif ($drawerStep === 'product-config')
-                    <button type="button" wire:click="saveProductConfiguration" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white sm:h-12">
+                    <button type="button" wire:click="saveProductConfiguration" class="flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 font-semibold text-white sm:h-12">
                         Agregar al carro
                     </button>
                 @elseif ($drawerStep === 'client-create')
-                    <button type="button" wire:click="saveInlineClient" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white sm:h-12">
+                    <button type="button" wire:click="saveInlineClient" class="flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 font-semibold text-white sm:h-12">
                         Guardar cliente
                     </button>
                 @elseif ($drawerStep === 'payment')
-                    <div class="flex h-11 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-600 sm:h-12">
+                    <div class="flex h-11 items-center justify-center rounded-xl bg-zinc-100 px-4 text-sm font-medium text-zinc-600 dark:bg-white/[0.05] dark:text-zinc-300 sm:h-12">
                         Selecciona un método de pago para registrar la venta
                     </div>
                 @elseif ($drawerStep === 'success')
-                    <button type="button" wire:click="closeDrawer" class="flex h-11 w-full items-center justify-center rounded-xl bg-violet-500 font-semibold text-white sm:h-12">
+                    <button type="button" wire:click="closeDrawer" class="flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 font-semibold text-white sm:h-12">
                         Cerrar
                     </button>
+                @else
+                    <div class="mb-3 flex items-center justify-between">
+                        <div class="text-xl font-semibold text-zinc-800 dark:text-white sm:text-2xl">Total:</div>
+                        <div class="text-xl font-semibold text-zinc-800 dark:text-white sm:text-2xl">S/{{ number_format($drawerStep === 'success' && $selectedSale ? (float) $selectedSale->total : collect($saleForm['cart'])->sum(fn ($item) => (float) $item['subtotal']), 0) }}</div>
+                    </div>
                 @endif
             </div>
         </aside>
