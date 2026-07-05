@@ -1,43 +1,73 @@
-<section class="w-full px-4 py-4 sm:px-6 lg:px-8">
-    <div class="flex w-full flex-col gap-5">
-        <div class="grid gap-3 xl:grid-cols-[auto_minmax(0,1fr)] xl:items-start">
-            <div class="min-w-0 pt-0 xl:pt-2">
-                <flux:heading size="xl" level="1" class="mt-0 leading-none">Clientes</flux:heading>
-            </div>
-
-            <div class="flex w-full flex-col gap-2 xl:w-auto xl:flex-row xl:items-end xl:justify-end">
-                <div class="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-[minmax(16rem,22rem)_auto] xl:items-end">
-                    <flux:input
-                        wire:model.live.debounce.300ms="search"
-                        icon="magnifying-glass"
-                        clearable
-                        placeholder="Buscar por nombre, apellido, DNI, correo o teléfono"
-                        class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
-                    />
-
-                    <flux:button variant="ghost" icon="x-mark" wire:click="clearFilters">
-                        Limpiar
-                    </flux:button>
+<section >
+    <div class="relative w-full overflow-hidden rounded-[24px]">
+        <div class="space-y-5 px-1 py-2 sm:px-3 lg:px-0">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0">
+                    <h1 class="text-[2rem] font-semibold tracking-tight text-slate-900 dark:text-white">Clientes</h1>
+                    <p class="mt-2 text-sm text-slate-600 dark:text-zinc-400">Gestiona todos los clientes de tu negocio.</p>
                 </div>
 
-                <div class="flex w-full items-end gap-2 xl:w-auto">
-                    <flux:button variant="primary" icon="plus" wire:click="openCreateModal">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                    @if ($search !== '')
+                        <flux:button
+                            variant="outline"
+                            icon="x-mark"
+                            wire:click="clearFilters"
+                            class="h-11 rounded-xl border-zinc-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm dark:border-white/10 dark:bg-white/[0.02] dark:text-white dark:shadow-none"
+                        >
+                            Limpiar
+                        </flux:button>
+                    @endif
+
+                    <flux:button
+                        variant="primary"
+                        icon="plus"
+                        wire:click="openCreateModal"
+                        class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-600 dark:shadow-none"
+                    >
                         Nuevo cliente
                     </flux:button>
                 </div>
             </div>
-        </div>
 
-        <flux:card class="overflow-hidden border border-zinc-200/80 bg-white shadow-sm">
+            <div class="rounded-[24px] border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+                <div class="grid items-end gap-4 lg:grid-cols-[minmax(20rem,1fr)_auto]">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-[0.12em] text-transparent select-none">Buscar</label>
+                        <flux:input
+                            wire:model.live.debounce.300ms="search"
+                            icon="magnifying-glass"
+                            clearable
+                            placeholder="Buscar por nombre, apellido, DNI, correo o teléfono..."
+                            class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                        />
+                    </div>
+
+                    @if ($search !== '')
+                        <div class="flex justify-end">
+                            <button
+                                type="button"
+                                wire:click="clearFilters"
+                                class="inline-flex h-12 items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-100 dark:border-white/10 dark:bg-white/[0.02] dark:text-zinc-300 dark:hover:bg-white/[0.05]"
+                            >
+                                <flux:icon name="x-mark" class="size-4" />
+                                <span>Limpiar</span>
+                            </button>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
             @if ($clients->isEmpty())
                 <div class="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
-                    <div class="flex size-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                    <div class="flex size-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
                         <flux:icon name="users" class="size-8" />
                     </div>
 
                     <div class="space-y-1">
-                        <flux:heading size="lg">{{ $search !== '' ? 'No se encontraron clientes' : 'No hay clientes aún' }}</flux:heading>
-                        <flux:text class="text-sm text-zinc-500">
+                        <flux:heading size="lg" class="text-slate-900 dark:text-white">{{ $search !== '' ? 'No se encontraron clientes' : 'No hay clientes aún' }}</flux:heading>
+                        <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
                             {{ $search !== ''
                                 ? 'Prueba quitando el filtro o cambia la búsqueda para ver resultados.'
                                 : 'Crea tu primer cliente para comenzar a registrar información de contacto y seguimiento.' }}
@@ -46,89 +76,90 @@
 
                     <div class="flex flex-wrap items-center justify-center gap-2">
                         @if ($search !== '')
-                            <flux:button variant="ghost" icon="x-mark" wire:click="clearFilters">
+                            <flux:button variant="outline" icon="x-mark" wire:click="clearFilters" class="h-11 rounded-xl border-zinc-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm dark:border-white/10 dark:bg-white/[0.02] dark:text-white dark:shadow-none">
                                 Limpiar filtros
                             </flux:button>
                         @endif
 
-                        <flux:button variant="primary" icon="plus" wire:click="openCreateModal">
+                        <flux:button variant="primary" icon="plus" wire:click="openCreateModal" class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-600 dark:shadow-none">
                             Nuevo cliente
                         </flux:button>
                     </div>
                 </div>
             @else
-                <div class="space-y-2 px-0 pb-4 pt-0 md:hidden">
+                <div class="space-y-3 px-3 py-3 md:hidden">
                     @foreach ($clients as $client)
                         <article
                             x-data="{ expanded: false }"
-                            class="rounded-none border-x-0 border-y border-zinc-200/80 bg-white shadow-sm first:border-t-0"
+                            class="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0f1720] dark:shadow-none"
                         >
                             <button
                                 type="button"
-                                class="flex w-full items-start gap-3 px-3 py-3 text-left sm:px-4"
+                                class="flex w-full items-start gap-3 px-4 py-4 text-left"
                                 @click="expanded = !expanded"
                             >
-                                <div class="min-w-0 flex-1 space-y-1">
-                                    <div class="truncate text-lg font-semibold leading-tight text-zinc-900">
-                                        {{ $client->fullName() }}
-                                    </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <div class="truncate text-[1.05rem] font-semibold leading-tight text-slate-900 dark:text-white">
+                                                {{ $client->fullName() }}
+                                            </div>
+                                            <div class="mt-1 truncate text-sm text-zinc-500 dark:text-zinc-400">
+                                                {{ $client->email ?: 'Sin correo' }}
+                                            </div>
+                                        </div>
 
-                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
-                                        <span class="truncate">
-                                            {{ $client->client_number ?: ($client->dni ?: 'Sin documento') }}
-                                        </span>
-
-                                        <span class="hidden h-1 w-1 rounded-full bg-zinc-300 sm:inline-block"></span>
-
-                                        <span class="truncate">
-                                            {{ $client->phone ?: 'Sin teléfono' }}
-                                        </span>
+                                        <div class="shrink-0 text-right">
+                                            <div class="text-sm font-semibold leading-none text-slate-900 dark:text-white">
+                                                {{ $client->dni ?: 'Sin DNI' }}
+                                            </div>
+                                            <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                                {{ $client->phone ?: 'Sin teléfono' }}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <span
-                                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition"
-                                    :class="expanded ? 'border-violet-300 text-violet-700' : ''"
-                                >
+                                <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-zinc-500 transition dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-300">
                                     <flux:icon name="chevron-down" class="size-4 transition-transform" :class="expanded ? 'rotate-180' : ''" />
                                 </span>
                             </button>
 
-                            <div x-show="expanded" x-cloak x-transition class="border-t border-zinc-100 px-3 py-4 sm:px-4">
+                            <div x-show="expanded" x-cloak x-transition.opacity.duration.200ms class="border-t border-zinc-100 px-4 py-4 dark:border-white/10">
                                 <div class="grid grid-cols-2 gap-3 text-sm">
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">DNI</div>
-                                        <div class="mt-1 font-medium text-zinc-900">{{ $client->dni ?: 'Sin DNI' }}</div>
+                                    <div class="rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Nombre</div>
+                                        <div class="mt-1 font-medium text-slate-900 dark:text-white">{{ $client->first_name ?: 'Sin nombre' }}</div>
                                     </div>
 
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">Género</div>
-                                        <div class="mt-1 font-medium text-zinc-900">{{ $client->gender ?: 'Sin género' }}</div>
+                                    <div class="rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Apellido</div>
+                                        <div class="mt-1 font-medium text-slate-900 dark:text-white">{{ $client->last_name ?: 'Sin apellido' }}</div>
                                     </div>
 
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">Correo</div>
-                                        <div class="mt-1 font-medium text-zinc-900">{{ $client->email ?: 'Sin correo' }}</div>
+                                    <div class="rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Correo</div>
+                                        <div class="mt-1 font-medium text-slate-900 dark:text-white">{{ $client->email ?: 'Sin correo' }}</div>
                                     </div>
 
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">Teléfono</div>
-                                        <div class="mt-1 font-medium text-zinc-900">{{ $client->phone ?: 'Sin teléfono' }}</div>
+                                    <div class="rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Teléfono</div>
+                                        <div class="mt-1 font-medium text-slate-900 dark:text-white">{{ $client->phone ?: 'Sin teléfono' }}</div>
                                     </div>
 
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">Edad</div>
-                                        <div class="mt-1 font-medium text-zinc-900">{{ $client->age ?? 'Sin edad' }}</div>
+                                    <div class="rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">DNI</div>
+                                        <div class="mt-1 font-medium text-slate-900 dark:text-white">{{ $client->dni ?: 'Sin DNI' }}</div>
                                     </div>
 
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">Ciudad</div>
-                                        <div class="mt-1 font-medium text-zinc-900">{{ $client->city ?: 'Sin ciudad' }}</div>
+                                    <div class="rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Número</div>
+                                        <div class="mt-1 font-medium text-slate-900 dark:text-white">{{ $client->client_number ?: 'Sin número' }}</div>
                                     </div>
 
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2 col-span-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">Dirección</div>
-                                        <div class="mt-1 font-medium text-zinc-900">
+                                    <div class="col-span-2 rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Dirección</div>
+                                        <div class="mt-1 font-medium text-slate-900 dark:text-white">
                                             {{ collect([$client->address, $client->district, $client->city])->filter()->join(', ') ?: 'Sin dirección' }}
                                         </div>
                                     </div>
@@ -137,20 +168,20 @@
                                 <div class="mt-4 grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
-                                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 transition hover:border-violet-300 hover:bg-violet-100"
+                                        class="inline-flex items-center justify-center rounded-2xl border border-zinc-200 bg-white px-3 py-2.5 text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06]"
                                         wire:click="showClient({{ $client->id }})"
+                                        aria-label="Ver cliente"
                                     >
                                         <flux:icon name="eye" class="size-4" />
-                                        <span>Ver</span>
                                     </button>
 
                                     <button
                                         type="button"
-                                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-100"
+                                        class="inline-flex items-center justify-center rounded-2xl bg-rose-500 px-3 py-2.5 text-white transition hover:bg-rose-600 dark:bg-rose-500 dark:hover:bg-rose-600"
                                         wire:click="confirmDelete({{ $client->id }})"
+                                        aria-label="Eliminar cliente"
                                     >
                                         <flux:icon name="trash" class="size-4" />
-                                        <span>Eliminar</span>
                                     </button>
                                 </div>
                             </div>
@@ -159,118 +190,102 @@
                 </div>
 
                 <div class="hidden md:block">
-                    <flux:table>
-                        <flux:table.columns>
-                            <flux:table.column class="w-[18%]">
-                                <flux:table.sortable
-                                    wire:click="sort('first_name')"
-                                    :sorted="$sortBy === 'first_name'"
-                                    :direction="$sortDirection"
-                                >
-                                    Nombre
-                                </flux:table.sortable>
-                            </flux:table.column>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full border-separate border-spacing-0">
+                            <thead>
+                                <tr>
+                                    <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">
+                                        <button type="button" wire:click="sort('first_name')" class="inline-flex items-center gap-2 transition hover:text-slate-900 dark:hover:text-white">
+                                            <span>Nombre</span>
+                                            <flux:icon name="chevron-up-down" class="size-4 {{ $sortBy === 'first_name' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400' }}" />
+                                        </button>
+                                    </th>
+                                    <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">
+                                        <button type="button" wire:click="sort('last_name')" class="inline-flex items-center gap-2 transition hover:text-slate-900 dark:hover:text-white">
+                                            <span>Apellido</span>
+                                            <flux:icon name="chevron-up-down" class="size-4 {{ $sortBy === 'last_name' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400' }}" />
+                                        </button>
+                                    </th>
+                                    <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">
+                                        <button type="button" wire:click="sort('email')" class="inline-flex items-center gap-2 transition hover:text-slate-900 dark:hover:text-white">
+                                            <span>Correo</span>
+                                            <flux:icon name="chevron-up-down" class="size-4 {{ $sortBy === 'email' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400' }}" />
+                                        </button>
+                                    </th>
+                                    <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">
+                                        <button type="button" wire:click="sort('phone')" class="inline-flex items-center gap-2 transition hover:text-slate-900 dark:hover:text-white">
+                                            <span>Teléfono</span>
+                                            <flux:icon name="chevron-up-down" class="size-4 {{ $sortBy === 'phone' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400' }}" />
+                                        </button>
+                                    </th>
+                                    <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">
+                                        <button type="button" wire:click="sort('dni')" class="inline-flex items-center gap-2 transition hover:text-slate-900 dark:hover:text-white">
+                                            <span>DNI</span>
+                                            <flux:icon name="chevron-up-down" class="size-4 {{ $sortBy === 'dni' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400' }}" />
+                                        </button>
+                                    </th>
+                                    <th class="border-b border-zinc-200 px-5 py-4 text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Opciones</th>
+                                </tr>
+                            </thead>
 
-                            <flux:table.column class="w-[18%]">
-                                <flux:table.sortable
-                                    wire:click="sort('last_name')"
-                                    :sorted="$sortBy === 'last_name'"
-                                    :direction="$sortDirection"
-                                >
-                                    Apellido
-                                </flux:table.sortable>
-                            </flux:table.column>
+                            <tbody>
+                                @foreach ($clients as $client)
+                                    <tr wire:key="client-row-{{ $client->id }}">
+                                        <td class="border-b border-zinc-100 px-5 py-5 align-top font-semibold text-slate-900 dark:border-white/5 dark:text-white">
+                                            {{ $client->first_name }}
+                                        </td>
+                                        <td class="border-b border-zinc-100 px-5 py-5 align-top text-sm text-slate-600 dark:border-white/5 dark:text-zinc-300">
+                                            {{ $client->last_name }}
+                                        </td>
+                                        <td class="border-b border-zinc-100 px-5 py-5 align-top text-sm text-slate-600 dark:border-white/5 dark:text-zinc-300">
+                                            {{ $client->email ?: 'Sin correo' }}
+                                        </td>
+                                        <td class="border-b border-zinc-100 px-5 py-5 align-top text-sm text-slate-600 dark:border-white/5 dark:text-zinc-300">
+                                            {{ $client->phone ?: 'Sin teléfono' }}
+                                        </td>
+                                        <td class="border-b border-zinc-100 px-5 py-5 align-top text-sm text-slate-600 dark:border-white/5 dark:text-zinc-300">
+                                            {{ $client->dni ?: 'Sin DNI' }}
+                                        </td>
+                                        <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06]"
+                                                    wire:click="showClient({{ $client->id }})"
+                                                    aria-label="Ver cliente"
+                                                >
+                                                    <flux:icon name="eye" class="size-4" />
+                                                </button>
 
-                            <flux:table.column class="w-[22%]">
-                                <flux:table.sortable
-                                    wire:click="sort('email')"
-                                    :sorted="$sortBy === 'email'"
-                                    :direction="$sortDirection"
-                                >
-                                    Correo
-                                </flux:table.sortable>
-                            </flux:table.column>
-
-                            <flux:table.column class="w-[16%]">
-                                <flux:table.sortable
-                                    wire:click="sort('phone')"
-                                    :sorted="$sortBy === 'phone'"
-                                    :direction="$sortDirection"
-                                >
-                                    Teléfono
-                                </flux:table.sortable>
-                            </flux:table.column>
-
-                            <flux:table.column class="w-[14%]">
-                                <flux:table.sortable
-                                    wire:click="sort('dni')"
-                                    :sorted="$sortBy === 'dni'"
-                                    :direction="$sortDirection"
-                                >
-                                    DNI
-                                </flux:table.sortable>
-                            </flux:table.column>
-
-                            <flux:table.column class="w-[7rem] min-w-[7rem] text-center">
-                                Opciones
-                            </flux:table.column>
-                        </flux:table.columns>
-
-                        <flux:table.rows>
-                            @foreach ($clients as $client)
-                                <flux:table.row :key="$client->id">
-                                    <flux:table.cell class="font-medium text-zinc-900">
-                                        {{ $client->first_name }}
-                                    </flux:table.cell>
-
-                                    <flux:table.cell>
-                                        {{ $client->last_name }}
-                                    </flux:table.cell>
-
-                                    <flux:table.cell>
-                                        {{ $client->email ?: 'Sin correo' }}
-                                    </flux:table.cell>
-
-                                    <flux:table.cell>
-                                        {{ $client->phone ?: 'Sin teléfono' }}
-                                    </flux:table.cell>
-
-                                    <flux:table.cell>
-                                        {{ $client->dni ?: 'Sin DNI' }}
-                                    </flux:table.cell>
-
-                                    <flux:table.cell class="text-center align-middle">
-                                        <div class="inline-flex items-center justify-center gap-2 whitespace-nowrap">
-                                            <flux:button
-                                                size="sm"
-                                                variant="ghost"
-                                                icon="eye"
-                                                aria-label="Ver cliente"
-                                                wire:click="showClient({{ $client->id }})"
-                                            ></flux:button>
-
-                                            <flux:button
-                                                size="sm"
-                                                variant="danger"
-                                                icon="trash"
-                                                aria-label="Eliminar cliente"
-                                                wire:click="confirmDelete({{ $client->id }})"
-                                            ></flux:button>
-                                        </div>
-                                    </flux:table.cell>
-                                </flux:table.row>
-                            @endforeach
-                        </flux:table.rows>
-                    </flux:table>
-
+                                                <button
+                                                    type="button"
+                                                    class="inline-flex size-9 items-center justify-center rounded-xl bg-rose-500 text-white transition hover:bg-rose-600 dark:bg-rose-500 dark:hover:bg-rose-600"
+                                                    wire:click="confirmDelete({{ $client->id }})"
+                                                    aria-label="Eliminar cliente"
+                                                >
+                                                    <flux:icon name="trash" class="size-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                <div class="border-t border-zinc-200/80 px-2 py-3 md:px-4">
-                    {{ $clients->links() }}
+                <div class="flex flex-col gap-4 border-t border-zinc-200 px-4 py-4 md:flex-row md:items-center md:justify-between dark:border-white/10">
+                    <div class="text-sm text-slate-600 dark:text-zinc-400">
+                        Mostrando {{ $clients->firstItem() }} a {{ $clients->lastItem() }} de {{ $clients->total() }} resultados
+                    </div>
+
+                    <div class="clients-pagination">
+                        {{ $clients->links('vendor.pagination.livewire-table-clean') }}
+                    </div>
                 </div>
             @endif
-        </flux:card>
+            </div>
+        </div>
     </div>
 
     @if ($createClientOpen)

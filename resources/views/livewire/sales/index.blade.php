@@ -10,85 +10,180 @@
     }
 @endphp
 
-<section class="w-full px-4 pt-2 pb-6 sm:px-6 sm:py-6 lg:px-8">
+<section >
     <div class="space-y-5 sm:space-y-6">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <flux:heading size="xl">Ventas</flux:heading>
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
+                <h1 class="text-[2rem] font-semibold tracking-tight text-slate-900 dark:text-white">Ventas</h1>
+                <p class="mt-2 text-sm text-slate-600 dark:text-zinc-400">Gestiona y consulta todas las ventas realizadas en tu negocio.</p>
             </div>
 
-            <flux:button variant="primary" icon="plus" wire:click="openCreateSale" class="w-full sm:w-auto">
+            <flux:button variant="primary" icon="plus" wire:click="openCreateSale" class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-600 dark:shadow-none w-full sm:w-auto">
                 Nueva venta
             </flux:button>
         </div>
 
-        <div >
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div class="rounded-[22px] border border-zinc-200 bg-zinc-50 px-4 py-6 text-center sm:px-6 sm:py-8">
-                    <div class="text-xs uppercase tracking-wide text-zinc-500 sm:text-sm">Todas las ventas</div>
-                    <div class="mt-2 text-3xl font-semibold text-zinc-900 sm:mt-3 sm:text-4xl">{{ $this->metrics['all'] }}</div>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+                <div class="flex items-start gap-4">
+                    <div class="flex size-12 items-center justify-center rounded-full bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">
+                        <flux:icon.shopping-bag class="size-5" />
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-zinc-400">Todas las ventas</div>
+                        <div class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">{{ $this->metrics['all'] }}</div>
+                    </div>
                 </div>
-                <div class="rounded-[22px] border border-zinc-200 bg-white px-4 py-6 text-center sm:px-6 sm:py-8">
-                    <div class="text-xs uppercase tracking-wide text-zinc-500 sm:text-sm">Pagos parciales</div>
-                    <div class="mt-2 text-3xl font-semibold text-zinc-900 sm:mt-3 sm:text-4xl">{{ $this->metrics['partial'] }}</div>
-                </div>
-                <div class="rounded-[22px] border border-zinc-200 bg-white px-4 py-6 text-center sm:px-6 sm:py-8 sm:col-span-2 lg:col-span-1">
-                    <div class="text-xs uppercase tracking-wide text-zinc-500 sm:text-sm">Eliminadas</div>
-                    <div class="mt-2 text-3xl font-semibold text-zinc-900 sm:mt-3 sm:text-4xl">{{ $this->metrics['deleted'] }}</div>
+                <div class="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $this->metrics['period_label'] }}</div>
+                <div class="mt-2 flex items-center gap-2 text-xs">
+                    @if ($this->metrics['all_change'] !== null)
+                        <span class="inline-flex items-center rounded-full px-2 py-1 font-semibold {{ $this->metrics['all_change'] >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' }}">
+                            {{ $this->metrics['all_change'] >= 0 ? '+' : '' }}{{ rtrim(rtrim(number_format((float) $this->metrics['all_change'], 1), '0'), '.') }}%
+                        </span>
+                        <span class="text-zinc-500 dark:text-zinc-400">{{ $this->metrics['comparison_label'] }}</span>
+                    @endif
                 </div>
             </div>
 
-            <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                <flux:select wire:model.live="periodFilter">
-                    <option value="7">Período 7 días</option>
-                    <option value="30">Período 30 días</option>
-                    <option value="90">Período 90 días</option>
+            <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+                <div class="flex items-start gap-4">
+                    <div class="flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
+                        <flux:icon.banknotes class="size-5" />
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-zinc-400">Pagos parciales</div>
+                        <div class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">{{ $this->metrics['partial'] }}</div>
+                    </div>
+                </div>
+                <div class="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $this->metrics['period_label'] }}</div>
+                <div class="mt-2 flex items-center gap-2 text-xs">
+                    @if ($this->metrics['partial_change'] !== null)
+                        <span class="inline-flex items-center rounded-full px-2 py-1 font-semibold {{ $this->metrics['partial_change'] >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' }}">
+                            {{ $this->metrics['partial_change'] >= 0 ? '+' : '' }}{{ rtrim(rtrim(number_format((float) $this->metrics['partial_change'], 1), '0'), '.') }}%
+                        </span>
+                        <span class="text-zinc-500 dark:text-zinc-400">{{ $this->metrics['comparison_label'] }}</span>
+                    @endif
+                </div>
+            </div>
+
+            <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+                <div class="flex items-start gap-4">
+                    <div class="flex size-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300">
+                        <flux:icon.trash class="size-5" />
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-zinc-400">Eliminadas</div>
+                        <div class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">{{ $this->metrics['deleted'] }}</div>
+                    </div>
+                </div>
+                <div class="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $this->metrics['period_label'] }}</div>
+                <div class="mt-2 flex items-center gap-2 text-xs">
+                    @if ($this->metrics['deleted_change'] !== null)
+                        <span class="inline-flex items-center rounded-full px-2 py-1 font-semibold {{ $this->metrics['deleted_change'] >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' }}">
+                            {{ $this->metrics['deleted_change'] >= 0 ? '+' : '' }}{{ rtrim(rtrim(number_format((float) $this->metrics['deleted_change'], 1), '0'), '.') }}%
+                        </span>
+                        <span class="text-zinc-500 dark:text-zinc-400">{{ $this->metrics['comparison_label'] }}</span>
+                    @endif
+                </div>
+            </div>
+
+            <div class="rounded-[24px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+                <div class="flex items-start gap-4">
+                    <div class="flex size-12 items-center justify-center rounded-full bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
+                        <flux:icon.currency-dollar class="size-5" />
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-zinc-400">Ventas totales</div>
+                        <div class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">S/{{ number_format((float) $this->metrics['total_amount'], 0) }}</div>
+                    </div>
+                </div>
+                <div class="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $this->metrics['period_label'] }}</div>
+                <div class="mt-2 flex items-center gap-2 text-xs">
+                    @if ($this->metrics['total_amount_change'] !== null)
+                        <span class="inline-flex items-center rounded-full px-2 py-1 font-semibold {{ $this->metrics['total_amount_change'] >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' }}">
+                            {{ $this->metrics['total_amount_change'] >= 0 ? '+' : '' }}{{ rtrim(rtrim(number_format((float) $this->metrics['total_amount_change'], 1), '0'), '.') }}%
+                        </span>
+                        <span class="text-zinc-500 dark:text-zinc-400">{{ $this->metrics['comparison_label'] }}</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-[24px] border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+            <div class="grid gap-3 xl:grid-cols-[minmax(11rem,0.9fr)_minmax(12rem,1fr)_minmax(10rem,0.8fr)_minmax(11rem,0.9fr)_minmax(10rem,0.85fr)_auto]">
+                <flux:select wire:model.live="periodFilter" class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
+                    <option value="7">Ultimos 7 dias</option>
+                    <option value="30">Ultimos 30 dias</option>
+                    <option value="90">Ultimos 90 dias</option>
                     <option value="all">Todo el historial</option>
                 </flux:select>
 
-                <flux:select wire:model.live="clientFilter">
+                <flux:select wire:model.live="clientFilter" class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
                     <option value="">Cliente</option>
                     @foreach ($this->clientsCatalog as $client)
                         <option value="{{ $client->id }}">{{ $client->fullName() }}</option>
                     @endforeach
                 </flux:select>
 
-                <flux:select wire:model.live="statusFilter">
-                    <option value="">Estado</option>
+                <flux:select wire:model.live="statusFilter" class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
+                    <option value="">Todos</option>
                     <option value="paid">Pagada</option>
-                    <option value="partial">Abono</option>
+                    <option value="partial">Parcial</option>
                     <option value="draft">Borrador</option>
                     <option value="deleted">Eliminada</option>
                 </flux:select>
 
-                <flux:select wire:model.live="paymentMethodFilter">
-                    <option value="">Método de pago</option>
+                <flux:select wire:model.live="paymentMethodFilter" class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
+                    <option value="">Todos</option>
                     @foreach ($this->paymentMethods as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </flux:select>
 
-                <flux:select wire:model.live="branchFilter">
-                    <option value="">Local</option>
+                <flux:select wire:model.live="branchFilter" class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
+                    <option value="">Todos</option>
                     @foreach ($this->branchesCatalog as $branch)
                         <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                     @endforeach
                 </flux:select>
+
+                <div class="flex items-center justify-end gap-2">
+                    <button type="button" wire:click="sortColumnsToggle" class="inline-flex h-12 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-zinc-50 dark:border-white/10 dark:bg-[#0d131a] dark:text-white dark:shadow-none">
+                        Filtros
+                    </button>
+                    <button type="button" wire:click="clearFilters" class="inline-flex h-12 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 dark:border-white/10 dark:bg-white/[0.02] dark:text-zinc-300">
+                        Limpiar
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div >
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3 pb-4">
-                <button type="button" wire:click="sortColumnsToggle" class="text-sm font-medium text-zinc-700 underline underline-offset-4">
-                    Editar columnas
-                </button>
-                <a href="{{ route('sales.export', request()->query()) }}" class="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 px-4 text-sm font-medium text-zinc-700 shadow-sm">
-                    Exportar
-                </a>
+        <div class="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+            <div class="flex flex-col gap-3 border-b border-zinc-200 px-4 py-4 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" wire:click="$set('statusFilter', '')" class="inline-flex items-center border-b-2 px-3 py-2 text-sm font-semibold transition {{ $statusFilter === '' ? 'border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300' : 'border-transparent text-zinc-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white' }}">
+                        Todas las ventas
+                    </button>
+                    <button type="button" wire:click="$set('statusFilter', 'partial')" class="inline-flex items-center border-b-2 px-3 py-2 text-sm font-semibold transition {{ $statusFilter === 'partial' ? 'border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300' : 'border-transparent text-zinc-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white' }}">
+                        Pagos parciales
+                    </button>
+                    <button type="button" wire:click="$set('statusFilter', 'deleted')" class="inline-flex items-center border-b-2 px-3 py-2 text-sm font-semibold transition {{ $statusFilter === 'deleted' ? 'border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300' : 'border-transparent text-zinc-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white' }}">
+                        Eliminadas
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" wire:click="sortColumnsToggle" class="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-white dark:shadow-none">
+                        Editar columnas
+                    </button>
+                    <a href="{{ route('sales.export', request()->query()) }}" class="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-white dark:shadow-none">
+                        Exportar
+                    </a>
+                </div>
             </div>
 
             @if ($showColumnEditor)
-                <div class="mb-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                <div class="border-b border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-white/10 dark:bg-white/[0.03]">
                     <div class="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                         @foreach ($visibleColumns as $column => $visible)
                             <flux:checkbox wire:model.live="visibleColumns.{{ $column }}" :label="ucfirst($column)" />
@@ -97,7 +192,7 @@
                 </div>
             @endif
 
-            <div class="sm:hidden space-y-3">
+            <div class="space-y-3 p-3 sm:hidden">
                 @forelse ($sales as $sale)
                     @php
                         $saleStatus = (string) $sale->status;
@@ -202,38 +297,69 @@
                 @endforelse
             </div>
 
-            <div class="hidden overflow-x-auto rounded-[20px] border border-zinc-200 sm:block">
-                <table class="min-w-full divide-y divide-zinc-200">
-                    <thead class="bg-white">
-                        <tr class="text-left text-xs sm:text-sm font-semibold text-zinc-700">
-                            @if ($visibleColumns['id']) <th class="px-3 sm:px-5 py-4">ID</th> @endif
-                            @if ($visibleColumns['date']) <th class="hidden sm:table-cell px-3 sm:px-5 py-4">Fecha</th> @endif
-                            @if ($visibleColumns['amount']) <th class="px-3 sm:px-5 py-4">Monto</th> @endif
-                            @if ($visibleColumns['client']) <th class="hidden md:table-cell px-3 sm:px-5 py-4">Cliente</th> @endif
-                            <th class="hidden md:table-cell px-3 sm:px-5 py-4">Registrado por</th>
-                            @if ($visibleColumns['branch']) <th class="hidden lg:table-cell px-3 sm:px-5 py-4">Local</th> @endif
-                            @if ($visibleColumns['status']) <th class="hidden xl:table-cell px-3 sm:px-5 py-4">Estado</th> @endif
-                            <th class="px-3 sm:px-5 py-4 text-right">Acciones</th>
+            <div class="hidden overflow-x-auto sm:block">
+                <table class="min-w-full border-separate border-spacing-0">
+                    <thead>
+                        <tr>
+                            @if ($visibleColumns['id']) <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">ID</th> @endif
+                            @if ($visibleColumns['date']) <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Fecha</th> @endif
+                            @if ($visibleColumns['client']) <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Cliente</th> @endif
+                            @if ($visibleColumns['amount']) <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Monto</th> @endif
+                            <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Metodo de pago</th>
+                            <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Registrado por</th>
+                            @if ($visibleColumns['branch']) <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Local</th> @endif
+                            @if ($visibleColumns['status']) <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Estado</th> @endif
+                            <th class="border-b border-zinc-200 px-5 py-4 text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-200 bg-white text-xs sm:text-sm text-zinc-700">
+                    <tbody>
                         @forelse ($sales as $sale)
+                            @php
+                                $saleStatus = (string) $sale->status;
+                                $statusLabel = match ($saleStatus) {
+                                    'paid' => 'Completada',
+                                    'partial' => 'Parcial',
+                                    'draft' => 'Borrador',
+                                    'deleted' => 'Eliminada',
+                                    default => ucfirst($saleStatus),
+                                };
+                                $statusBadgeClass = match ($saleStatus) {
+                                    'paid' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+                                    'partial' => 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
+                                    'draft' => 'bg-zinc-100 text-zinc-600 dark:bg-white/[0.05] dark:text-zinc-400',
+                                    'deleted' => 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+                                    default => 'bg-zinc-100 text-zinc-600 dark:bg-white/[0.05] dark:text-zinc-400',
+                                };
+                                $payment = $sale->payments->first();
+                            @endphp
                             <tr>
-                                @if ($visibleColumns['id']) <td class="px-3 sm:px-5 py-4 sm:py-5">#{{ $sale->sale_number ?? $sale->id }}</td> @endif
-                                @if ($visibleColumns['date']) <td class="hidden sm:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->sold_at?->format('d/m/Y - h:i a') }}</td> @endif
-                                @if ($visibleColumns['amount']) <td class="px-3 sm:px-5 py-4 sm:py-5 font-medium">S/{{ number_format((float) $sale->total, 0) }}</td> @endif
-                                @if ($visibleColumns['client']) <td class="hidden md:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->client?->fullName() ?? 'Consumidor final' }}</td> @endif
-                                <td class="hidden md:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->user?->name ?? 'Sin usuario' }}</td>
-                                @if ($visibleColumns['branch']) <td class="hidden lg:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->branch?->name ?? 'N/A' }}</td> @endif
-                                @if ($visibleColumns['status']) <td class="hidden xl:table-cell px-3 sm:px-5 py-4 sm:py-5">{{ $sale->status }}</td> @endif
-                                <td class="px-3 sm:px-5 py-4 sm:py-5">
+                                @if ($visibleColumns['id']) <td class="border-b border-zinc-100 px-5 py-5 align-top text-sm text-slate-600 dark:border-white/5 dark:text-zinc-300">#{{ $sale->sale_number ?? $sale->id }}</td> @endif
+                                @if ($visibleColumns['date']) <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
+                                    <div class="text-sm text-slate-700 dark:text-zinc-200">{{ $sale->sold_at?->format('d/m/Y - h:i a') }}</div>
+                                    <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $sale->sold_at?->diffForHumans() }}</div>
+                                </td> @endif
+                                @if ($visibleColumns['client']) <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
+                                    <div class="text-sm font-medium text-slate-900 dark:text-white">{{ $sale->client?->fullName() ?? 'Consumidor final' }}</div>
+                                    <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $sale->client?->phone ?? 'Sin telefono' }}</div>
+                                </td> @endif
+                                @if ($visibleColumns['amount']) <td class="border-b border-zinc-100 px-5 py-5 align-top text-sm font-medium text-slate-900 dark:border-white/5 dark:text-white">S/{{ number_format((float) $sale->total, 0) }}</td> @endif
+                                <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
+                                    <div class="text-sm text-slate-700 dark:text-zinc-200">{{ $payment?->method ? ($this->paymentMethods[$payment->method] ?? $payment->method) : 'Sin pago' }}</div>
+                                    <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $payment?->reference ?: '' }}</div>
+                                </td>
+                                <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
+                                    <div class="text-sm text-slate-700 dark:text-zinc-200">{{ $sale->user?->name ?? 'Sin usuario' }}</div>
+                                </td>
+                                @if ($visibleColumns['branch']) <td class="border-b border-zinc-100 px-5 py-5 align-top text-sm text-slate-600 dark:border-white/5 dark:text-zinc-300">{{ $sale->branch?->name ?? 'N/A' }}</td> @endif
+                                @if ($visibleColumns['status']) <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5"><span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $statusBadgeClass }}">{{ $statusLabel }}</span></td> @endif
+                                <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
                                     <div class="flex items-center justify-end gap-2">
-                                        <button type="button" wire:click="openSaleDetail({{ $sale->id }})" class="inline-flex size-8 sm:size-9 items-center justify-center rounded-xl border border-zinc-200 shadow-sm">
+                                        <button type="button" wire:click="openSaleDetail({{ $sale->id }})" class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06]">
                                             <flux:icon.eye class="size-4" />
                                         </button>
 
                                         <flux:dropdown position="bottom" align="end">
-                                            <flux:button size="sm" variant="ghost" icon="ellipsis-vertical" />
+                                            <flux:button size="sm" variant="ghost" icon="ellipsis-vertical" class="rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200" />
                                             <flux:menu>
                                                 <flux:menu.item icon="document-text" href="{{ route('sales.receipt.show', $sale->id) }}" target="_blank">
                                                     Ver comprobante
@@ -250,15 +376,31 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-5 py-16 text-center text-zinc-500">No hay ventas para mostrar.</td>
+                                <td colspan="9" class="px-5 py-16 text-center text-zinc-500 dark:text-zinc-400">No hay ventas para mostrar.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
 
-            <div class="pt-4">
-                <flux:pagination :paginator="$sales" />
+            <div class="flex flex-col gap-4 border-t border-zinc-200 px-4 py-4 md:flex-row md:items-center md:justify-between dark:border-white/10">
+                <div class="text-sm text-slate-600 dark:text-zinc-400">
+                    Mostrando {{ $sales->firstItem() }} a {{ $sales->lastItem() }} de {{ $sales->total() }} resultados
+                </div>
+
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div class="min-w-[10rem]">
+                        <flux:select wire:model.live="perPage" class="h-11 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
+                            <option value="10">10 por página</option>
+                            <option value="25">25 por página</option>
+                            <option value="50">50 por página</option>
+                        </flux:select>
+                    </div>
+
+                    <div>
+                        {{ $sales->links('vendor.pagination.livewire-table-clean') }}
+                    </div>
+                </div>
             </div>
         </div>
     </div>

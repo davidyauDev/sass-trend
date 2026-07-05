@@ -71,6 +71,8 @@ class Index extends Component
 
     public ?int $schedulePreviewProfessionalId = null;
 
+    public ?int $selectedProfessionalCardId = null;
+
     public function mount(): void
     {
         abort_unless(auth()->user()?->isAdministrator() === true, 403);
@@ -128,6 +130,11 @@ class Index extends Component
         }
 
         $this->sectionTab = $tab;
+    }
+
+    public function selectProfessional(int $professionalId): void
+    {
+        $this->selectedProfessionalCardId = $professionalId;
     }
 
     public function openCreateModal(): void
@@ -455,8 +462,13 @@ class Index extends Component
 
     public function render(): View
     {
+        $professionals = $this->professionals();
+        $currentProfessional = $professionals->getCollection()->firstWhere('id', $this->selectedProfessionalCardId)
+            ?? $professionals->getCollection()->first();
+
         return view('livewire.administracion.profesionales.index', [
-            'professionals' => $this->professionals(),
+            'professionals' => $professionals,
+            'currentProfessional' => $currentProfessional,
             'groups' => $this->groups(),
             'professionalPendingDeletion' => $this->professionalPendingDeletion(),
             'groupPendingDeletion' => $this->groupPendingDeletion(),

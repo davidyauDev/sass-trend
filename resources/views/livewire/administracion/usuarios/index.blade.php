@@ -1,8 +1,7 @@
-<section class="w-full px-4 py-6 sm:px-6 lg:px-8">
+<section >
     <div class="flex w-full flex-col gap-6">
         <div class="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,1fr)] xl:items-end">
             <div class="min-w-0">
-                <flux:badge color="sky" size="sm" inset="left">Administración</flux:badge>
                 <flux:heading size="xl" level="1" class="mt-3">Usuarios</flux:heading>
                 <flux:subheading size="lg" class="mt-2">
                     Gestiona usuarios internos, roles, permisos específicos y locales asignados desde un único módulo.

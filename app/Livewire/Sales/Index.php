@@ -21,6 +21,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -1005,15 +1006,46 @@ class Index extends Component
     }
 
     /**
-     * @return array<string, int>
+     * @return array<string, mixed>
      */
     #[Computed]
     public function metrics(): array
     {
+        $days = $this->periodFilter === 'all' ? null : max(1, (int) $this->periodFilter);
+
+        $currentSales = Sale::query();
+        $previousSales = Sale::query();
+
+        if ($days !== null) {
+            $currentStart = now()->subDays($days)->startOfDay();
+            $previousStart = (clone $currentStart)->subDays($days);
+            $previousEnd = (clone $currentStart)->subSecond();
+
+            $currentSales->where('sold_at', '>=', $currentStart);
+            $previousSales->whereBetween('sold_at', [$previousStart, $previousEnd]);
+        }
+
+        $allCount = (clone $currentSales)->count();
+        $partialCount = (clone $currentSales)->where('status', SaleStatusCatalog::PARTIAL)->count();
+        $deletedCount = (clone $currentSales)->onlyTrashed()->count();
+        $totalAmount = (float) ((clone $currentSales)->sum('total') ?? 0);
+
+        $previousAllCount = $days !== null ? (clone $previousSales)->count() : null;
+        $previousDeletedCount = $days !== null ? (clone $previousSales)->onlyTrashed()->count() : null;
+        $previousPartialCount = $days !== null ? (clone $previousSales)->where('status', SaleStatusCatalog::PARTIAL)->count() : null;
+        $previousTotalAmount = $days !== null ? (float) ((clone $previousSales)->sum('total') ?? 0) : null;
+
         return [
-            'all' => (int) Sale::query()->count(),
-            'partial' => (int) Sale::query()->where('status', SaleStatusCatalog::PARTIAL)->count(),
-            'deleted' => (int) Sale::onlyTrashed()->count(),
+            'all' => (int) $allCount,
+            'partial' => (int) $partialCount,
+            'deleted' => (int) $deletedCount,
+            'total_amount' => round($totalAmount, 2),
+            'period_label' => $days === null ? 'Todo el historial' : "En los ultimos {$days} dias",
+            'comparison_label' => $days === null ? null : "vs. {$days} dias anteriores",
+            'all_change' => $this->metricChange($allCount, $previousAllCount),
+            'partial_change' => $this->metricChange($partialCount, $previousPartialCount),
+            'deleted_change' => $this->metricChange($deletedCount, $previousDeletedCount),
+            'total_amount_change' => $this->metricChange($totalAmount, $previousTotalAmount),
         ];
     }
 
@@ -1032,6 +1064,19 @@ class Index extends Component
         $query = app(SaleListingQuery::class)->handle($this->salesFilters());
 
         return $query->latest('sold_at')->paginate($this->perPage);
+    }
+
+    private function metricChange(int|float $current, int|float|null $previous): ?float
+    {
+        if ($previous === null) {
+            return null;
+        }
+
+        if ((float) $previous === 0.0) {
+            return (float) $current > 0 ? 100.0 : 0.0;
+        }
+
+        return round((((float) $current - (float) $previous) / (float) $previous) * 100, 1);
     }
 
     /**

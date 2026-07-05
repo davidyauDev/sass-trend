@@ -6,167 +6,299 @@
     ];
 @endphp
 
-<section class="w-full px-4 py-6 sm:px-6 lg:px-8">
-    <div class="flex w-full flex-col gap-6">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="min-w-0">
-                <flux:heading size="xl" level="1" class="mt-3">Profesionales</flux:heading>
+<section >
+    <div class="relative w-full overflow-hidden rounded-[24px]">
+        <div class="space-y-5 px-1 py-2 sm:px-3 lg:px-0">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0">
+                    <h1 class="text-[2rem] font-semibold tracking-tight text-slate-900 dark:text-white">Profesionales <span class="text-[1.55rem] font-semibold text-slate-700 dark:text-zinc-300">(Estilistas)</span></h1>
+                    <p class="mt-2 text-sm text-slate-600 dark:text-zinc-400">Gestiona a tu equipo de estilistas, sus horarios, servicios e información pública.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    @if ($sectionTab === 'professionals')
+                        <flux:button variant="primary" icon="plus" wire:click="openCreateModal" class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-600 dark:shadow-none">
+                            Nuevo Profesional
+                        </flux:button>
+                    @else
+                        <flux:button variant="primary" icon="plus" wire:click="openCreateGroupModal" class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-600 dark:shadow-none">
+                            Nuevo Grupo
+                        </flux:button>
+                    @endif
+                </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+                <div class="border-b border-zinc-200 px-4 pt-2 dark:border-white/10">
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            wire:click="switchSection('professionals')"
+                            @class([
+                                'inline-flex items-center gap-2 rounded-t-[18px] border-b-2 px-4 py-3 text-sm font-semibold transition',
+                                'border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300' => $sectionTab === 'professionals',
+                                'border-transparent text-zinc-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white' => $sectionTab !== 'professionals',
+                            ])
+                        >
+                            <span>Profesionales</span>
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="switchSection('groups')"
+                            @class([
+                                'inline-flex items-center gap-2 rounded-t-[18px] border-b-2 px-4 py-3 text-sm font-semibold transition',
+                                'border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300' => $sectionTab === 'groups',
+                                'border-transparent text-zinc-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white' => $sectionTab !== 'groups',
+                            ])
+                        >
+                            <span>Grupos Personalizados</span>
+                        </button>
+                    </div>
+                </div>
 
+                <div class="border-b border-zinc-200 px-4 py-4 dark:border-white/10">
+                    <div class="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-4 text-sm text-violet-800 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-200">
+                        @if ($sectionTab === 'professionals')
+                            <span class="font-semibold">Edita a tu primer profesional</span> y luego agrega más personas a tu equipo de trabajo. Puedes editar sus horarios, qué servicios realizan y su perfil público.
+                        @else
+                            <span class="font-semibold">En esta sección</span> podrás crear grupos de profesionales para luego previsualizarlos en la agenda.
+                        @endif
+                    </div>
+                </div>
+
+                <div class="grid gap-4 border-b border-zinc-200 px-4 py-4 dark:border-white/10 lg:grid-cols-[minmax(0,1.25fr)_minmax(12rem,0.8fr)_minmax(12rem,0.8fr)_minmax(10rem,0.7fr)]">
+                    @if ($sectionTab === 'professionals')
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-transparent select-none">Buscar</label>
+                            <flux:input
+                                wire:model.live.debounce.300ms="search"
+                                icon="magnifying-glass"
+                                clearable
+                                placeholder="Buscar profesional por nombre..."
+                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                            />
+                        </div>
+                    @else
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold uppercase tracking-[0.12em] text-transparent select-none">Buscar</label>
+                            <flux:input
+                                wire:model.live.debounce.300ms="groupSearch"
+                                icon="magnifying-glass"
+                                clearable
+                                placeholder="Buscar por grupo o local..."
+                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                            />
+                        </div>
+                    @endif
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Estado</label>
+                        <flux:select wire:model.live="statusFilter" class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
+                            <option value="">Estado: Todos</option>
+                            <option value="active">Activos</option>
+                            <option value="inactive">Inactivos</option>
+                        </flux:select>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Local</label>
+                        <flux:select wire:model.live="locationFilter" class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
+                            <option value="">Todos los locales</option>
+                            @foreach ($this->locationsCatalog as $location)
+                                <option value="{{ $location->id }}">{{ $location->name }}</option>
+                            @endforeach
+                        </flux:select>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Por página</label>
+                        <flux:select wire:model.live="perPage" class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white">
+                            <option value="10">10 por página</option>
+                            <option value="25">25 por página</option>
+                            <option value="50">50 por página</option>
+                        </flux:select>
+                    </div>
+                </div>
 
                 @if ($sectionTab === 'professionals')
-                    <flux:button variant="primary" icon="plus" wire:click="openCreateModal">
-                        Nuevo Profesional
-                    </flux:button>
-                @else
-                    <flux:button variant="primary" icon="plus" wire:click="openCreateGroupModal">
-                        Nuevo Grupo
-                    </flux:button>
-                @endif
-            </div>
-        </div>
+                    <div class="p-4 sm:p-5">
+                        @if ($professionals->isEmpty())
+                            <div class="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
+                                <div class="flex size-16 items-center justify-center rounded-3xl bg-zinc-100 text-zinc-500 dark:bg-white/[0.04] dark:text-zinc-300">
+                                    <flux:icon.users class="size-8" />
+                                </div>
+                                <flux:heading size="lg" class="text-slate-900 dark:text-white">No hay profesionales para mostrar</flux:heading>
+                                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
+                                    Crea tu primer profesional o ajusta los filtros para intentar de nuevo.
+                                </flux:text>
+                            </div>
+                        @else
+                            <div class="grid gap-4 xl:grid-cols-[minmax(20rem,0.92fr)_minmax(0,1.5fr)]">
+                                <div class="overflow-hidden rounded-[22px] border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#0f1720]">
+                                    <div class="space-y-2 p-3">
+                                        @foreach ($professionals as $professional)
+                                            @php
+                                                $isSelected = $currentProfessional?->id === $professional->id;
+                                            @endphp
+                                            <button
+                                                type="button"
+                                                wire:click="selectProfessional({{ $professional->id }})"
+                                                class="flex w-full items-start gap-3 rounded-[18px] border px-4 py-4 text-left transition {{ $isSelected ? 'border-violet-300 bg-violet-50/70 dark:border-violet-500/30 dark:bg-violet-500/10' : 'border-zinc-200 bg-white hover:border-zinc-300 dark:border-white/10 dark:bg-white/[0.02] dark:hover:bg-white/[0.04]' }}"
+                                            >
+                                                @if ($professional->photoUrl())
+                                                    <img src="{{ $professional->photoUrl() }}" alt="{{ $professional->displayName() }}" class="size-11 rounded-full object-cover">
+                                                @else
+                                                    <div class="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-sm font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                                        {{ $professional->initials() }}
+                                                    </div>
+                                                @endif
 
-        <div class="overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <div class="border-b border-zinc-200/80 px-4 pt-4 dark:border-zinc-700 sm:px-6">
-                <div class="flex flex-wrap gap-3">
-                    <button
-                        type="button"
-                        wire:click="switchSection('professionals')"
-                        class="{{ $sectionTab === 'professionals' ? 'border-violet-500 bg-white text-violet-600' : 'border-transparent bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300' }} rounded-t-2xl border border-b-0 px-5 py-3 text-sm font-semibold transition"
-                    >
-                        Profesionales
-                    </button>
-                    <button
-                        type="button"
-                        wire:click="switchSection('groups')"
-                        class="{{ $sectionTab === 'groups' ? 'border-violet-500 bg-white text-violet-600' : 'border-transparent bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300' }} rounded-t-2xl border border-b-0 px-5 py-3 text-sm font-semibold transition"
-                    >
-                        Grupos Personalizados
-                    </button>
-                </div>
-            </div>
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ $professional->displayName() }}</span>
+                                                        <span class="inline-flex items-center gap-1 text-xs {{ $professional->is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400' }}">
+                                                            <span class="size-1.5 rounded-full {{ $professional->is_active ? 'bg-emerald-500' : 'bg-zinc-400' }}"></span>
+                                                            {{ $professional->is_active ? 'Activo' : 'Inactivo' }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="mt-1 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                                        {{ $professional->services->pluck('name')->take(4)->join(', ') ?: 'Sin servicios asignados' }}
+                                                    </div>
+                                                </div>
 
-            <div class="border-b border-zinc-200/80 px-4 py-4 dark:border-zinc-700 sm:px-6">
-                <div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
-                    @if ($sectionTab === 'professionals')
-                        <span class="font-semibold">Edita a tu primer profesional</span> y luego agrega más personas a tu equipo de trabajo. Puedes editar sus horarios, qué servicios realizan y su perfil público.
-                    @else
-                        <span class="font-semibold">En esta sección</span> podrás crear grupos de profesionales para luego previsualizarlos en la agenda.
-                    @endif
-                </div>
-            </div>
+                                                <flux:icon name="chevron-right" class="mt-1 size-4 shrink-0 {{ $isSelected ? 'text-violet-500 dark:text-violet-300' : 'text-zinc-400' }}" />
+                                            </button>
+                                        @endforeach
+                                    </div>
 
-            @if ($showFilters)
-                <div class="grid gap-4 border-b border-zinc-200/80 px-4 py-4 dark:border-zinc-700 sm:px-6 xl:grid-cols-[minmax(0,1fr)_240px_220px_140px]">
-                    @if ($sectionTab === 'professionals')
-                        <flux:input
-                            wire:model.live.debounce.300ms="search"
-                            icon="magnifying-glass"
-                            clearable
-                            placeholder="Buscar por nombre, servicio o grupo"
-                        />
-                    @else
-                        <flux:input
-                            wire:model.live.debounce.300ms="groupSearch"
-                            icon="magnifying-glass"
-                            clearable
-                            placeholder="Buscar por grupo o local"
-                        />
-                    @endif
+                                    <div class="border-t border-zinc-200 px-4 py-4 dark:border-white/10">
+                                        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                            <div class="text-sm text-slate-600 dark:text-zinc-400">
+                                                Mostrando {{ $professionals->firstItem() }} a {{ $professionals->lastItem() }} de {{ $professionals->total() }} profesionales
+                                            </div>
+                                            <div>
+                                                {{ $professionals->links('vendor.pagination.livewire-table-clean') }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                    <flux:select wire:model.live="locationFilter">
-                        <option value="">Todos los locales</option>
-                        @foreach ($this->locationsCatalog as $location)
-                            <option value="{{ $location->id }}">{{ $location->name }}</option>
-                        @endforeach
-                    </flux:select>
+                                <div class="rounded-[22px] border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#0f1720]">
+                                    @if ($currentProfessional)
+                                        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                            <div class="flex min-w-0 items-center gap-4">
+                                                @if ($currentProfessional->photoUrl())
+                                                    <img src="{{ $currentProfessional->photoUrl() }}" alt="{{ $currentProfessional->displayName() }}" class="size-16 rounded-full object-cover">
+                                                @else
+                                                    <div class="flex size-16 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-2xl font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                                        {{ $currentProfessional->initials() }}
+                                                    </div>
+                                                @endif
 
-                    <flux:select wire:model.live="statusFilter">
-                        <option value="">Todos los estados</option>
-                        <option value="active">Activos</option>
-                        <option value="inactive">Inactivos</option>
-                    </flux:select>
+                                                <div class="min-w-0">
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <h2 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">{{ $currentProfessional->displayName() }}</h2>
+                                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {{ $currentProfessional->is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-zinc-100 text-zinc-600 dark:bg-white/[0.05] dark:text-zinc-400' }}">
+                                                            {{ $currentProfessional->is_active ? 'Activo' : 'Inactivo' }}
+                                                        </span>
+                                                    </div>
 
-                    <flux:select wire:model.live="perPage">
-                        <option value="10">10 por página</option>
-                        <option value="25">25 por página</option>
-                        <option value="50">50 por página</option>
-                    </flux:select>
-                </div>
-            @endif
+                                                    <div class="mt-2 space-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                                        <div>Correo: {{ $currentProfessional->email ?: 'Sin correo' }}</div>
+                                                        <div>Acceso al sistema: {{ $currentProfessional->has_system_access ? 'Sí' : 'No' }}</div>
+                                                        <div>Reservas online: {{ $currentProfessional->accepts_online_bookings ? 'Activas' : 'Inactivas' }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-            @if ($sectionTab === 'professionals')
-                <div class="space-y-4 px-4 py-6 sm:px-6">
-                    @forelse ($professionals as $professional)
-                        <div class="rounded-2xl border border-zinc-200/80 px-4 py-4 dark:border-zinc-700">
-                            <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                                <div class="flex min-w-0 items-center gap-4">
-                                    @if ($professional->photoUrl())
-                                        <img src="{{ $professional->photoUrl() }}" alt="{{ $professional->displayName() }}" class="size-12 rounded-full object-cover">
-                                    @else
-                                        <div class="flex size-12 items-center justify-center rounded-full bg-zinc-300 text-sm font-semibold text-white">
-                                            {{ $professional->initials() }}
+                                            <div class="flex flex-wrap gap-2">
+                                                <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="openEditModal({{ $currentProfessional->id }})" class="rounded-xl border border-violet-200 bg-white text-violet-700 hover:bg-violet-50 dark:border-violet-500/20 dark:bg-white/[0.03] dark:text-violet-200">
+                                                    Editar
+                                                </flux:button>
+                                                <flux:button size="sm" variant="ghost" icon="calendar-days" wire:click="openSchedulePreview({{ $currentProfessional->id }})" class="rounded-xl border border-zinc-200 bg-white text-slate-700 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-white">
+                                                    Ver y editar horario
+                                                </flux:button>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-8">
+                                            <div class="text-sm font-semibold text-slate-900 dark:text-white">Servicios que realiza</div>
+                                            <div class="mt-3 flex flex-wrap gap-2">
+                                                @forelse ($currentProfessional->services->take(8) as $service)
+                                                    <span class="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-200">
+                                                        {{ $service->name }}
+                                                    </span>
+                                                @empty
+                                                    <span class="text-sm text-zinc-500 dark:text-zinc-400">Sin servicios asignados.</span>
+                                                @endforelse
+
+                                                @if ($currentProfessional->services->count() > 8)
+                                                    <span class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-600 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300">
+                                                        +{{ $currentProfessional->services->count() - 8 }} más
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-8 grid gap-4 lg:grid-cols-3">
+                                            <div class="rounded-[20px] border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                                                <div class="text-2xl font-semibold text-slate-900 dark:text-white">{{ $currentProfessional->services->count() }}</div>
+                                                <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Servicios asignados</div>
+                                            </div>
+                                            <div class="rounded-[20px] border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                                                <div class="text-2xl font-semibold text-slate-900 dark:text-white">{{ $currentProfessional->locations->count() }}</div>
+                                                <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Locales vinculados</div>
+                                            </div>
+                                            <div class="rounded-[20px] border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                                                <div class="text-2xl font-semibold text-slate-900 dark:text-white">{{ $currentProfessional->groups->count() }}</div>
+                                                <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Grupos asignados</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-8">
+                                            <div class="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Horario semanal</div>
+                                            <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-7">
+                                                @foreach ($currentProfessional->schedules as $schedule)
+                                                    <div class="rounded-[18px] border border-zinc-200 bg-white p-3 dark:border-white/10 dark:bg-white/[0.03]">
+                                                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-zinc-200">
+                                                            {{ \App\Livewire\Forms\ProfessionalForm::dayLabels()[$schedule->day_of_week] }}
+                                                        </div>
+                                                        <div class="mt-2 text-sm font-medium text-slate-900 dark:text-white">
+                                                            {{ $schedule->is_working ? (($schedule->starts_at ?? '--:--').' - '.($schedule->ends_at ?? '--:--')) : 'Descanso' }}
+                                                        </div>
+                                                        <div class="mt-2">
+                                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {{ $schedule->is_working ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-zinc-100 text-zinc-600 dark:bg-white/[0.05] dark:text-zinc-400' }}">
+                                                                {{ $schedule->is_working ? 'Laboral' : 'Descanso' }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-8 grid gap-4 lg:grid-cols-2">
+                                            <div class="rounded-[20px] border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                                                <div class="text-sm font-semibold text-slate-900 dark:text-white">Información básica</div>
+                                                <div class="mt-4 space-y-3 text-sm text-zinc-600 dark:text-zinc-300">
+                                                    <div>Correo: {{ $currentProfessional->email ?: 'Sin correo' }}</div>
+                                                    <div>Estado: {{ $currentProfessional->is_active ? 'Activo' : 'Inactivo' }}</div>
+                                                    <div>Locales: {{ $currentProfessional->locations->pluck('name')->join(', ') ?: 'Sin locales' }}</div>
+                                                </div>
+                                            </div>
+
+                                            <div class="rounded-[20px] border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                                                <div class="text-sm font-semibold text-slate-900 dark:text-white">Perfil público</div>
+                                                <div class="mt-4 text-sm text-zinc-600 dark:text-zinc-300">
+                                                    {{ $currentProfessional->bio ?: 'Aún no tiene biografía pública registrada.' }}
+                                                </div>
+                                            </div>
                                         </div>
                                     @endif
-
-                                    <div class="min-w-0">
-                                        <div class="truncate text-base font-semibold text-zinc-900 dark:text-zinc-50">{{ $professional->displayName() }}</div>
-                                        <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                                            {{ $professional->services->pluck('name')->join(', ') ?: 'Sin servicios asignados' }}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="flex flex-wrap items-center gap-3 xl:justify-end">
-                                    <button type="button" wire:click="openSchedulePreview({{ $professional->id }})" class="text-sm font-medium text-zinc-800 underline underline-offset-4 dark:text-zinc-200">
-                                        Ver horario
-                                    </button>
-
-                                    <div class="text-sm {{ $professional->is_active ? 'text-emerald-600' : 'text-zinc-500' }}">
-                                        <span class="mr-2 inline-block size-2 rounded-full {{ $professional->is_active ? 'bg-emerald-500' : 'bg-zinc-400' }}"></span>
-                                        {{ $professional->is_active ? 'Activo' : 'Inactivo' }}
-                                    </div>
-
-                                    <flux:dropdown position="bottom" align="end">
-                                        <flux:button variant="ghost" icon="ellipsis-horizontal">
-                                            Opciones
-                                        </flux:button>
-
-                                        <flux:menu>
-                                            <flux:menu.item icon="{{ $professional->is_active ? 'pause-circle' : 'play-circle' }}" wire:click="toggleStatus({{ $professional->id }})">
-                                                {{ $professional->is_active ? 'Desactivar' : 'Activar' }}
-                                            </flux:menu.item>
-                                            <flux:menu.item icon="trash" variant="danger" wire:click="confirmDelete({{ $professional->id }})">
-                                                Eliminar
-                                            </flux:menu.item>
-                                        </flux:menu>
-                                    </flux:dropdown>
-
-                                    <flux:button size="sm" variant="ghost" icon="pencil-square" wire:click="openEditModal({{ $professional->id }})">
-                                        Editar
-                                    </flux:button>
                                 </div>
                             </div>
-                        </div>
-                    @empty
-                        <div class="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
-                            <div class="flex size-16 items-center justify-center rounded-3xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
-                                <flux:icon.users class="size-8" />
-                            </div>
-                            <flux:heading size="lg">No hay profesionales para mostrar</flux:heading>
-                            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
-                                Crea tu primer profesional o ajusta los filtros para intentar de nuevo.
-                            </flux:text>
-                        </div>
-                    @endforelse
-
-                    @if ($professionals->isNotEmpty())
-                        <flux:pagination :paginator="$professionals" />
-                    @endif
-                </div>
-            @else
+                        @endif
+                    </div>
+                @else
                 <div class="space-y-4 px-4 py-6 sm:px-6">
                     @forelse ($groups as $group)
                         <div class="rounded-2xl border border-zinc-200/80 px-4 py-4 dark:border-zinc-700">
@@ -204,7 +336,8 @@
                         <flux:pagination :paginator="$groups" />
                     @endif
                 </div>
-            @endif
+                @endif
+            </div>
         </div>
     </div>
 
@@ -259,8 +392,6 @@
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-700">
-                        <flux:heading size="base">Selecciona los servicios que realiza el profesional</flux:heading>
 
                         <div class="mt-4 space-y-4 rounded-2xl border border-zinc-200/70 p-4 dark:border-zinc-700">
                             <flux:button type="button" variant="ghost" icon="check" wire:click="selectAllServices">
@@ -286,7 +417,6 @@
                                 </div>
                             @endforeach
                         </div>
-                    </div>
                 @elseif ($professionalModalTab === 'schedule')
                     <div class="rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-700">
                         <div class="overflow-x-auto">

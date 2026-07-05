@@ -53,44 +53,185 @@
 
                         <div class="flex flex-col gap-1.5">
                             <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Marca</label>
-                            <flux:select
-                                name="brand_id"
-                                onchange="this.form.submit()"
-                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                            <div
+                                x-data="filterableSelect({
+                                    value: @js((string) ($brandId ?? '')),
+                                    placeholder: 'Todas las marcas',
+                                    options: @js(
+                                        collect($filterBrands)
+                                            ->map(fn ($brand): array => ['value' => (string) $brand->id, 'label' => $brand->name])
+                                            ->prepend(['value' => '', 'label' => 'Todas las marcas'])
+                                            ->values()
+                                    ),
+                                })"
+                                class="relative"
+                                @click.outside="closePanel()"
                             >
-                                <option value="">Todas las marcas</option>
-                                @foreach ($filterBrands as $brand)
-                                    <option value="{{ $brand->id }}" @selected((string) $brandId === (string) $brand->id)>{{ $brand->name }}</option>
-                                @endforeach
-                            </flux:select>
+                                <input x-ref="input" type="hidden" name="brand_id" x-model="value">
+
+                                <button
+                                    type="button"
+                                    @click="open ? closePanel() : openPanel()"
+                                    class="flex h-12 w-full items-center justify-between rounded-xl border border-zinc-200 bg-white px-3 text-left text-sm text-slate-800 shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                                >
+                                    <span class="truncate" x-text="selectedLabel"></span>
+                                    <flux:icon.chevron-down class="size-4 shrink-0 text-zinc-400 transition" x-bind:class="{ 'rotate-180': open }" />
+                                </button>
+
+                                <div
+                                    x-show="open"
+                                    x-cloak
+                                    x-transition.opacity.scale.origin.top
+                                    class="absolute left-0 z-30 mt-2 w-full rounded-2xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#0f1720]"
+                                >
+                                    <flux:input
+                                        x-ref="search"
+                                        x-model="query"
+                                        type="search"
+                                        placeholder="Buscar marca..."
+                                        class="h-10 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0b1118] dark:text-white"
+                                    />
+
+                                    <div class="mt-2 max-h-56 overflow-y-auto">
+                                        <template x-for="option in filteredOptions" :key="`${option.value}-${option.label}`">
+                                            <button
+                                                type="button"
+                                                @click="choose(option.value)"
+                                                class="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-white/5"
+                                                :class="String(option.value) === value ? 'bg-zinc-100 font-medium dark:bg-white/10' : ''"
+                                            >
+                                                <span class="truncate" x-text="option.label"></span>
+                                            </button>
+                                        </template>
+
+                                        <div x-show="filteredOptions.length === 0" class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                            No se encontraron marcas.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="flex flex-col gap-1.5">
                             <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Categoría</label>
-                            <flux:select
-                                name="category_id"
-                                onchange="this.form.submit()"
-                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                            <div
+                                x-data="filterableSelect({
+                                    value: @js((string) ($categoryId ?? '')),
+                                    placeholder: 'Todas las categorías',
+                                    options: @js(
+                                        collect($filterCategories)
+                                            ->map(fn ($category): array => ['value' => (string) $category->id, 'label' => $category->name])
+                                            ->prepend(['value' => '', 'label' => 'Todas las categorías'])
+                                            ->values()
+                                    ),
+                                })"
+                                class="relative"
+                                @click.outside="closePanel()"
                             >
-                                <option value="">Todas las categorías</option>
-                                @foreach ($filterCategories as $category)
-                                    <option value="{{ $category->id }}" @selected((string) $categoryId === (string) $category->id)>{{ $category->name }}</option>
-                                @endforeach
-                            </flux:select>
+                                <input x-ref="input" type="hidden" name="category_id" x-model="value">
+
+                                <button
+                                    type="button"
+                                    @click="open ? closePanel() : openPanel()"
+                                    class="flex h-12 w-full items-center justify-between rounded-xl border border-zinc-200 bg-white px-3 text-left text-sm text-slate-800 shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                                >
+                                    <span class="truncate" x-text="selectedLabel"></span>
+                                    <flux:icon.chevron-down class="size-4 shrink-0 text-zinc-400 transition" x-bind:class="{ 'rotate-180': open }" />
+                                </button>
+
+                                <div
+                                    x-show="open"
+                                    x-cloak
+                                    x-transition.opacity.scale.origin.top
+                                    class="absolute left-0 z-30 mt-2 w-full rounded-2xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#0f1720]"
+                                >
+                                    <flux:input
+                                        x-ref="search"
+                                        x-model="query"
+                                        type="search"
+                                        placeholder="Buscar categoría..."
+                                        class="h-10 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0b1118] dark:text-white"
+                                    />
+
+                                    <div class="mt-2 max-h-56 overflow-y-auto">
+                                        <template x-for="option in filteredOptions" :key="`${option.value}-${option.label}`">
+                                            <button
+                                                type="button"
+                                                @click="choose(option.value)"
+                                                class="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-white/5"
+                                                :class="String(option.value) === value ? 'bg-zinc-100 font-medium dark:bg-white/10' : ''"
+                                            >
+                                                <span class="truncate" x-text="option.label"></span>
+                                            </button>
+                                        </template>
+
+                                        <div x-show="filteredOptions.length === 0" class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                            No se encontraron categorías.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="flex flex-col gap-1.5">
                             <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Formato</label>
-                            <flux:select
-                                name="presentation_id"
-                                onchange="this.form.submit()"
-                                class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                            <div
+                                x-data="filterableSelect({
+                                    value: @js((string) ($presentationId ?? '')),
+                                    placeholder: 'Todos los formatos',
+                                    options: @js(
+                                        collect($filterPresentations)
+                                            ->map(fn ($presentation): array => ['value' => (string) $presentation->id, 'label' => $presentation->name])
+                                            ->prepend(['value' => '', 'label' => 'Todos los formatos'])
+                                            ->values()
+                                    ),
+                                })"
+                                class="relative"
+                                @click.outside="closePanel()"
                             >
-                                <option value="">Todos los formatos</option>
-                                @foreach ($filterPresentations as $presentation)
-                                    <option value="{{ $presentation->id }}" @selected((string) $presentationId === (string) $presentation->id)>{{ $presentation->name }}</option>
-                                @endforeach
-                            </flux:select>
+                                <input x-ref="input" type="hidden" name="presentation_id" x-model="value">
+
+                                <button
+                                    type="button"
+                                    @click="open ? closePanel() : openPanel()"
+                                    class="flex h-12 w-full items-center justify-between rounded-xl border border-zinc-200 bg-white px-3 text-left text-sm text-slate-800 shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                                >
+                                    <span class="truncate" x-text="selectedLabel"></span>
+                                    <flux:icon.chevron-down class="size-4 shrink-0 text-zinc-400 transition" x-bind:class="{ 'rotate-180': open }" />
+                                </button>
+
+                                <div
+                                    x-show="open"
+                                    x-cloak
+                                    x-transition.opacity.scale.origin.top
+                                    class="absolute left-0 z-30 mt-2 w-full rounded-2xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#0f1720]"
+                                >
+                                    <flux:input
+                                        x-ref="search"
+                                        x-model="query"
+                                        type="search"
+                                        placeholder="Buscar formato..."
+                                        class="h-10 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0b1118] dark:text-white"
+                                    />
+
+                                    <div class="mt-2 max-h-56 overflow-y-auto">
+                                        <template x-for="option in filteredOptions" :key="`${option.value}-${option.label}`">
+                                            <button
+                                                type="button"
+                                                @click="choose(option.value)"
+                                                class="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-white/5"
+                                                :class="String(option.value) === value ? 'bg-zinc-100 font-medium dark:bg-white/10' : ''"
+                                            >
+                                                <span class="truncate" x-text="option.label"></span>
+                                            </button>
+                                        </template>
+
+                                        <div x-show="filteredOptions.length === 0" class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                            No se encontraron formatos.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -583,12 +724,73 @@
                                     </div>
 
                                     <div class="space-y-1.5">
-                                        <flux:select x-model="form.brand_id" label="Marca *" class="rounded-2xl">
-                                            <option value="">Selecciona una marca</option>
-                                            <template x-for="brand in brands" :key="brand.id">
-                                                <option :value="brand.id" x-text="brand.name"></option>
-                                            </template>
-                                        </flux:select>
+                                        <template x-if="brands.length > 7">
+                                            <div
+                                                x-data="filterableSelect({
+                                                    value: '',
+                                                    placeholder: 'Selecciona una marca',
+                                                    submitOnChoose: false,
+                                                    options: brands.map((brand) => ({ value: String(brand.id), label: brand.name })),
+                                                    onChoose: (value) => { form.brand_id = value; },
+                                                })"
+                                                x-effect="value = String(form.brand_id ?? ''); options = brands.map((brand) => ({ value: String(brand.id), label: brand.name }));"
+                                                class="space-y-1.5"
+                                                @click.outside="closePanel()"
+                                            >
+                                                <flux:label>Marca *</flux:label>
+                                                <input x-ref="input" type="hidden" x-model="form.brand_id">
+
+                                                <button
+                                                    type="button"
+                                                    @click="open ? closePanel() : openPanel()"
+                                                    class="flex h-12 w-full items-center justify-between rounded-2xl border border-zinc-200 bg-white px-3 text-left text-sm text-zinc-900 dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                                                >
+                                                    <span class="truncate" x-text="selectedLabel"></span>
+                                                    <flux:icon.chevron-down class="size-4 shrink-0 text-zinc-400 transition" x-bind:class="{ 'rotate-180': open }" />
+                                                </button>
+
+                                                <div
+                                                    x-show="open"
+                                                    x-cloak
+                                                    x-transition.opacity.scale.origin.top
+                                                    class="relative z-30 rounded-2xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#0f1720]"
+                                                >
+                                                    <flux:input
+                                                        x-ref="search"
+                                                        x-model="query"
+                                                        type="search"
+                                                        placeholder="Buscar marca..."
+                                                        class="h-10 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0b1118] dark:text-white"
+                                                    />
+
+                                                    <div class="mt-2 max-h-56 overflow-y-auto">
+                                                        <template x-for="option in filteredOptions" :key="`${option.value}-${option.label}`">
+                                                            <button
+                                                                type="button"
+                                                                @click="choose(option.value)"
+                                                                class="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-white/5"
+                                                                :class="String(option.value) === String(form.brand_id ?? '') ? 'bg-zinc-100 font-medium dark:bg-white/10' : ''"
+                                                            >
+                                                                <span class="truncate" x-text="option.label"></span>
+                                                            </button>
+                                                        </template>
+
+                                                        <div x-show="filteredOptions.length === 0" class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                                            No se encontraron marcas.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="brands.length <= 7">
+                                            <flux:select x-model="form.brand_id" label="Marca *" class="rounded-2xl">
+                                                <option value="">Selecciona una marca</option>
+                                                <template x-for="brand in brands" :key="brand.id">
+                                                    <option :value="brand.id" x-text="brand.name"></option>
+                                                </template>
+                                            </flux:select>
+                                        </template>
                                         <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="openQuickCreate('brands')">
                                             + Nueva marca
                                         </button>
@@ -596,12 +798,73 @@
                                     </div>
 
                                     <div class="space-y-1.5">
-                                        <flux:select x-model="form.category_id" label="Categoría *" class="rounded-2xl">
-                                            <option value="">Selecciona una categoría</option>
-                                            <template x-for="category in categories" :key="category.id">
-                                                <option :value="category.id" x-text="category.name"></option>
-                                            </template>
-                                        </flux:select>
+                                        <template x-if="categories.length > 7">
+                                            <div
+                                                x-data="filterableSelect({
+                                                    value: '',
+                                                    placeholder: 'Selecciona una categoría',
+                                                    submitOnChoose: false,
+                                                    options: categories.map((category) => ({ value: String(category.id), label: category.name })),
+                                                    onChoose: (value) => { form.category_id = value; },
+                                                })"
+                                                x-effect="value = String(form.category_id ?? ''); options = categories.map((category) => ({ value: String(category.id), label: category.name }));"
+                                                class="space-y-1.5"
+                                                @click.outside="closePanel()"
+                                            >
+                                                <flux:label>Categoría *</flux:label>
+                                                <input x-ref="input" type="hidden" x-model="form.category_id">
+
+                                                <button
+                                                    type="button"
+                                                    @click="open ? closePanel() : openPanel()"
+                                                    class="flex h-12 w-full items-center justify-between rounded-2xl border border-zinc-200 bg-white px-3 text-left text-sm text-zinc-900 dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                                                >
+                                                    <span class="truncate" x-text="selectedLabel"></span>
+                                                    <flux:icon.chevron-down class="size-4 shrink-0 text-zinc-400 transition" x-bind:class="{ 'rotate-180': open }" />
+                                                </button>
+
+                                                <div
+                                                    x-show="open"
+                                                    x-cloak
+                                                    x-transition.opacity.scale.origin.top
+                                                    class="relative z-30 rounded-2xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#0f1720]"
+                                                >
+                                                    <flux:input
+                                                        x-ref="search"
+                                                        x-model="query"
+                                                        type="search"
+                                                        placeholder="Buscar categoría..."
+                                                        class="h-10 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0b1118] dark:text-white"
+                                                    />
+
+                                                    <div class="mt-2 max-h-56 overflow-y-auto">
+                                                        <template x-for="option in filteredOptions" :key="`${option.value}-${option.label}`">
+                                                            <button
+                                                                type="button"
+                                                                @click="choose(option.value)"
+                                                                class="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-white/5"
+                                                                :class="String(option.value) === String(form.category_id ?? '') ? 'bg-zinc-100 font-medium dark:bg-white/10' : ''"
+                                                            >
+                                                                <span class="truncate" x-text="option.label"></span>
+                                                            </button>
+                                                        </template>
+
+                                                        <div x-show="filteredOptions.length === 0" class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                                            No se encontraron categorías.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="categories.length <= 7">
+                                            <flux:select x-model="form.category_id" label="Categoría *" class="rounded-2xl">
+                                                <option value="">Selecciona una categoría</option>
+                                                <template x-for="category in categories" :key="category.id">
+                                                    <option :value="category.id" x-text="category.name"></option>
+                                                </template>
+                                            </flux:select>
+                                        </template>
                                         <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="openQuickCreate('categories')">
                                             + Nueva categoría
                                         </button>
@@ -609,12 +872,73 @@
                                     </div>
 
                                     <div class="space-y-1.5">
-                                        <flux:select x-model="form.presentation_id" label="Formato/Presentación *" class="rounded-2xl">
-                                            <option value="">Selecciona un formato</option>
-                                            <template x-for="presentation in presentations" :key="presentation.id">
-                                                <option :value="presentation.id" x-text="presentation.name"></option>
-                                            </template>
-                                        </flux:select>
+                                        <template x-if="presentations.length > 7">
+                                            <div
+                                                x-data="filterableSelect({
+                                                    value: '',
+                                                    placeholder: 'Selecciona un formato',
+                                                    submitOnChoose: false,
+                                                    options: presentations.map((presentation) => ({ value: String(presentation.id), label: presentation.name })),
+                                                    onChoose: (value) => { form.presentation_id = value; },
+                                                })"
+                                                x-effect="value = String(form.presentation_id ?? ''); options = presentations.map((presentation) => ({ value: String(presentation.id), label: presentation.name }));"
+                                                class="space-y-1.5"
+                                                @click.outside="closePanel()"
+                                            >
+                                                <flux:label>Formato/Presentación *</flux:label>
+                                                <input x-ref="input" type="hidden" x-model="form.presentation_id">
+
+                                                <button
+                                                    type="button"
+                                                    @click="open ? closePanel() : openPanel()"
+                                                    class="flex h-12 w-full items-center justify-between rounded-2xl border border-zinc-200 bg-white px-3 text-left text-sm text-zinc-900 dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                                                >
+                                                    <span class="truncate" x-text="selectedLabel"></span>
+                                                    <flux:icon.chevron-down class="size-4 shrink-0 text-zinc-400 transition" x-bind:class="{ 'rotate-180': open }" />
+                                                </button>
+
+                                                <div
+                                                    x-show="open"
+                                                    x-cloak
+                                                    x-transition.opacity.scale.origin.top
+                                                    class="relative z-30 rounded-2xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#0f1720]"
+                                                >
+                                                    <flux:input
+                                                        x-ref="search"
+                                                        x-model="query"
+                                                        type="search"
+                                                        placeholder="Buscar formato..."
+                                                        class="h-10 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0b1118] dark:text-white"
+                                                    />
+
+                                                    <div class="mt-2 max-h-56 overflow-y-auto">
+                                                        <template x-for="option in filteredOptions" :key="`${option.value}-${option.label}`">
+                                                            <button
+                                                                type="button"
+                                                                @click="choose(option.value)"
+                                                                class="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-white/5"
+                                                                :class="String(option.value) === String(form.presentation_id ?? '') ? 'bg-zinc-100 font-medium dark:bg-white/10' : ''"
+                                                            >
+                                                                <span class="truncate" x-text="option.label"></span>
+                                                            </button>
+                                                        </template>
+
+                                                        <div x-show="filteredOptions.length === 0" class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                                            No se encontraron formatos.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="presentations.length <= 7">
+                                            <flux:select x-model="form.presentation_id" label="Formato/Presentación *" class="rounded-2xl">
+                                                <option value="">Selecciona un formato</option>
+                                                <template x-for="presentation in presentations" :key="presentation.id">
+                                                    <option :value="presentation.id" x-text="presentation.name"></option>
+                                                </template>
+                                            </flux:select>
+                                        </template>
                                         <button type="button" class="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-4 hover:text-violet-700" @click="openQuickCreate('presentations')">
                                             + Nuevo formato
                                         </button>

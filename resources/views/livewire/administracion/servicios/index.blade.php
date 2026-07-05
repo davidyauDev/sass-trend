@@ -1,363 +1,407 @@
-<section class="w-full px-4 py-4 sm:px-6 lg:px-8">
+<section >
     @php
         $hasActiveFilters = $search !== '' || $categoryFilter !== '' || $statusFilter !== '';
     @endphp
 
-    <div class="flex w-full flex-col gap-5">
-        <div class="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
-            <div class="min-w-0 pt-0 lg:pt-2">
-                <flux:heading size="xl" level="1" class="mt-0 leading-none">Servicios</flux:heading>
-            </div>
+    <div class="relative w-full overflow-hidden rounded-[24px]">
+        <div class="space-y-5 px-1 py-2 sm:px-3 lg:px-0">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0">
+                    <h1 class="text-[2rem] font-semibold tracking-tight text-slate-900 dark:text-white">Servicios</h1>
+                    <p class="mt-2 text-sm text-slate-600 dark:text-zinc-400">Gestiona todas las categorías y servicios de tu negocio.</p>
+                </div>
 
-            <div class="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-end lg:justify-end">
-                <div class="flex w-full flex-wrap items-end gap-2 lg:w-auto lg:justify-end">
-                    <flux:button variant="outline" icon="plus" wire:click="openCategoryModal">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                    <flux:button
+                        variant="outline"
+                        icon="plus"
+                        wire:click="openCategoryModal"
+                        class="h-11 rounded-xl border-zinc-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm dark:border-white/10 dark:bg-white/[0.02] dark:text-white dark:shadow-none"
+                    >
                         Nueva categoría
                     </flux:button>
 
-                    <flux:button variant="primary" icon="plus" wire:click="openCreateModal">
+                    <flux:button
+                        variant="primary"
+                        icon="plus"
+                        wire:click="openCreateModal"
+                        class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-600 dark:shadow-none"
+                    >
                         Nuevo servicio
                     </flux:button>
                 </div>
             </div>
-        </div>
 
-        <flux:card class="overflow-hidden border border-zinc-200/80 bg-white shadow-sm">
-            <div class="grid gap-2 border-b border-zinc-200/80 px-4 py-4 sm:grid-cols-2 lg:grid-cols-[minmax(18rem,22rem)_minmax(12rem,14rem)_minmax(12rem,14rem)_minmax(8rem,10rem)_auto] lg:items-end lg:px-5">
-                <flux:input
-                    wire:model.live.debounce.300ms="search"
-                    icon="magnifying-glass"
-                    clearable
-                    placeholder="Buscar por nombre o categoría"
-                    class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm"
-                />
+            <div class="rounded-[24px] border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+                <div class="grid items-end gap-4 lg:grid-cols-[minmax(18rem,1.65fr)_minmax(12rem,0.95fr)_minmax(12rem,0.95fr)_minmax(10rem,0.85fr)]">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-[0.12em] text-transparent select-none">Buscar</label>
+                        <flux:input
+                            wire:model.live.debounce.300ms="search"
+                            icon="magnifying-glass"
+                            clearable
+                            placeholder="Buscar por nombre o categoría"
+                            class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                        />
+                    </div>
 
-                <div class="space-y-1">
-                    <label class="text-sm font-medium text-zinc-700">Categoría</label>
-                    <flux:select wire:model.live="categoryFilter" class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm">
-                        <option value="">Todas las categorías</option>
-                        @foreach ($this->categories as $category)
-                            <option value="{{ $category->id }}">{{ $category->name }}</option>
-                        @endforeach
-                    </flux:select>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Categoría</label>
+                        <flux:select
+                            wire:model.live="categoryFilter"
+                            class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                        >
+                            <option value="">Todas las categorías</option>
+                            @foreach ($this->categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </flux:select>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Estado</label>
+                        <flux:select
+                            wire:model.live="statusFilter"
+                            class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                        >
+                            <option value="">Todos los estados</option>
+                            <option value="active">Activos</option>
+                            <option value="inactive">Inactivos</option>
+                        </flux:select>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-zinc-300">Por página</label>
+                        <flux:select
+                            wire:model.live="perPage"
+                            class="h-12 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                        >
+                            <option value="10">10 por página</option>
+                            <option value="25">25 por página</option>
+                            <option value="50">50 por página</option>
+                        </flux:select>
+                    </div>
                 </div>
 
-                <div class="space-y-1">
-                    <label class="text-sm font-medium text-zinc-700">Estado</label>
-                    <flux:select wire:model.live="statusFilter" class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm">
-                        <option value="">Todos los estados</option>
-                        <option value="active">Activos</option>
-                        <option value="inactive">Inactivos</option>
-                    </flux:select>
-                </div>
-
-                <div class="space-y-1">
-                    <label class="text-sm font-medium text-zinc-700">Por página</label>
-                    <flux:select wire:model.live="perPage" class="w-full rounded-2xl border-zinc-200 bg-zinc-50 shadow-sm">
-                        <option value="10">10 por página</option>
-                        <option value="25">25 por página</option>
-                        <option value="50">50 por página</option>
-                    </flux:select>
-                </div>
-
-                <flux:button variant="ghost" icon="x-mark" wire:click="clearFilters" class="justify-self-start lg:justify-self-end">
-                    Limpiar
-                </flux:button>
+                @if ($hasActiveFilters)
+                    <div class="mt-4 flex justify-end">
+                        <button
+                            type="button"
+                            wire:click="clearFilters"
+                            class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-100 dark:border-white/10 dark:bg-white/[0.02] dark:text-zinc-300 dark:hover:bg-white/[0.05]"
+                        >
+                            <flux:icon name="x-mark" class="size-4" />
+                            <span>Limpiar filtros</span>
+                        </button>
+                    </div>
+                @endif
             </div>
 
             @if ($services->isEmpty())
-                <div class="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
-                    <div class="flex size-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                <div class="rounded-[24px] border border-zinc-200 bg-white px-6 py-20 text-center shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+                    <div class="mx-auto flex size-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
                         <flux:icon.sparkles class="size-8" />
                     </div>
 
-                    <div class="space-y-1">
-                        <flux:heading size="lg">{{ $hasActiveFilters ? 'No se encontraron servicios' : 'No hay servicios aún' }}</flux:heading>
-                        <flux:text class="text-sm text-zinc-500">
+                    <div class="mt-4 space-y-1">
+                        <flux:heading size="lg" class="text-slate-900 dark:text-white">
+                            {{ $hasActiveFilters ? 'No se encontraron servicios' : 'No hay servicios aún' }}
+                        </flux:heading>
+                        <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
                             {{ $hasActiveFilters
                                 ? 'Prueba quitando los filtros o cambia la búsqueda para ver resultados.'
                                 : 'Crea tu primer servicio para comenzar a registrar reservas, precios y asignaciones.' }}
                         </flux:text>
                     </div>
 
-                    <div class="flex flex-wrap items-center justify-center gap-2">
+                    <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
                         @if ($hasActiveFilters)
-                            <flux:button variant="ghost" icon="x-mark" wire:click="clearFilters">
+                            <flux:button
+                                variant="outline"
+                                icon="x-mark"
+                                wire:click="clearFilters"
+                                class="h-11 rounded-xl border-zinc-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm dark:border-white/10 dark:bg-white/[0.02] dark:text-white dark:shadow-none"
+                            >
                                 Limpiar filtros
                             </flux:button>
                         @endif
 
-                        <flux:button variant="primary" icon="plus" wire:click="openCreateModal">
+                        <flux:button
+                            variant="primary"
+                            icon="plus"
+                            wire:click="openCreateModal"
+                            class="h-11 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-600 dark:shadow-none"
+                        >
                             Nuevo servicio
                         </flux:button>
                     </div>
                 </div>
             @else
-                <div class="space-y-2 px-0 pb-4 pt-0 md:hidden">
-                    @foreach ($services as $service)
-                        @php
-                            $professionalNames = $service->professionalProfiles->isNotEmpty()
-                                ? $service->professionalProfiles->pluck('public_name')
-                                : $service->professionals->pluck('name');
-                            $visibleNames = $professionalNames->take(2);
-                            $remainingCount = max(0, $professionalNames->count() - $visibleNames->count());
-                        @endphp
+                <div class="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#111820] dark:shadow-none">
+                    <div class="space-y-3 px-3 py-3 md:hidden">
+                        @foreach ($services as $service)
+                            @php
+                                $professionalNames = $service->professionalProfiles->isNotEmpty()
+                                    ? $service->professionalProfiles->pluck('public_name')
+                                    : $service->professionals->pluck('name');
+                                $visibleNames = $professionalNames->take(2);
+                                $remainingCount = max(0, $professionalNames->count() - $visibleNames->count());
+                            @endphp
 
-                        <article
-                            x-data="{ expanded: false }"
-                            class="rounded-none border-x-0 border-y border-zinc-200/80 bg-white shadow-sm first:border-t-0"
-                        >
-                            <button
-                                type="button"
-                                class="flex w-full items-start gap-3 px-3 py-3 text-left sm:px-4"
-                                @click="expanded = !expanded"
+                            <article
+                                x-data="{ expanded: false }"
+                                class="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0f1720] dark:shadow-none"
                             >
-                                <div class="min-w-0 flex-1 space-y-1">
-                                    <div class="truncate text-lg font-semibold leading-tight text-zinc-900">
-                                        {{ $service->name }}
-                                    </div>
-
-                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
-                                        <span class="truncate">
-                                            {{ $service->category->name }}
-                                        </span>
-
-                                        <span class="hidden h-1 w-1 rounded-full bg-zinc-300 sm:inline-block"></span>
-
-                                        <span class="truncate">
-                                            S/ {{ number_format((float) $service->price, 2) }}
-                                        </span>
-
-                                        <span class="hidden h-1 w-1 rounded-full bg-zinc-300 sm:inline-block"></span>
-
-                                        <span class="truncate">
-                                            {{ $service->duration_minutes }} min
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <span
-                                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition"
-                                    :class="expanded ? 'border-violet-300 text-violet-700' : ''"
+                                <button
+                                    type="button"
+                                    class="flex w-full items-start gap-3 px-4 py-4 text-left"
+                                    @click="expanded = !expanded"
                                 >
-                                    <flux:icon name="chevron-down" class="size-4 transition-transform" :class="expanded ? 'rotate-180' : ''" />
-                                </span>
-                            </button>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <div class="truncate text-[1.05rem] font-semibold leading-tight text-slate-900 dark:text-white">
+                                                    {{ $service->name }}
+                                                </div>
+                                                <div class="mt-1 truncate text-sm text-zinc-500 dark:text-zinc-400">
+                                                    {{ $service->category->name }}
+                                                </div>
+                                            </div>
 
-                            <div x-show="expanded" x-cloak x-transition class="border-t border-zinc-100 px-3 py-4 sm:px-4">
-                                <div class="grid grid-cols-2 gap-3 text-sm">
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">Profesionales</div>
-                                        <div class="mt-1 font-medium text-zinc-900">
-                                            {{ $professionalNames->isEmpty() ? 'Sin profesionales' : $professionalNames->count().' asignados' }}
-                                        </div>
-                                    </div>
-
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">Reservas online</div>
-                                        <div class="mt-1 font-medium {{ $service->is_bookable_online ? 'text-emerald-600' : 'text-amber-600' }}">
-                                            {{ $service->is_bookable_online ? 'Activas' : 'Inactivas' }}
-                                        </div>
-                                    </div>
-
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">Estado</div>
-                                        <div class="mt-1 font-medium {{ $service->is_active ? 'text-emerald-600' : 'text-rose-600' }}">
-                                            {{ $service->is_active ? 'Activo' : 'Inactivo' }}
-                                        </div>
-                                    </div>
-
-                                    <div class="rounded-2xl bg-zinc-50 px-3 py-2">
-                                        <div class="text-[11px] uppercase tracking-wide text-zinc-500">Duración</div>
-                                        <div class="mt-1 font-medium text-zinc-900">{{ $service->duration_minutes }} min</div>
-                                    </div>
-
-                                    @if ($professionalNames->isNotEmpty())
-                                        <div class="col-span-2 rounded-2xl bg-zinc-50 px-3 py-2">
-                                            <div class="text-[11px] uppercase tracking-wide text-zinc-500">Asignados</div>
-                                            <div class="mt-2 flex flex-wrap gap-2">
-                                                @foreach ($visibleNames as $name)
-                                                    <span class="inline-flex max-w-full items-center rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 ring-1 ring-zinc-200">
-                                                        <span class="truncate">{{ $name }}</span>
-                                                    </span>
-                                                @endforeach
-
-                                                @if ($remainingCount > 0)
-                                                    <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-600 ring-1 ring-sky-200">
-                                                        +{{ $remainingCount }} más
-                                                    </span>
-                                                @endif
+                                            <div class="shrink-0 text-right">
+                                                <div class="text-lg font-semibold leading-none text-emerald-600 dark:text-emerald-400">
+                                                    S/ {{ number_format((float) $service->price, 2) }}
+                                                </div>
+                                                <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                                    {{ $service->duration_minutes }} min
+                                                </div>
                                             </div>
                                         </div>
-                                    @endif
-                                </div>
+                                    </div>
 
-                                <div class="mt-4 grid grid-cols-3 gap-2">
-                                    <button
-                                        type="button"
-                                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 transition hover:border-violet-300 hover:bg-violet-100"
-                                        wire:click="openEditModal({{ $service->id }})"
-                                    >
-                                        <flux:icon name="pencil-square" class="size-4" />
-                                        <span>Editar</span>
-                                    </button>
+                                    <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-zinc-500 transition dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-300">
+                                        <flux:icon name="chevron-down" class="size-4 transition-transform" :class="expanded ? 'rotate-180' : ''" />
+                                    </span>
+                                </button>
 
-                                    <button
-                                        type="button"
-                                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
-                                        wire:click="toggleStatus({{ $service->id }})"
-                                    >
-                                        <flux:icon name="{{ $service->is_active ? 'pause-circle' : 'play-circle' }}" class="size-4" />
-                                        <span>{{ $service->is_active ? 'Desactivar' : 'Activar' }}</span>
-                                    </button>
+                                <div x-show="expanded" x-cloak x-transition.opacity.duration.200ms class="border-t border-zinc-100 px-4 py-4 dark:border-white/10">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div class="rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                            <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Profesionales</div>
+                                            <div class="mt-1 font-medium text-slate-900 dark:text-white">
+                                                {{ $professionalNames->isEmpty() ? 'Sin asignar' : $professionalNames->count().' asignados' }}
+                                            </div>
+                                        </div>
 
-                                    <button
-                                        type="button"
-                                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition hover:border-rose-300 hover:bg-rose-100"
-                                        wire:click="confirmDelete({{ $service->id }})"
-                                    >
-                                        <flux:icon name="trash" class="size-4" />
-                                        <span>Eliminar</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </article>
-                    @endforeach
-                </div>
+                                        <div class="rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                            <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Online</div>
+                                            <div class="mt-1 font-medium {{ $service->is_bookable_online ? 'text-sky-600 dark:text-sky-400' : 'text-zinc-500 dark:text-zinc-400' }}">
+                                                {{ $service->is_bookable_online ? 'Activas' : 'Inactivas' }}
+                                            </div>
+                                        </div>
 
-                <div class="hidden md:block">
-                    <flux:table>
-                        <flux:table.columns>
-                            <flux:table.column class="w-[22%]">
-                                Nombre
-                            </flux:table.column>
+                                        <div class="rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                            <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Estado</div>
+                                            <div class="mt-1 font-medium {{ $service->is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                                                {{ $service->is_active ? 'Activo' : 'Inactivo' }}
+                                            </div>
+                                        </div>
 
-                            <flux:table.column class="w-[16%]">
-                                Categoría
-                            </flux:table.column>
+                                        <div class="rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                            <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Duración</div>
+                                            <div class="mt-1 font-medium text-slate-900 dark:text-white">{{ $service->duration_minutes }} min</div>
+                                        </div>
 
-                            <flux:table.column class="w-[12%]">
-                                Precio
-                            </flux:table.column>
+                                        @if ($professionalNames->isNotEmpty())
+                                            <div class="col-span-2 rounded-[20px] bg-zinc-50 px-4 py-3 dark:bg-white/[0.03]">
+                                                <div class="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Asignados</div>
+                                                <div class="mt-2 flex flex-wrap gap-2">
+                                                    @foreach ($visibleNames as $name)
+                                                        <span class="inline-flex max-w-full items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-200">
+                                                            <span class="truncate">{{ $name }}</span>
+                                                        </span>
+                                                    @endforeach
 
-                            <flux:table.column class="w-[12%]">
-                                Duración
-                            </flux:table.column>
-
-                            <flux:table.column class="w-[22%]">
-                                Profesionales
-                            </flux:table.column>
-
-                            <flux:table.column class="w-[10%]">
-                                Online
-                            </flux:table.column>
-
-                            <flux:table.column class="w-[8%]">
-                                Estado
-                            </flux:table.column>
-
-                            <flux:table.column class="w-[8rem] min-w-[8rem] text-center">
-                                Opciones
-                            </flux:table.column>
-                        </flux:table.columns>
-
-                        <flux:table.rows>
-                            @foreach ($services as $service)
-                                @php
-                                    $professionalNames = $service->professionalProfiles->isNotEmpty()
-                                        ? $service->professionalProfiles->pluck('public_name')
-                                        : $service->professionals->pluck('name');
-                                    $visibleNames = $professionalNames->take(2);
-                                    $remainingCount = max(0, $professionalNames->count() - $visibleNames->count());
-                                @endphp
-
-                                <flux:table.row :key="$service->id">
-                                    <flux:table.cell class="font-medium text-zinc-900">
-                                        {{ $service->name }}
-                                    </flux:table.cell>
-
-                                    <flux:table.cell>
-                                        {{ $service->category->name }}
-                                    </flux:table.cell>
-
-                                    <flux:table.cell>
-                                        S/ {{ number_format((float) $service->price, 2) }}
-                                    </flux:table.cell>
-
-                                    <flux:table.cell>
-                                        {{ $service->duration_minutes }} min
-                                    </flux:table.cell>
-
-                                    <flux:table.cell>
-                                        @if ($professionalNames->isEmpty())
-                                            <span class="text-zinc-400">Sin profesionales</span>
-                                        @else
-                                            <div class="flex flex-wrap gap-2">
-                                                @foreach ($visibleNames as $name)
-                                                    <span class="inline-flex max-w-full items-center rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 ring-1 ring-zinc-200">
-                                                        <span class="truncate">{{ $name }}</span>
-                                                    </span>
-                                                @endforeach
-
-                                                @if ($remainingCount > 0)
-                                                    <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-600 ring-1 ring-sky-200">
-                                                        +{{ $remainingCount }} más
-                                                    </span>
-                                                @endif
+                                                    @if ($remainingCount > 0)
+                                                        <span class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-600 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300">
+                                                            +{{ $remainingCount }} más
+                                                        </span>
+                                                    @endif
+                                                </div>
                                             </div>
                                         @endif
-                                    </flux:table.cell>
+                                    </div>
 
-                                    <flux:table.cell>
-                                        <span class="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium {{ $service->is_bookable_online ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700' }}">
-                                            {{ $service->is_bookable_online ? 'Activas' : 'Inactivas' }}
-                                        </span>
-                                    </flux:table.cell>
+                                    <div class="mt-4 grid grid-cols-3 gap-2">
+                                        <button
+                                            type="button"
+                                            class="inline-flex items-center justify-center rounded-2xl border border-zinc-200 bg-white px-3 py-2.5 text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06]"
+                                            wire:click="openEditModal({{ $service->id }})"
+                                            aria-label="Editar servicio"
+                                        >
+                                            <flux:icon name="pencil-square" class="size-4" />
+                                        </button>
 
-                                    <flux:table.cell>
-                                        <span class="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium {{ $service->is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-600' }}">
-                                            {{ $service->is_active ? 'Activo' : 'Inactivo' }}
-                                        </span>
-                                    </flux:table.cell>
+                                        <button
+                                            type="button"
+                                            class="inline-flex items-center justify-center rounded-2xl border border-zinc-200 bg-white px-3 py-2.5 text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06]"
+                                            wire:click="toggleStatus({{ $service->id }})"
+                                            aria-label="{{ $service->is_active ? 'Desactivar servicio' : 'Activar servicio' }}"
+                                        >
+                                            <flux:icon name="{{ $service->is_active ? 'pause-circle' : 'play-circle' }}" class="size-4" />
+                                        </button>
 
-                                    <flux:table.cell>
-                                        <div class="flex items-center justify-center gap-2">
-                                            <flux:button
-                                                size="sm"
-                                                variant="ghost"
-                                                icon="pencil-square"
-                                                aria-label="Editar servicio"
-                                                wire:click="openEditModal({{ $service->id }})"
-                                            ></flux:button>
+                                        <button
+                                            type="button"
+                                            class="inline-flex items-center justify-center rounded-2xl bg-rose-500 px-3 py-2.5 text-white transition hover:bg-rose-600 dark:bg-rose-500 dark:hover:bg-rose-600"
+                                            wire:click="confirmDelete({{ $service->id }})"
+                                            aria-label="Eliminar servicio"
+                                        >
+                                            <flux:icon name="trash" class="size-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
 
-                                            <flux:button
-                                                size="sm"
-                                                variant="ghost"
-                                                :icon="$service->is_active ? 'pause-circle' : 'play-circle'"
-                                                aria-label="{{ $service->is_active ? 'Desactivar servicio' : 'Activar servicio' }}"
-                                                wire:click="toggleStatus({{ $service->id }})"
-                                            ></flux:button>
+                    <div class="hidden md:block">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full border-separate border-spacing-0">
+                                <thead>
+                                    <tr>
+                                        <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Nombre</th>
+                                        <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Categoría</th>
+                                        <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Precio</th>
+                                        <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Duración</th>
+                                        <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Profesionales</th>
+                                        <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Online</th>
+                                        <th class="border-b border-zinc-200 px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Estado</th>
+                                        <th class="border-b border-zinc-200 px-5 py-4 text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-700 dark:border-white/10 dark:text-zinc-300">Opciones</th>
+                                    </tr>
+                                </thead>
 
-                                            <flux:button
-                                                size="sm"
-                                                variant="danger"
-                                                icon="trash"
-                                                aria-label="Eliminar servicio"
-                                                wire:click="confirmDelete({{ $service->id }})"
-                                            ></flux:button>
-                                        </div>
-                                    </flux:table.cell>
-                                </flux:table.row>
-                            @endforeach
-                        </flux:table.rows>
-                    </flux:table>
-                </div>
+                                <tbody>
+                                    @foreach ($services as $service)
+                                        @php
+                                            $professionalNames = $service->professionalProfiles->isNotEmpty()
+                                                ? $service->professionalProfiles->pluck('public_name')
+                                                : $service->professionals->pluck('name');
+                                            $visibleNames = $professionalNames->take(2);
+                                            $remainingCount = max(0, $professionalNames->count() - $visibleNames->count());
+                                        @endphp
 
-                <div class="border-t border-zinc-200/80 px-2 py-3 md:px-4">
-                    {{ $services->links() }}
+                                        <tr wire:key="service-row-{{ $service->id }}">
+                                            <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
+                                                <div class="font-semibold text-slate-900 dark:text-white">{{ $service->name }}</div>
+                                            </td>
+
+                                            <td class="border-b border-zinc-100 px-5 py-5 align-top text-sm text-slate-600 dark:border-white/5 dark:text-zinc-300">
+                                                {{ $service->category->name }}
+                                            </td>
+
+                                            <td class="border-b border-zinc-100 px-5 py-5 align-top text-sm text-slate-600 dark:border-white/5 dark:text-zinc-300">
+                                                S/ {{ number_format((float) $service->price, 2) }}
+                                            </td>
+
+                                            <td class="border-b border-zinc-100 px-5 py-5 align-top text-sm text-slate-600 dark:border-white/5 dark:text-zinc-300">
+                                                {{ $service->duration_minutes }} min
+                                            </td>
+
+                                            <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
+                                                @if ($professionalNames->isEmpty())
+                                                    <span class="text-sm text-zinc-400 dark:text-zinc-500">Sin profesionales</span>
+                                                @else
+                                                    <div class="flex flex-wrap gap-2">
+                                                        @foreach ($visibleNames as $name)
+                                                            <span class="inline-flex max-w-full items-center rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-200">
+                                                                <span class="truncate">{{ $name }}</span>
+                                                            </span>
+                                                        @endforeach
+
+                                                        @if ($remainingCount > 0)
+                                                            <span class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-600 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300">
+                                                                +{{ $remainingCount }} más
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            </td>
+
+                                            <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
+                                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $service->is_bookable_online ? 'bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300' : 'bg-zinc-100 text-zinc-600 dark:bg-white/[0.05] dark:text-zinc-400' }}">
+                                                    {{ $service->is_bookable_online ? 'Activas' : 'Inactivas' }}
+                                                </span>
+                                            </td>
+
+                                            <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
+                                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $service->is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-zinc-100 text-zinc-600 dark:bg-white/[0.05] dark:text-zinc-400' }}">
+                                                    {{ $service->is_active ? 'Activo' : 'Inactivo' }}
+                                                </span>
+                                            </td>
+
+                                            <td class="border-b border-zinc-100 px-5 py-5 align-top dark:border-white/5">
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <button
+                                                        type="button"
+                                                        class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06]"
+                                                        wire:click="openEditModal({{ $service->id }})"
+                                                        aria-label="Editar servicio"
+                                                    >
+                                                        <flux:icon name="pencil-square" class="size-4" />
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        class="inline-flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06]"
+                                                        wire:click="toggleStatus({{ $service->id }})"
+                                                        aria-label="{{ $service->is_active ? 'Desactivar servicio' : 'Activar servicio' }}"
+                                                    >
+                                                        <flux:icon name="{{ $service->is_active ? 'pause-circle' : 'play-circle' }}" class="size-4" />
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        class="inline-flex size-9 items-center justify-center rounded-xl bg-rose-500 text-white transition hover:bg-rose-600 dark:bg-rose-500 dark:hover:bg-rose-600"
+                                                        wire:click="confirmDelete({{ $service->id }})"
+                                                        aria-label="Eliminar servicio"
+                                                    >
+                                                        <flux:icon name="trash" class="size-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-4 border-t border-zinc-200 px-4 py-4 md:flex-row md:items-center md:justify-between dark:border-white/10">
+                        <div class="text-sm text-slate-600 dark:text-zinc-400">
+                            Mostrando {{ $services->firstItem() }} a {{ $services->lastItem() }} de {{ $services->total() }} servicios
+                        </div>
+
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <div class="min-w-[10rem]">
+                                <flux:select
+                                    wire:model.live="perPage"
+                                    class="h-11 rounded-xl border-zinc-200 bg-white text-sm shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
+                                >
+                                    <option value="10">10 por página</option>
+                                    <option value="25">25 por página</option>
+                                    <option value="50">50 por página</option>
+                                </flux:select>
+                            </div>
+
+                            <div class="services-pagination">
+                                {{ $services->links('vendor.pagination.livewire-table-clean') }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             @endif
-        </flux:card>
+        </div>
     </div>
 
     @if ($showUpsertModal)

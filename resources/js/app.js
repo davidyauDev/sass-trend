@@ -45,6 +45,58 @@ const createToastMixin = (storageKey) => ({
 });
 
 document.addEventListener('alpine:init', () => {
+    Alpine.data('filterableSelect', (config) => ({
+        open: false,
+        query: '',
+        value: String(config.value ?? ''),
+        placeholder: config.placeholder ?? 'Selecciona una opción',
+        options: config.options ?? [],
+        submitOnChoose: config.submitOnChoose ?? true,
+        onChoose: typeof config.onChoose === 'function' ? config.onChoose : null,
+        init() {
+            this.value = String(config.value ?? '');
+        },
+        get selectedOption() {
+            return this.options.find((option) => String(option.value) === this.value) ?? null;
+        },
+        get selectedLabel() {
+            return this.selectedOption?.label ?? this.placeholder;
+        },
+        get filteredOptions() {
+            const term = this.query.trim().toLowerCase();
+
+            if (term === '') {
+                return this.options;
+            }
+
+            return this.options.filter((option) => option.label.toLowerCase().includes(term));
+        },
+        openPanel() {
+            this.open = true;
+
+            this.$nextTick(() => {
+                this.$refs.search?.focus();
+            });
+        },
+        closePanel() {
+            this.open = false;
+            this.query = '';
+        },
+        choose(optionValue) {
+            this.value = String(optionValue ?? '');
+            if (this.$refs.input) {
+                this.$refs.input.value = this.value;
+                this.$refs.input.dispatchEvent(new Event('input', { bubbles: true }));
+                this.$refs.input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            this.onChoose?.(this.value);
+            this.closePanel();
+            if (this.submitOnChoose) {
+                this.$refs.input?.form?.requestSubmit();
+            }
+        },
+    }));
+
     Alpine.data('productInventory', (config) => ({
         activeTab: 'basic',
         isOpen: false,
