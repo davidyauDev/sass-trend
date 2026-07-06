@@ -45,6 +45,7 @@
                                 name="q"
                                 value="{{ $search }}"
                                 type="search"
+                                oninput="this.form.requestSubmit()"
                                 icon="magnifying-glass"
                                 placeholder="Buscar por nombre, marca o código..."
                                 class="h-12 rounded-xl border-zinc-200 bg-white shadow-none dark:border-white/10 dark:bg-[#0d131a] dark:text-white"
