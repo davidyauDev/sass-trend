@@ -23,6 +23,7 @@ class DemoDataSeeder extends Seeder
     {
         DB::transaction(function (): void {
             $locations = $this->seedLocations();
+            $this->pruneLocations();
             $users = $this->seedUsers($locations);
             $this->seedClients();
             $categories = $this->seedServiceCategories();
@@ -52,48 +53,6 @@ class DemoDataSeeder extends Seeder
                 'image_path' => null,
                 'is_active' => true,
                 'schedules' => $this->defaultLocationSchedule('09:00', '20:00', '18:00'),
-            ],
-            [
-                'code' => 'san-isidro',
-                'name' => 'SASS Trend San Isidro',
-                'address' => 'Av. Jorge Basadre 428, San Isidro, Lima',
-                'phone' => '987654322',
-                'email' => 'sanisidro@sasstrend.pe',
-                'timezone' => 'America/Lima',
-                'accepts_online_bookings' => true,
-                'secondary_phone' => '014567891',
-                'description' => 'Sede corporativa con foco en manicure, pedicure y servicios express.',
-                'image_path' => null,
-                'is_active' => true,
-                'schedules' => $this->defaultLocationSchedule('10:00', '21:00', '18:00'),
-            ],
-            [
-                'code' => 'surco',
-                'name' => 'SASS Trend Surco',
-                'address' => 'Av. Caminos del Inca 345, Santiago de Surco, Lima',
-                'phone' => '987654323',
-                'email' => 'surco@sasstrend.pe',
-                'timezone' => 'America/Lima',
-                'accepts_online_bookings' => true,
-                'secondary_phone' => '014567892',
-                'description' => 'Sede especializada en tratamientos capilares y depilacion.',
-                'image_path' => null,
-                'is_active' => true,
-                'schedules' => $this->defaultLocationSchedule('09:00', '19:00', '17:00'),
-            ],
-            [
-                'code' => 'la-molina',
-                'name' => 'SASS Trend La Molina',
-                'address' => 'Av. Raul Ferrero 1025, La Molina, Lima',
-                'phone' => '987654324',
-                'email' => 'lamolina@sasstrend.pe',
-                'timezone' => 'America/Lima',
-                'accepts_online_bookings' => true,
-                'secondary_phone' => '014567893',
-                'description' => 'Sede familiar para cejas, pestanas, pedicure y servicios sociales.',
-                'image_path' => null,
-                'is_active' => true,
-                'schedules' => $this->defaultLocationSchedule('10:00', '19:00', '15:00'),
             ],
         ];
 
@@ -152,7 +111,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'ricardo.paredes@sasstrend.pe',
                 'phone' => '987100202',
                 'role_slug' => UserRoleCatalog::GENERAL_ADMIN,
-                'locations' => ['miraflores', 'san-isidro'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -162,7 +121,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'carla.medina@sasstrend.pe',
                 'phone' => '987100203',
                 'role_slug' => UserRoleCatalog::LOCATION_ADMIN,
-                'locations' => ['miraflores', 'san-isidro', 'surco', 'la-molina'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -172,7 +131,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'lucia.quispe@sasstrend.pe',
                 'phone' => '987100204',
                 'role_slug' => UserRoleCatalog::RECEPTIONIST_EDITOR,
-                'locations' => ['miraflores', 'la-molina'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -182,7 +141,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'diego.salazar@sasstrend.pe',
                 'phone' => '987100205',
                 'role_slug' => UserRoleCatalog::RECEPTIONIST_VIEWER,
-                'locations' => ['san-isidro'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -192,7 +151,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'amparo.berna@sasstrend.pe',
                 'phone' => '987100206',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'locations' => ['miraflores', 'san-isidro'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -202,7 +161,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'dorita.lopez@sasstrend.pe',
                 'phone' => '987100207',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'locations' => ['surco', 'san-isidro'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -212,7 +171,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'marizol.leandro@sasstrend.pe',
                 'phone' => '987100208',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'locations' => ['la-molina', 'miraflores'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -222,7 +181,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'lilian.aguado@sasstrend.pe',
                 'phone' => '987100209',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'locations' => ['surco', 'la-molina'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -232,7 +191,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'enith.chero@sasstrend.pe',
                 'phone' => '987100210',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'locations' => ['san-isidro', 'la-molina'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -242,7 +201,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'fabiola.valiente@sasstrend.pe',
                 'phone' => '987100211',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'locations' => ['miraflores', 'surco'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -252,7 +211,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'tatiana.bernal@sasstrend.pe',
                 'phone' => '987100212',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'locations' => ['san-isidro', 'miraflores'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
             [
@@ -262,7 +221,7 @@ class DemoDataSeeder extends Seeder
                 'email' => 'brigitte.ramos@sasstrend.pe',
                 'phone' => '987100213',
                 'role_slug' => UserRoleCatalog::STAFF_EDITOR,
-                'locations' => ['san-isidro', 'la-molina'],
+                'locations' => ['miraflores'],
                 'is_primary_admin' => false,
             ],
         ];
@@ -459,18 +418,18 @@ class DemoDataSeeder extends Seeder
     {
         $assignments = [
             'ana.torres@sasstrend.pe' => [],
-            'ricardo.paredes@sasstrend.pe' => ['miraflores', 'san-isidro'],
-            'carla.medina@sasstrend.pe' => ['miraflores', 'san-isidro', 'surco', 'la-molina'],
-            'lucia.quispe@sasstrend.pe' => ['miraflores', 'la-molina'],
-            'diego.salazar@sasstrend.pe' => ['san-isidro'],
-            'amparo.berna@sasstrend.pe' => ['miraflores', 'san-isidro'],
-            'dorita.lopez@sasstrend.pe' => ['surco', 'san-isidro'],
-            'marizol.leandro@sasstrend.pe' => ['la-molina', 'miraflores'],
-            'lilian.aguado@sasstrend.pe' => ['surco', 'la-molina'],
-            'enith.chero@sasstrend.pe' => ['san-isidro', 'la-molina'],
-            'fabiola.valiente@sasstrend.pe' => ['miraflores', 'surco'],
-            'tatiana.bernal@sasstrend.pe' => ['san-isidro', 'miraflores'],
-            'brigitte.ramos@sasstrend.pe' => ['san-isidro', 'la-molina'],
+            'ricardo.paredes@sasstrend.pe' => ['miraflores'],
+            'carla.medina@sasstrend.pe' => ['miraflores'],
+            'lucia.quispe@sasstrend.pe' => ['miraflores'],
+            'diego.salazar@sasstrend.pe' => ['miraflores'],
+            'amparo.berna@sasstrend.pe' => ['miraflores'],
+            'dorita.lopez@sasstrend.pe' => ['miraflores'],
+            'marizol.leandro@sasstrend.pe' => ['miraflores'],
+            'lilian.aguado@sasstrend.pe' => ['miraflores'],
+            'enith.chero@sasstrend.pe' => ['miraflores'],
+            'fabiola.valiente@sasstrend.pe' => ['miraflores'],
+            'tatiana.bernal@sasstrend.pe' => ['miraflores'],
+            'brigitte.ramos@sasstrend.pe' => ['miraflores'],
         ];
 
         foreach ($assignments as $email => $locationCodes) {
@@ -534,10 +493,24 @@ class DemoDataSeeder extends Seeder
     private function syncUserLocations(User $user, array $locationCodes, array $locations): void
     {
         $locationIds = collect($locationCodes)
-            ->map(fn (string $code): int => $locations[$code]->id)
+            ->map(fn (string $code): ?int => $locations[$code]->id ?? null)
+            ->filter(fn (?int $id): bool => $id !== null)
             ->all();
 
         $user->locations()->sync($locationIds);
+    }
+
+    private function pruneLocations(): void
+    {
+        $miraflores = Location::query()->where('name', 'SASS Trend Miraflores')->first();
+
+        if (! $miraflores instanceof Location) {
+            return;
+        }
+
+        Location::query()
+            ->whereKeyNot($miraflores->id)
+            ->delete();
     }
 
     /**

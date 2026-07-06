@@ -778,6 +778,20 @@ document.addEventListener('alpine:init', () => {
         selectedProduct() {
             return this.products.find((product) => String(product.id) === String(this.form.product_id));
         },
+        selectedProductStock() {
+            return Number.parseFloat(this.selectedProduct()?.current_stock ?? '0') || 0;
+        },
+        isStockAvailable() {
+            return this.selectedProductStock() > 0;
+        },
+        canSubmitSale() {
+            const quantity = Number.parseFloat(this.form.quantity ?? 0) || 0;
+
+            return this.isStockAvailable()
+                && quantity > 0
+                && quantity <= this.selectedProductStock()
+                && !this.saving;
+        },
         syncProductPrice() {
             const product = this.selectedProduct();
 
@@ -789,6 +803,34 @@ document.addEventListener('alpine:init', () => {
             return this.saving ? 'Guardando...' : 'Registrar venta';
         },
         async saveSale() {
+            const product = this.selectedProduct();
+            const availableStock = this.selectedProductStock();
+            const quantity = Number.parseFloat(this.form.quantity ?? 0) || 0;
+
+            if (!product) {
+                this.errors = {
+                    product_id: 'Selecciona un producto.',
+                };
+                this.showToast('error', 'Revisa el formulario', 'Selecciona un producto para continuar.');
+                return;
+            }
+
+            if (availableStock <= 0) {
+                this.errors = {
+                    product_id: 'Este producto no tiene stock disponible.',
+                };
+                this.showToast('error', 'Sin stock', 'Este producto no tiene stock disponible.');
+                return;
+            }
+
+            if (quantity > availableStock) {
+                this.errors = {
+                    quantity: 'La cantidad supera el stock disponible.',
+                };
+                this.showToast('error', 'Stock insuficiente', 'La cantidad supera el stock disponible.');
+                return;
+            }
+
             this.saving = true;
             this.errors = {};
 

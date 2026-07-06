@@ -785,6 +785,10 @@
                             <div class="rounded-[24px] border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-white/10 dark:bg-white/[0.03]">
                                 <div class="text-sm text-zinc-500 dark:text-zinc-400">Producto seleccionado</div>
                                 <div class="mt-1 text-lg font-semibold text-zinc-900 dark:text-white">{{ $selectedProduct->name }}</div>
+                                <div class="mt-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ (float) $selectedProduct->current_stock > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' }}">
+                                    Stock disponible:
+                                    <span class="ml-1">{{ number_format((float) $selectedProduct->current_stock, 0, '.', ',') }}</span>
+                                </div>
                                 <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                                     S/{{ number_format((float) $selectedProduct->public_sale_price, 2) }} · {{ $selectedProduct->category?->name }} · {{ $selectedProduct->brand?->name }} · {{ $selectedProduct->presentation?->name }}
                                 </div>
@@ -807,6 +811,7 @@
                             <button
                                 type="button"
                                 wire:click="increaseProductConfigurationQuantity"
+                                @disabled($selectedProduct === null || (float) $selectedProduct->current_stock <= 0 || $productConfigurationQuantity >= (int) floor((float) $selectedProduct->current_stock))
                                 class="inline-flex size-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-violet-600 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none"
                             >
                                 <flux:icon.plus class="size-5" />
@@ -825,6 +830,9 @@
                                             <option value="">No hay vendedores disponibles</option>
                                         @endforelse
                                     </flux:select>
+                                    @error('productConfigurationProfessionalId')
+                                        <p class="mt-2 text-sm font-medium text-rose-500">{{ $message }}</p>
+                                    @enderror
                                 </div>
 
                                 <div>
@@ -846,6 +854,7 @@
                                 @php
                                     $productPrice = (float) $productConfigurationPrice;
                                     $productQuantity = max(1, (int) $productConfigurationQuantity);
+                                    $availableStock = (float) ($selectedProduct?->current_stock ?? 0);
                                     $discountValue = (float) $productConfigurationDiscountValue;
                                     $grossSubtotal = round($productPrice * $productQuantity, 2);
                                     $discountAmount = $productConfigurationDiscountType === 'amount'
@@ -853,6 +862,8 @@
                                         : round($grossSubtotal * min(100, $discountValue) / 100, 2);
                                     $netSubtotal = round(max(0, $grossSubtotal - $discountAmount), 2);
                                 @endphp
+
+                                
 
                                 <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/[0.02] dark:text-zinc-300">
                                     <div class="flex items-center justify-between">
@@ -1136,9 +1147,15 @@
                         </button>
                     </div>
                 @elseif ($drawerStep === 'product-config')
-                    <button type="button" wire:click="saveProductConfiguration" class="flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 font-semibold text-white sm:h-12">
-                        Agregar al carro
-                    </button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" wire:click="backToItemPicker" class="flex h-11 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white font-semibold text-zinc-700 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 sm:h-12">
+                            Volver
+                        </button>
+
+                        <button type="button" wire:click="saveProductConfiguration" @disabled($this->productConfigurationAvailableStock <= 0) class="flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:h-12">
+                            Agregar al carro
+                        </button>
+                    </div>
                 @elseif ($drawerStep === 'client-create')
                     <button type="button" wire:click="saveInlineClient" class="flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 font-semibold text-white sm:h-12">
                         Guardar cliente

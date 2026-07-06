@@ -84,6 +84,7 @@ final class TenantDemoSeeder extends Seeder
                 $this->assignTenantToNullRecords($tenant->id);
 
                 $this->seedTenantBranches();
+                $this->pruneTenantBranches();
 
                 $this->assignTenantToNullRecords($tenant->id);
 
@@ -211,9 +212,6 @@ final class TenantDemoSeeder extends Seeder
     {
         $definitions = [
             ['name' => 'Miraflores', 'slug' => 'miraflores', 'address' => 'Av. Larco 1234, Miraflores, Lima', 'phone' => '987654321', 'email' => 'miraflores@agenda.com', 'timezone' => 'America/Lima', 'color' => 'sky', 'is_active' => true],
-            ['name' => 'San Isidro', 'slug' => 'san-isidro', 'address' => 'Av. Jorge Basadre 428, San Isidro, Lima', 'phone' => '987654322', 'email' => 'sanisidro@agenda.com', 'timezone' => 'America/Lima', 'color' => 'emerald', 'is_active' => true],
-            ['name' => 'Surco', 'slug' => 'surco', 'address' => 'Av. Caminos del Inca 345, Santiago de Surco, Lima', 'phone' => '987654323', 'email' => 'surco@agenda.com', 'timezone' => 'America/Lima', 'color' => 'violet', 'is_active' => true],
-            ['name' => 'La Molina', 'slug' => 'la-molina', 'address' => 'Av. Raúl Ferrero 1025, La Molina, Lima', 'phone' => '987654324', 'email' => 'lamolina@agenda.com', 'timezone' => 'America/Lima', 'color' => 'amber', 'is_active' => true],
         ];
 
         foreach ($definitions as $definition) {
@@ -404,9 +402,9 @@ final class TenantDemoSeeder extends Seeder
     {
         $definitions = [
             ['barcode' => '7700000000011', 'branch' => 'miraflores', 'stock' => 18],
-            ['barcode' => '7700000000028', 'branch' => 'san-isidro', 'stock' => 12],
-            ['barcode' => '7700000000035', 'branch' => 'surco', 'stock' => 9],
-            ['barcode' => '7700000000042', 'branch' => 'la-molina', 'stock' => 20],
+            ['barcode' => '7700000000028', 'branch' => 'miraflores', 'stock' => 12],
+            ['barcode' => '7700000000035', 'branch' => 'miraflores', 'stock' => 9],
+            ['barcode' => '7700000000042', 'branch' => 'miraflores', 'stock' => 20],
         ];
 
         foreach ($definitions as $definition) {
@@ -436,7 +434,7 @@ final class TenantDemoSeeder extends Seeder
     {
         $definitions = [
             ['sold_at' => Carbon::create(2026, 6, 16, 10, 0, 0), 'branch' => 'miraflores', 'user' => 'ricardo.paredes@sasstrend.pe', 'barcode' => '7700000000011', 'quantity' => 1, 'unit_price' => 85, 'notes' => 'Venta demo de dermocosmética.'],
-            ['sold_at' => Carbon::create(2026, 6, 17, 3, 0, 0), 'branch' => 'san-isidro', 'user' => 'carla.medina@sasstrend.pe', 'barcode' => '7700000000028', 'quantity' => 1, 'unit_price' => 120, 'notes' => 'Compra para cabina y reventa.'],
+            ['sold_at' => Carbon::create(2026, 6, 17, 3, 0, 0), 'branch' => 'miraflores', 'user' => 'carla.medina@sasstrend.pe', 'barcode' => '7700000000028', 'quantity' => 1, 'unit_price' => 120, 'notes' => 'Compra para cabina y reventa.'],
         ];
 
         foreach ($definitions as $definition) {
@@ -547,7 +545,7 @@ final class TenantDemoSeeder extends Seeder
             [
                 'sale_number' => 'VTA-2002',
                 'ticket_number' => '48250002',
-                'branch' => 'san-isidro',
+                'branch' => 'miraflores',
                 'client' => 'CLI-1003',
                 'user' => 'carla.medina@sasstrend.pe',
                 'sold_at' => Carbon::create(2026, 6, 17, 9, 15, 0),
@@ -702,5 +700,53 @@ final class TenantDemoSeeder extends Seeder
                 'tenant_id' => null,
                 'is_primary_admin' => false,
             ]);
+    }
+
+    private function pruneTenantBranches(): void
+    {
+        $miraflores = Branch::query()->withoutGlobalScopes()->where('slug', 'miraflores')->first();
+
+        if (! $miraflores instanceof Branch) {
+            return;
+        }
+
+        $branchIds = Branch::query()
+            ->withoutGlobalScopes()
+            ->whereKeyNot($miraflores->id)
+            ->pluck('id')
+            ->all();
+
+        if ($branchIds === []) {
+            return;
+        }
+
+        $tables = [
+            'locations',
+            'resources',
+            'appointments',
+            'schedule_blocks',
+            'commission_rules',
+            'commission_settlements',
+            'commission_audit_logs',
+            'professional_commissions',
+            'service_commissions',
+            'membership_commissions',
+            'product_commissions',
+            'product_branch_stocks',
+            'product_stock_movements',
+            'product_sales',
+            'sales',
+        ];
+
+        foreach ($tables as $table) {
+            DB::table($table)
+                ->whereIn('branch_id', $branchIds)
+                ->update(['branch_id' => $miraflores->id]);
+        }
+
+        Branch::query()
+            ->withoutGlobalScopes()
+            ->whereIn('id', $branchIds)
+            ->delete();
     }
 }

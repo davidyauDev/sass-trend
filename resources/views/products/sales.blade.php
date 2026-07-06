@@ -78,7 +78,9 @@
                         >
                             <option value="">Todos</option>
                             @foreach ($products as $product)
-                                <option value="{{ $product['id'] }}" @selected((string) $productId === (string) $product['id'])>{{ $product['name'] }}</option>
+                                <option value="{{ $product['id'] }}" @selected((string) $productId === (string) $product['id'])>
+                                    {{ $product['name'] }} · Stock: {{ number_format((float) $product['current_stock'], 2, '.', ',') }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -366,29 +368,63 @@
                                     <p class="text-sm text-rose-600" x-show="errors.branch_id" x-text="errors.branch_id" x-cloak></p>
                                 </div>
 
-                                <div class="space-y-1.5">
-                                    <flux:select
-                                        x-model="form.product_id"
-                                        label="Producto *"
-                                        class="rounded-2xl"
-                                        @change="syncProductPrice()"
-                                    >
-                                        <option value="">Selecciona un producto</option>
-                                        @foreach ($products as $product)
-                                            <option value="{{ $product['id'] }}">{{ $product['name'] }}</option>
-                                        @endforeach
-                                    </flux:select>
-                                    <div class="text-sm text-zinc-500" x-show="selectedProduct()" x-cloak>
-                                        Stock actual:
-                                        <span class="font-semibold text-zinc-700" x-text="selectedProduct()?.current_stock ?? '0.00'"></span>
-                                    </div>
-                                    <p class="text-sm text-rose-600" x-show="errors.product_id" x-text="errors.product_id" x-cloak></p>
-                                </div>
+                <div class="space-y-1.5">
+                    <flux:select
+                        x-model="form.product_id"
+                        label="Producto *"
+                        class="rounded-2xl"
+                        @change="syncProductPrice()"
+                    >
+                        <option value="">Selecciona un producto</option>
+                        @foreach ($products as $product)
+                            <option value="{{ $product['id'] }}">
+                                {{ $product['name'] }} · Stock: {{ number_format((float) $product['current_stock'], 2, '.', ',') }}
+                            </option>
+                        @endforeach
+                    </flux:select>
+                    <div class="rounded-2xl border px-3 py-2 text-sm" x-show="selectedProduct()" x-cloak
+                        x-bind:class="isStockAvailable()
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                            : 'border-rose-200 bg-rose-50 text-rose-900'">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="font-medium">Stock actual</span>
+                            <span class="font-semibold" x-text="selectedProduct()?.current_stock ?? '0.00'"></span>
+                        </div>
+                        <p class="mt-1 text-xs" x-show="isStockAvailable()" x-cloak>
+                            Cantidad disponible para agregar:
+                            <span class="font-semibold" x-text="selectedProduct()?.current_stock ?? '0.00'"></span>
+                            <span x-text="(Number.parseFloat(selectedProduct()?.current_stock ?? '0') || 0) === 1 ? 'unidad' : 'unidades'"></span>.
+                        </p>
+                        <p class="mt-1 text-xs font-medium" x-show="!isStockAvailable()" x-cloak>
+                            No puedes registrar esta venta porque el producto está sin stock.
+                        </p>
+                    </div>
+                    <p class="text-sm text-rose-600" x-show="errors.product_id" x-text="errors.product_id" x-cloak></p>
+                </div>
 
-                                <div class="space-y-1.5">
-                                    <flux:input x-model="form.quantity" label="Cantidad *" type="number" min="0.01" step="0.01" class="rounded-2xl" />
-                                    <p class="text-sm text-rose-600" x-show="errors.quantity" x-text="errors.quantity" x-cloak></p>
-                                </div>
+                <div class="space-y-1.5">
+                    <flux:input
+                        x-model="form.quantity"
+                        label="Cantidad *"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        class="rounded-2xl"
+                        x-bind:max="selectedProductStock() > 0 ? selectedProductStock() : null"
+                        x-bind:disabled="!isStockAvailable()"
+                    />
+                    <p class="text-xs text-zinc-500" x-show="selectedProduct()" x-cloak>
+                        <span x-show="isStockAvailable()" x-cloak>
+                            Puedes agregar hasta
+                            <span class="font-semibold" x-text="selectedProduct()?.current_stock ?? '0.00'"></span>
+                            <span x-text="(Number.parseFloat(selectedProduct()?.current_stock ?? '0') || 0) === 1 ? 'unidad' : 'unidades'"></span>.
+                        </span>
+                        <span class="font-medium text-rose-600" x-show="!isStockAvailable()" x-cloak>
+                            No hay unidades disponibles para este producto.
+                        </span>
+                    </p>
+                    <p class="text-sm text-rose-600" x-show="errors.quantity" x-text="errors.quantity" x-cloak></p>
+                </div>
 
                                 <div class="space-y-1.5">
                                     <flux:input x-model="form.unit_price" label="Precio unitario" type="number" min="0" step="0.01" class="rounded-2xl" />
@@ -420,7 +456,7 @@
                             <button
                                 type="submit"
                                 class="inline-flex h-9 sm:h-10 items-center justify-center rounded-xl bg-violet-600 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                x-bind:disabled="saving"
+                                x-bind:disabled="!canSubmitSale()"
                             >
                                 <span x-text="submitLabel()"></span>
                             </button>

@@ -12,11 +12,16 @@ use App\Models\Role;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\actingAs;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function (): void {
+    $this->withoutMiddleware(PreventRequestForgery::class);
+});
 
 function productCatalogsForSales(): array
 {
@@ -77,6 +82,44 @@ test('puede registrar una venta y descontar stock del local', function () {
         'quantity_delta' => -3,
         'new_stock' => 7,
     ]);
+});
+
+test('muestra el stock del producto y no permite venderlo si esta en cero', function () {
+    actingAs(User::factory()->create());
+
+    $catalogs = productCatalogsForSales();
+    $branch = Branch::factory()->create([
+        'name' => 'Local Centro',
+        'is_active' => true,
+    ]);
+
+    $product = Product::query()->create([
+        'name' => 'Shampoo sin stock',
+        'brand_id' => $catalogs['brand']->id,
+        'category_id' => $catalogs['category']->id,
+        'presentation_id' => $catalogs['presentation']->id,
+        'public_sale_price' => 50,
+        'current_stock' => 0,
+        'commission_type' => 'percent',
+    ]);
+
+    $this->get(route('products.sales.index'))
+        ->assertOk()
+        ->assertSee('Shampoo sin stock')
+        ->assertSee('Stock: 0.00');
+
+    $response = $this->post(route('products.sales.store'), [
+        'branch_id' => $branch->id,
+        'product_id' => $product->id,
+        'quantity' => 1,
+        'unit_price' => 50,
+    ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHasErrors(['quantity']);
+
+    $this->assertDatabaseCount('product_sales', 0);
+    $this->assertDatabaseCount('product_sale_items', 0);
 });
 
 test('puede ajustar stock por local y ver el detalle del modal', function () {

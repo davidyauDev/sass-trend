@@ -413,18 +413,39 @@ class Index extends Component
 
     public function saveProductConfiguration(): void
     {
-        $this->validate([
-            'productConfigurationProductId' => ['required', 'integer', Rule::exists('products', 'id')],
-            'productConfigurationProfessionalId' => ['required', 'integer', Rule::exists('professionals', 'id')],
-            'productConfigurationQuantity' => ['required', 'integer', 'min:1'],
-            'productConfigurationPrice' => ['required', 'numeric', 'min:0'],
-            'productConfigurationDiscountType' => ['required', 'string', Rule::in(['percent', 'amount'])],
-            'productConfigurationDiscountValue' => ['required', 'numeric', 'min:0'],
-        ]);
+        $this->validate(
+            [
+                'productConfigurationProductId' => ['required', 'integer', Rule::exists('products', 'id')],
+                'productConfigurationProfessionalId' => ['required', 'integer', Rule::exists('professionals', 'id')],
+                'productConfigurationQuantity' => ['required', 'integer', 'min:1'],
+                'productConfigurationPrice' => ['required', 'numeric', 'min:0'],
+                'productConfigurationDiscountType' => ['required', 'string', Rule::in(['percent', 'amount'])],
+                'productConfigurationDiscountValue' => ['required', 'numeric', 'min:0'],
+            ],
+            [
+                'productConfigurationProfessionalId.required' => 'Selecciona un vendedor para continuar.',
+                'productConfigurationProfessionalId.integer' => 'Selecciona un vendedor válido.',
+                'productConfigurationProfessionalId.exists' => 'Selecciona un vendedor válido.',
+            ],
+        );
 
         $product = Product::query()
             ->with(['brand', 'presentation'])
             ->findOrFail($this->productConfigurationProductId);
+
+        $availableStock = (float) $product->current_stock;
+
+        if ($availableStock <= 0) {
+            throw ValidationException::withMessages([
+                'productConfigurationProductId' => 'Este producto no tiene stock disponible.',
+            ]);
+        }
+
+        if ((float) $this->productConfigurationQuantity > $availableStock) {
+            throw ValidationException::withMessages([
+                'productConfigurationQuantity' => 'La cantidad supera el stock disponible.',
+            ]);
+        }
 
         $professional = $this->professionalsCatalog()->firstWhere('id', $this->productConfigurationProfessionalId);
 
@@ -1003,6 +1024,12 @@ class Index extends Component
         return Product::query()
             ->with(['brand', 'category', 'presentation'])
             ->find($this->productConfigurationProductId);
+    }
+
+    #[Computed]
+    public function productConfigurationAvailableStock(): float
+    {
+        return max(0.0, (float) ($this->productConfigurationProduct?->current_stock ?? 0));
     }
 
     /**
