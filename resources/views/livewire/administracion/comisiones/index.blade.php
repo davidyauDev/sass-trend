@@ -1,4 +1,13 @@
 <section >
+    <style>
+        dialog[data-modal="professional-services"]::backdrop,
+        dialog[data-modal="professional-default-commission"]::backdrop,
+        dialog[data-modal="product-commission"]::backdrop {
+            background: rgb(9 9 11 / 0.72);
+            backdrop-filter: blur(2px);
+        }
+    </style>
+
     <div class="relative w-full overflow-hidden rounded-[24px]">
         <div class="space-y-5 px-1 py-2 sm:px-3 lg:px-0">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -224,7 +233,7 @@
         </div>
     </div>
 
-    <flux:modal name="professional-services" wire:close="closeProfessionalServicesModal" wire:cancel="closeProfessionalServicesModal" class="w-full max-w-5xl mx-4 sm:mx-6">
+    <flux:modal name="professional-services" wire:close="closeProfessionalServicesModal" wire:cancel="closeProfessionalServicesModal" class="mx-auto my-6 w-full max-w-5xl">
         <form wire:submit.prevent="saveProfessionalServices" class="space-y-6">
             <div>
                 <flux:heading size="lg">
@@ -252,7 +261,7 @@
                                     label="Tipo"
                                 >
                                     <option value="percent">%</option>
-                                    <option value="amount">$</option>
+                                    <option value="amount">S/</option>
                                 </flux:select>
                             </div>
                         </div>
@@ -271,7 +280,7 @@
         </form>
     </flux:modal>
 
-    <flux:modal name="professional-default-commission" wire:close="closeProfessionalDefaultModal" wire:cancel="closeProfessionalDefaultModal" class="w-full max-w-lg mx-4 sm:mx-6">
+    <flux:modal name="professional-default-commission" wire:close="closeProfessionalDefaultModal" wire:cancel="closeProfessionalDefaultModal" class="mx-auto my-6 w-full max-w-lg">
         <form wire:submit.prevent="saveProfessionalDefaultCommission" class="space-y-6">
             <div>
                 <flux:heading size="lg">Comisión por defecto</flux:heading>
@@ -289,7 +298,7 @@
                     />
                     <flux:select wire:model="professionalDefaultForm.commission_type" label="Tipo">
                         <option value="percent">%</option>
-                        <option value="amount">$</option>
+                        <option value="amount">S/</option>
                     </flux:select>
                 </div>
             </div>
@@ -301,7 +310,7 @@
         </form>
     </flux:modal>
 
-    <flux:modal name="product-commission" wire:close="closeProductModal" wire:cancel="closeProductModal" class="w-full max-w-lg mx-4 sm:mx-6">
+    <flux:modal name="product-commission" wire:close="closeProductModal" wire:cancel="closeProductModal" class="mx-auto my-6 w-full max-w-lg">
         <form wire:submit.prevent="saveProductCommission" class="space-y-6">
             <div>
                 <flux:heading size="lg">Comisión del producto</flux:heading>
@@ -319,7 +328,7 @@
                     />
                     <flux:select wire:model="productForm.commission_type" label="Tipo">
                         <option value="percent">%</option>
-                        <option value="amount">$</option>
+                        <option value="amount">S/</option>
                     </flux:select>
                 </div>
             </div>
