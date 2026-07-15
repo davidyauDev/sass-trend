@@ -8,6 +8,8 @@ final class AppointmentStatusCatalog
 
     public const CONFIRMED = 'confirmed';
 
+    public const ARRIVED = 'arrived';
+
     public const IN_PROGRESS = 'in_progress';
 
     public const COMPLETED = 'completed';
@@ -26,6 +28,7 @@ final class AppointmentStatusCatalog
         return [
             ['name' => 'Pending', 'slug' => self::PENDING, 'color' => 'zinc', 'sort_order' => 10, 'is_terminal' => false],
             ['name' => 'Confirmed', 'slug' => self::CONFIRMED, 'color' => 'sky', 'sort_order' => 20, 'is_terminal' => false],
+            ['name' => 'Arrived', 'slug' => self::ARRIVED, 'color' => 'amber', 'sort_order' => 25, 'is_terminal' => false],
             ['name' => 'In Progress', 'slug' => self::IN_PROGRESS, 'color' => 'amber', 'sort_order' => 30, 'is_terminal' => false],
             ['name' => 'Completed', 'slug' => self::COMPLETED, 'color' => 'emerald', 'sort_order' => 40, 'is_terminal' => true],
             ['name' => 'Cancelled', 'slug' => self::CANCELLED, 'color' => 'red', 'sort_order' => 50, 'is_terminal' => true],

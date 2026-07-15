@@ -150,6 +150,7 @@ class AppointmentForm extends Form
             'status_slug' => ['required', 'string', Rule::in([
                 AppointmentStatusCatalog::PENDING,
                 AppointmentStatusCatalog::CONFIRMED,
+                AppointmentStatusCatalog::ARRIVED,
                 AppointmentStatusCatalog::IN_PROGRESS,
                 AppointmentStatusCatalog::COMPLETED,
                 AppointmentStatusCatalog::CANCELLED,

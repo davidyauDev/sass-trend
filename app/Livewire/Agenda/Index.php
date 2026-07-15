@@ -106,6 +106,8 @@ class Index extends Component
 
     public bool $blockAllDay = false;
 
+    public ?int $blockProfessionalId = null;
+
     /** @var array<int, array{starts_at: string, ends_at: string, label: string, branch_name: string}> */
     public array $slotSearchResults = [];
 
@@ -124,7 +126,7 @@ class Index extends Component
 
     public function updatedViewMode(): void
     {
-        if (! in_array($this->viewMode, ['day', 'week', 'month', 'list'], true)) {
+        if (! in_array($this->viewMode, ['day', 'three_days', 'week', 'month', 'list'], true)) {
             $this->viewMode = 'month';
         }
     }
@@ -173,6 +175,7 @@ class Index extends Component
     {
         $this->selectedDate = match ($this->viewMode) {
             'day' => CarbonImmutable::parse($this->selectedDate)->subDay()->toDateString(),
+            'three_days' => CarbonImmutable::parse($this->selectedDate)->subDays(3)->toDateString(),
             'week' => CarbonImmutable::parse($this->selectedDate)->subWeek()->toDateString(),
             'month', 'list' => CarbonImmutable::parse($this->selectedDate)->subMonthNoOverflow()->toDateString(),
             default => now()->toDateString(),
@@ -183,6 +186,7 @@ class Index extends Component
     {
         $this->selectedDate = match ($this->viewMode) {
             'day' => CarbonImmutable::parse($this->selectedDate)->addDay()->toDateString(),
+            'three_days' => CarbonImmutable::parse($this->selectedDate)->addDays(3)->toDateString(),
             'week' => CarbonImmutable::parse($this->selectedDate)->addWeek()->toDateString(),
             'month', 'list' => CarbonImmutable::parse($this->selectedDate)->addMonthNoOverflow()->toDateString(),
             default => now()->toDateString(),
@@ -220,6 +224,20 @@ class Index extends Component
         $this->openCreateModal();
     }
 
+    public function openCreateModalForSlot(string $startsAt, int $professionalId): void
+    {
+        $slot = CarbonImmutable::parse($startsAt);
+
+        $this->selectedDate = $slot->toDateString();
+        $this->openCreateModal();
+        $this->form->professional_id = $professionalId;
+        $this->form->starts_at = $slot->format('Y-m-d\TH:i');
+        $this->form->ends_at = $slot->addHour()->format('Y-m-d\TH:i');
+        $this->appointmentTimeDate = $slot->toDateString();
+        $this->selectedSlotStart = $this->form->starts_at;
+        $this->selectedSlotEnd = $this->form->ends_at;
+    }
+
     public function openScheduleBlockModalForDate(string $date): void
     {
         $this->authorize('create', ScheduleBlock::class);
@@ -227,6 +245,24 @@ class Index extends Component
         $day = CarbonImmutable::parse($date);
         $this->blockStartsAt = $day->setTime(9, 0)->format('Y-m-d\TH:i');
         $this->blockEndsAt = $day->setTime(18, 0)->format('Y-m-d\TH:i');
+        $this->blockType = 'unavailable';
+        $this->blockReason = '';
+        $this->blockAllDay = false;
+        $this->blockProfessionalId = $this->selectedProfessionalFilterId();
+        $this->resetValidation();
+
+        $this->modal('schedule-block-form')->show();
+    }
+
+    public function openScheduleBlockModalForSlot(string $startsAt, int $professionalId): void
+    {
+        $this->authorize('create', ScheduleBlock::class);
+
+        $slot = CarbonImmutable::parse($startsAt);
+        $this->selectedDate = $slot->toDateString();
+        $this->blockProfessionalId = $professionalId;
+        $this->blockStartsAt = $slot->format('Y-m-d\TH:i');
+        $this->blockEndsAt = $slot->addHour()->format('Y-m-d\TH:i');
         $this->blockType = 'unavailable';
         $this->blockReason = '';
         $this->blockAllDay = false;
@@ -250,7 +286,7 @@ class Index extends Component
         $createScheduleBlock->handle($this->authUser(), [
             'branch_id' => $this->branchFilterId,
             'resource_id' => $this->resourceFilterId,
-            'user_id' => $this->selectedProfessionalFilterId(),
+            'user_id' => $this->blockProfessionalId,
             'starts_at' => $validated['blockStartsAt'],
             'ends_at' => $validated['blockEndsAt'],
             'block_type' => $validated['blockType'],
@@ -693,6 +729,43 @@ class Index extends Component
         return $remainingMinutes > 0 ? $label.' '.$remainingMinutes.' minutos' : $label;
     }
 
+    /**
+     * @return array<string, bool|int|string>
+     */
+    public function appointmentPreviewData(Appointment $appointment): array
+    {
+        $clientName = $appointment->client->fullName();
+        $price = (float) $appointment->price;
+        $paid = (float) $appointment->payments->where('status', 'paid')->sum('amount');
+        $statusSlug = $appointment->status->slug;
+
+        return [
+            'id' => $appointment->id,
+            'startsAt' => $appointment->starts_at->format('H:i'),
+            'endsAt' => $appointment->ends_at->format('H:i'),
+            'clientName' => str_contains(mb_strtolower($clientName), 'sin cita previa') ? 'Sin cita previa' : $clientName,
+            'contact' => $appointment->client->email ?: ($appointment->client->phone ?: ''),
+            'initial' => mb_strtoupper(mb_substr($clientName, 0, 1)),
+            'isWalkIn' => str_contains(mb_strtolower($clientName), 'sin cita previa'),
+            'service' => $appointment->service->name,
+            'duration' => $this->serviceDurationLabel($appointment->duration_minutes),
+            'professional' => $appointment->professional?->fullName() ?? 'Cualquier miembro del equipo',
+            'price' => 'PEN '.number_format($price, 0),
+            'paymentLabel' => 'PEN '.number_format($price, 0).($paid >= $price ? ' Totalmente pagado' : ' por pagar'),
+            'status' => $statusSlug,
+            'statusLabel' => match ($statusSlug) {
+                AppointmentStatusCatalog::COMPLETED => 'Terminado',
+                AppointmentStatusCatalog::NO_SHOW => 'No se presentó',
+                AppointmentStatusCatalog::CONFIRMED => 'Confirmado',
+                AppointmentStatusCatalog::ARRIVED => 'Llegó',
+                AppointmentStatusCatalog::IN_PROGRESS => 'Comenzó',
+                AppointmentStatusCatalog::CANCELLED => 'Cancelado',
+                default => 'Reservado',
+            },
+            'serviceCount' => 1,
+        ];
+    }
+
     public function clearFilters(): void
     {
         $this->search = '';
@@ -954,6 +1027,43 @@ class Index extends Component
     }
 
     /**
+     * @return SupportCollection<int, User>
+     */
+    #[Computed]
+    public function scheduleProfessionals(): SupportCollection
+    {
+        return $this->professionalsCatalog()
+            ->when(
+                $this->professionalFilterIds !== $this->allProfessionalIds(),
+                fn (SupportCollection $professionals): SupportCollection => $professionals
+                    ->whereIn('id', $this->professionalFilterIds),
+            )
+            ->values();
+    }
+
+    #[Computed]
+    public function periodLabel(): string
+    {
+        $date = CarbonImmutable::parse($this->selectedDate);
+
+        if ($this->viewMode === 'day') {
+            return ucfirst($date->translatedFormat('l, j \d\e F'));
+        }
+
+        if (in_array($this->viewMode, ['three_days', 'week'], true)) {
+            [$start, $end] = $this->rangeBounds();
+
+            if ($start->isSameMonth($end)) {
+                return 'Del '.$start->format('j').' al '.$end->translatedFormat('j \d\e F \d\e Y');
+            }
+
+            return 'Del '.$start->translatedFormat('j \d\e F').' al '.$end->translatedFormat('j \d\e F \d\e Y');
+        }
+
+        return ucfirst($date->translatedFormat('F \d\e Y'));
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     #[Computed]
@@ -1136,7 +1246,8 @@ class Index extends Component
 
         return match ($this->viewMode) {
             'day' => [$date->startOfDay(), $date->endOfDay()],
-            'week' => [$date->startOfWeek(CarbonImmutable::MONDAY), $date->endOfWeek(CarbonImmutable::SUNDAY)],
+            'three_days' => [$date->startOfDay(), $date->addDays(2)->endOfDay()],
+            'week' => [$date->startOfWeek(CarbonImmutable::SUNDAY), $date->endOfWeek(CarbonImmutable::SATURDAY)],
             'month', 'list' => [$date->startOfMonth()->startOfDay(), $date->endOfMonth()->endOfDay()],
             default => [$date->startOfWeek(CarbonImmutable::MONDAY), $date->endOfWeek(CarbonImmutable::SUNDAY)],
         };

@@ -190,6 +190,68 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('agendaAppointmentPreview', () => ({
+        preview: null,
+        previewX: 16,
+        previewY: 16,
+        hideTimer: null,
+        quickSlot: null,
+        quickSlotX: 16,
+        quickSlotY: 16,
+        showAppointmentPreview(event, data) {
+            window.clearTimeout(this.hideTimer);
+
+            const target = event.currentTarget.getBoundingClientRect();
+            const cardWidth = 376;
+            const cardHeight = ['completed', 'arrived'].includes(data.status) ? 290 : 245;
+            const gutter = 12;
+            const fitsLeft = target.left >= cardWidth + gutter;
+
+            this.previewX = fitsLeft
+                ? target.left - cardWidth - gutter
+                : Math.min(window.innerWidth - cardWidth - gutter, target.right + gutter);
+            this.previewY = Math.max(
+                gutter,
+                Math.min(target.top - 18, window.innerHeight - cardHeight - gutter),
+            );
+            this.preview = data;
+        },
+        scheduleAppointmentPreviewHide() {
+            this.hideTimer = window.setTimeout(() => {
+                this.preview = null;
+            }, 80);
+        },
+        hideAppointmentPreview() {
+            window.clearTimeout(this.hideTimer);
+            this.preview = null;
+        },
+        openDaySlotMenu(event, dateTime, professionalId) {
+            const menuWidth = 282;
+            const menuHeight = 226;
+            const gutter = 12;
+            const slot = event.currentTarget.getBoundingClientRect();
+            const desiredX = event.clientX - (menuWidth / 2);
+            const fitsBelow = slot.bottom + menuHeight + gutter <= window.innerHeight;
+
+            this.preview = null;
+            this.quickSlotX = Math.max(
+                gutter,
+                Math.min(desiredX, window.innerWidth - menuWidth - gutter),
+            );
+            this.quickSlotY = fitsBelow
+                ? slot.bottom + 4
+                : Math.max(gutter, slot.top - menuHeight - 4);
+            this.quickSlot = {
+                dateTime,
+                professionalId: Number(professionalId),
+                time: dateTime.slice(11, 16),
+            };
+        },
+        closeDaySlotMenu() {
+            this.quickSlot = null;
+        },
+    }));
+
     Alpine.data('productInventory', (config) => ({
         activeTab: 'basic',
         isOpen: false,

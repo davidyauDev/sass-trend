@@ -57,3 +57,39 @@ test('guarda una cita corta para un cliente sin cita previa', function (): void 
         ->and($appointment->client->fullName())->toBe('Cliente sin cita previa')
         ->and($appointment->status->slug)->toBe(AppointmentStatusCatalog::PENDING);
 });
+
+test('muestra y navega la agenda de tres dias', function (): void {
+    $this->seed([PermissionSeeder::class, RoleSeeder::class]);
+
+    $user = User::factory()->administratorGeneral()->create();
+    actingAs($user);
+
+    $component = Livewire::test(AgendaIndex::class)
+        ->set('selectedDate', '2026-07-15')
+        ->set('viewMode', 'three_days')
+        ->assertSet('viewMode', 'three_days')
+        ->assertSee('3 días');
+
+    expect($component->get('rangeDays'))->toHaveCount(3)
+        ->and($component->get('periodLabel'))->toBe('Del 15 al 17 de julio de 2026');
+
+    $component->call('next')->assertSet('selectedDate', '2026-07-18');
+    $component->call('previous')->assertSet('selectedDate', '2026-07-15');
+});
+
+test('precarga una cita desde un intervalo de quince minutos', function (): void {
+    $this->seed([PermissionSeeder::class, RoleSeeder::class]);
+
+    $user = User::factory()->administratorGeneral()->create();
+    actingAs($user);
+
+    Livewire::test(AgendaIndex::class)
+        ->call('openCreateModalForSlot', '2026-07-15T13:15', $user->id)
+        ->assertSet('appointmentPanelOpen', true)
+        ->assertSet('selectedDate', '2026-07-15')
+        ->assertSet('form.professional_id', $user->id)
+        ->assertSet('form.starts_at', '2026-07-15T13:15')
+        ->assertSet('form.ends_at', '2026-07-15T14:15')
+        ->assertSet('selectedSlotStart', '2026-07-15T13:15')
+        ->assertSet('selectedSlotEnd', '2026-07-15T14:15');
+});

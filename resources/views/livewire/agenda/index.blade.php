@@ -1,5 +1,6 @@
 <section
     @class(['agenda-page', 'fixed inset-0 z-50' => $isFullscreen])
+    x-data="agendaAppointmentPreview()"
     wire:poll.30s
     data-testid="agenda-page"
 >
@@ -11,7 +12,7 @@
                 <button type="button" aria-label="Periodo anterior" wire:click="previous">
                     <flux:icon.chevron-left class="size-4" />
                 </button>
-                <span>{{ \Carbon\CarbonImmutable::parse($this->selectedDate)->translatedFormat('F \d\e Y') }}</span>
+                <span title="{{ $this->periodLabel }}">{{ $this->periodLabel }}</span>
                 <button type="button" aria-label="Periodo siguiente" wire:click="next">
                     <flux:icon.chevron-right class="size-4" />
                 </button>
@@ -201,15 +202,57 @@
                 <flux:icon.arrow-path class="size-5" />
             </button>
 
-            <label class="agenda-control agenda-view-select">
-                <select wire:model.live="viewMode" aria-label="Vista del calendario">
-                    <option value="day">Día</option>
-                    <option value="week">Semana</option>
-                    <option value="month">Mes</option>
-                    <option value="list">Lista</option>
-                </select>
-                <flux:icon.chevron-down class="size-4" />
-            </label>
+            <div
+                class="agenda-view-select"
+                x-data="{
+                    open: false,
+                    view: $wire.entangle('viewMode').live,
+                    labels: { day: 'Día', three_days: '3 días', week: 'Semana', month: 'Mes' },
+                    choose(value) {
+                        this.view = value;
+                        this.open = false;
+                    },
+                }"
+                @click.outside="open = false"
+                @keydown.escape.window="open = false"
+            >
+                <button
+                    type="button"
+                    class="agenda-control agenda-view-select__trigger"
+                    aria-label="Vista del calendario"
+                    :aria-expanded="open"
+                    @click="open = ! open"
+                >
+                    <span x-text="labels[view]"></span>
+                    <flux:icon.chevron-down class="size-4" x-bind:class="{ 'rotate-180': open }" />
+                </button>
+
+                <div
+                    x-show="open"
+                    x-cloak
+                    x-transition.opacity.scale.origin.top.right
+                    class="agenda-view-select__menu"
+                    role="menu"
+                    aria-label="Seleccionar vista"
+                >
+                    <button type="button" role="menuitemradio" :aria-checked="view === 'day'" :class="{ 'is-selected': view === 'day' }" @click="choose('day')">
+                        <span class="agenda-view-glyph agenda-view-glyph--day" aria-hidden="true"></span>
+                        <span>Día</span>
+                    </button>
+                    <button type="button" role="menuitemradio" :aria-checked="view === 'three_days'" :class="{ 'is-selected': view === 'three_days' }" @click="choose('three_days')">
+                        <span class="agenda-view-glyph agenda-view-glyph--three-days" aria-hidden="true"></span>
+                        <span>3 días</span>
+                    </button>
+                    <button type="button" role="menuitemradio" :aria-checked="view === 'week'" :class="{ 'is-selected': view === 'week' }" @click="choose('week')">
+                        <span class="agenda-view-glyph agenda-view-glyph--week" aria-hidden="true"></span>
+                        <span>Semana</span>
+                    </button>
+                    <button type="button" role="menuitemradio" :aria-checked="view === 'month'" :class="{ 'is-selected': view === 'month' }" @click="choose('month')">
+                        <span class="agenda-view-glyph agenda-view-glyph--month" aria-hidden="true"></span>
+                        <span>Mes</span>
+                    </button>
+                </div>
+            </div>
 
             <button type="button" class="agenda-primary-button" wire:click="openCreateModal">
                 Agregar
@@ -449,12 +492,22 @@
                                 @foreach ($cell['appointments'] as $appointment)
                                     <button
                                         type="button"
-                                        class="agenda-event"
+                                        @class(['agenda-event', 'agenda-event--'.$appointment->status->slug])
                                         wire:key="agenda-appointment-{{ $appointment->id }}"
                                         wire:click.stop="openDrawer({{ $appointment->id }})"
+                                        @mouseenter="showAppointmentPreview($event, @js($this->appointmentPreviewData($appointment)))"
+                                        @mouseleave="scheduleAppointmentPreviewHide()"
+                                        @click="hideAppointmentPreview()"
                                         title="{{ $appointment->title }}"
                                     >
-                                        {{ $appointment->starts_at?->format('H:i') }} {{ $appointment->client->fullName() }}
+                                        <span>{{ $appointment->starts_at?->format('H:i') }} {{ $appointment->client->fullName() }}</span>
+                                        @switch($appointment->status->slug)
+                                            @case(\App\Services\Agenda\AppointmentStatusCatalog::COMPLETED)<flux:icon.tag class="size-4" />@break
+                                            @case(\App\Services\Agenda\AppointmentStatusCatalog::NO_SHOW)<flux:icon.eye-slash class="size-4" />@break
+                                            @case(\App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED)<flux:icon.hand-thumb-up class="size-4" />@break
+                                            @case(\App\Services\Agenda\AppointmentStatusCatalog::ARRIVED)<flux:icon.map-pin class="size-4" />@break
+                                            @case(\App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS)<flux:icon.play class="size-4" />@break
+                                        @endswitch
                                     </button>
                                 @endforeach
 
@@ -474,7 +527,14 @@
     @elseif ($this->viewMode === 'list')
         <div class="agenda-list-view">
             @forelse ($this->appointments as $appointment)
-                <button type="button" class="agenda-list-item" wire:click="openDrawer({{ $appointment->id }})">
+                <button
+                    type="button"
+                    class="agenda-list-item"
+                    wire:click="openDrawer({{ $appointment->id }})"
+                    @mouseenter="showAppointmentPreview($event, @js($this->appointmentPreviewData($appointment)))"
+                    @mouseleave="scheduleAppointmentPreviewHide()"
+                    @click="hideAppointmentPreview()"
+                >
                     <time>{{ $appointment->starts_at?->translatedFormat('D d M · H:i') }}</time>
                     <strong>{{ $appointment->client->fullName() }}</strong>
                     <span>{{ $appointment->service->name }} · {{ $appointment->branch->name }}</span>
@@ -484,27 +544,251 @@
                 <div class="agenda-empty-view">No hay citas en este periodo.</div>
             @endforelse
         </div>
-    @else
-        <div class="agenda-range-view" style="--agenda-columns: {{ count($this->rangeDays) }}">
-            @foreach ($this->rangeDays as $day)
-                <article class="agenda-range-day">
-                    <button type="button" wire:click="$set('selectedDate', '{{ $day['key'] }}')">
-                        <small>{{ $day['short_label'] }}</small>
-                        <strong>{{ $day['date']->format('d') }}</strong>
-                    </button>
-                    <div class="agenda-events">
-                        @forelse ($day['appointments'] as $appointment)
-                            <button type="button" class="agenda-event" wire:click="openDrawer({{ $appointment->id }})">
-                                {{ $appointment->starts_at?->format('H:i') }} {{ $appointment->client->fullName() }}
-                            </button>
-                        @empty
-                            <span class="agenda-range-empty">Sin citas</span>
-                        @endforelse
+    @elseif ($this->viewMode === 'day')
+        @php
+            $day = $this->rangeDays[0];
+            $dayStart = $day['date']->setTime(8, 0);
+            $dayEnd = $day['date']->setTime(20, 0);
+        @endphp
+        <div class="agenda-day-schedule" style="--agenda-professionals: {{ max(1, $this->scheduleProfessionals->count()) }}">
+            <header class="agenda-day-schedule__header">
+                <span class="agenda-day-schedule__corner"></span>
+                @forelse ($this->scheduleProfessionals as $professional)
+                    <div class="agenda-professional-heading">
+                        <span class="agenda-professional-avatar">
+                            @if ($professional->photoUrl())
+                                <img src="{{ $professional->photoUrl() }}" alt="">
+                            @else
+                                {{ $professional->initials() }}
+                            @endif
+                        </span>
+                        <strong>{{ $professional->fullName() }}</strong>
                     </div>
-                </article>
-            @endforeach
+                @empty
+                    <div class="agenda-schedule-empty">Selecciona al menos un miembro del equipo.</div>
+                @endforelse
+            </header>
+
+            <div class="agenda-day-schedule__scroll">
+                <div class="agenda-day-schedule__body">
+                    <aside class="agenda-time-axis">
+                        @for ($hour = 8; $hour <= 20; $hour++)
+                            <span style="--agenda-hour: {{ $hour - 8 }}">{{ sprintf('%02d:00', $hour) }}</span>
+                        @endfor
+                    </aside>
+
+                    @foreach ($this->scheduleProfessionals as $professional)
+                        <section class="agenda-day-professional">
+                            <div class="agenda-day-slots" aria-label="Intervalos de 15 minutos para {{ $professional->fullName() }}">
+                                @for ($slotIndex = 0; $slotIndex < 48; $slotIndex++)
+                                    @php
+                                        $slotDateTime = $dayStart->addMinutes($slotIndex * 15);
+                                    @endphp
+                                    <button
+                                        type="button"
+                                        class="agenda-day-slot"
+                                        :class="{ 'is-selected': quickSlot?.dateTime === @js($slotDateTime->format('Y-m-d\TH:i')) && quickSlot?.professionalId === {{ $professional->id }} }"
+                                        title="{{ $slotDateTime->format('H:i') }}"
+                                        @click.stop="openDaySlotMenu($event, @js($slotDateTime->format('Y-m-d\TH:i')), {{ $professional->id }})"
+                                    >
+                                        <span>{{ $slotDateTime->format('H:i') }}</span>
+                                    </button>
+                                @endfor
+                            </div>
+
+                            @foreach ($day['appointments']->filter(fn ($appointment) => (int) $appointment->professional_id === (int) $professional->id || ($loop->first && $appointment->professional_id === null)) as $appointment)
+                                @php
+                                    $startOffset = max(0, $dayStart->diffInMinutes($appointment->starts_at, false));
+                                    $duration = max(24, $appointment->starts_at->diffInMinutes($appointment->ends_at));
+                                @endphp
+                                <button
+                                    type="button"
+                                    @class(['agenda-timeline-event', 'agenda-timeline-event--'.$appointment->status->slug])
+                                    style="--agenda-event-start: {{ $startOffset }}; --agenda-event-duration: {{ $duration }}"
+                                    wire:click="openDrawer({{ $appointment->id }})"
+                                    @mouseenter="showAppointmentPreview($event, @js($this->appointmentPreviewData($appointment)))"
+                                    @mouseleave="scheduleAppointmentPreviewHide()"
+                                    @click="hideAppointmentPreview()"
+                                >
+                                    <span><strong>{{ $appointment->starts_at->format('H:i') }} - {{ $appointment->ends_at->format('H:i') }} {{ $appointment->client->fullName() }}</strong><small>{{ $appointment->service->name }}</small></span>
+                                    @switch($appointment->status->slug)
+                                        @case(\App\Services\Agenda\AppointmentStatusCatalog::COMPLETED)<flux:icon.tag class="size-4" />@break
+                                        @case(\App\Services\Agenda\AppointmentStatusCatalog::NO_SHOW)<flux:icon.eye-slash class="size-4" />@break
+                                        @case(\App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED)<flux:icon.hand-thumb-up class="size-4" />@break
+                                        @case(\App\Services\Agenda\AppointmentStatusCatalog::ARRIVED)<flux:icon.map-pin class="size-4" />@break
+                                        @case(\App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS)<flux:icon.play class="size-4" />@break
+                                    @endswitch
+                                </button>
+                            @endforeach
+                        </section>
+                    @endforeach
+
+                    @if ($day['date']->isToday() && now()->between($dayStart, $dayEnd))
+                        <div class="agenda-current-time" style="--agenda-now: {{ $dayStart->diffInMinutes(now()) }}">
+                            <span>{{ now()->format('H:i') }}</span>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @else
+        <div class="agenda-multi-schedule agenda-multi-schedule--{{ $this->viewMode }}" style="--agenda-days: {{ count($this->rangeDays) }}">
+            <header class="agenda-multi-schedule__header">
+                <span></span>
+                @foreach ($this->rangeDays as $day)
+                    <button
+                        type="button"
+                        @class(['is-selected' => $day['is_selected'], 'is-muted' => $day['date']->isBefore(now()->startOfDay())])
+                        wire:click="$set('selectedDate', '{{ $day['key'] }}')"
+                    >
+                        <strong>{{ $day['date']->format('j') }}</strong>
+                        <span>{{ $day['date']->translatedFormat('l') }}</span>
+                    </button>
+                @endforeach
+            </header>
+
+            <div class="agenda-multi-schedule__body">
+                @forelse ($this->scheduleProfessionals as $professional)
+                    <section class="agenda-professional-row">
+                        <aside>
+                            <span class="agenda-professional-avatar agenda-professional-avatar--small">
+                                @if ($professional->photoUrl())
+                                    <img src="{{ $professional->photoUrl() }}" alt="">
+                                @else
+                                    {{ $professional->initials() }}
+                                @endif
+                            </span>
+                            <strong>{{ $professional->fullName() }}</strong>
+                        </aside>
+
+                        @foreach ($this->rangeDays as $day)
+                            <div @class(['agenda-professional-day', 'is-selected' => $day['is_selected'], 'is-closed' => $day['date']->isSunday()])>
+                                <div class="agenda-events">
+                                    @foreach ($day['appointments']->filter(fn ($appointment) => (int) $appointment->professional_id === (int) $professional->id || ($loop->parent->first && $appointment->professional_id === null)) as $appointment)
+                                        <button
+                                            type="button"
+                                            @class(['agenda-event', 'agenda-event--'.$appointment->status->slug])
+                                            wire:click="openDrawer({{ $appointment->id }})"
+                                            @mouseenter="showAppointmentPreview($event, @js($this->appointmentPreviewData($appointment)))"
+                                            @mouseleave="scheduleAppointmentPreviewHide()"
+                                            @click="hideAppointmentPreview()"
+                                        >
+                                            <span>
+                                                {{ $appointment->starts_at->format('H:i') }}
+                                                @if ($this->viewMode === 'three_days')
+                                                    - {{ $appointment->ends_at->format('H:i') }}
+                                                @endif
+                                                {{ $appointment->client->fullName() }}
+                                            </span>
+                                            @switch($appointment->status->slug)
+                                                @case(\App\Services\Agenda\AppointmentStatusCatalog::COMPLETED)<flux:icon.tag class="size-4" />@break
+                                                @case(\App\Services\Agenda\AppointmentStatusCatalog::NO_SHOW)<flux:icon.eye-slash class="size-4" />@break
+                                                @case(\App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED)<flux:icon.hand-thumb-up class="size-4" />@break
+                                                @case(\App\Services\Agenda\AppointmentStatusCatalog::ARRIVED)<flux:icon.map-pin class="size-4" />@break
+                                                @case(\App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS)<flux:icon.play class="size-4" />@break
+                                            @endswitch
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </section>
+                @empty
+                    <div class="agenda-schedule-empty">Selecciona al menos un miembro del equipo.</div>
+                @endforelse
+            </div>
         </div>
     @endif
+
+    <aside
+        x-show="quickSlot"
+        x-cloak
+        class="agenda-slot-menu"
+        :style="`left: ${quickSlotX}px; top: ${quickSlotY}px`"
+        @click.outside="closeDaySlotMenu()"
+        @keydown.escape.window="closeDaySlotMenu()"
+    >
+        <header>
+            <strong x-text="quickSlot?.time"></strong>
+            <button type="button" aria-label="Cerrar acciones rápidas" @click="closeDaySlotMenu()">
+                <flux:icon.x-mark class="size-5" />
+            </button>
+        </header>
+        <div>
+            <button type="button" @click="$wire.openCreateModalForSlot(quickSlot.dateTime, quickSlot.professionalId); closeDaySlotMenu()">
+                <flux:icon.calendar-days class="size-5" />
+                <span>Agregar cita</span>
+            </button>
+            <button type="button" @click="$wire.openCreateModalForSlot(quickSlot.dateTime, quickSlot.professionalId); closeDaySlotMenu()">
+                <flux:icon.users class="size-5" />
+                <span>Agregar cita grupal</span>
+            </button>
+            <button type="button" @click="$wire.openScheduleBlockModalForSlot(quickSlot.dateTime, quickSlot.professionalId); closeDaySlotMenu()">
+                <flux:icon.calendar-days class="size-5" />
+                <span>Agregar tiempo bloqueado</span>
+            </button>
+            <button type="button" class="agenda-slot-menu__settings" @click="closeDaySlotMenu(); $dispatch('agenda-open-filters')">
+                Configuración de acciones rápidas
+            </button>
+        </div>
+    </aside>
+
+    <aside
+        x-show="preview"
+        x-cloak
+        class="agenda-hover-card"
+        :class="preview ? `agenda-hover-card--${preview.status}` : ''"
+        :style="`left: ${previewX}px; top: ${previewY}px`"
+        aria-live="polite"
+    >
+        <header class="agenda-hover-card__header">
+            <strong><span x-text="preview?.startsAt"></span> - <span x-text="preview?.endsAt"></span></strong>
+            <span class="agenda-hover-card__status">
+                <span x-text="preview?.statusLabel"></span>
+                <template x-if="preview?.status === 'completed'"><flux:icon.tag class="size-5" /></template>
+                <template x-if="preview?.status === 'no_show'"><flux:icon.eye-slash class="size-5" /></template>
+                <template x-if="preview?.status === 'confirmed'"><flux:icon.hand-thumb-up class="size-5" /></template>
+                <template x-if="preview?.status === 'arrived'"><flux:icon.map-pin class="size-5" /></template>
+                <template x-if="preview?.status === 'in_progress'"><flux:icon.play class="size-5" /></template>
+                <template x-if="! ['completed', 'no_show', 'confirmed', 'arrived', 'in_progress'].includes(preview?.status)"><flux:icon.calendar-days class="size-5" /></template>
+            </span>
+        </header>
+
+        <div class="agenda-hover-card__body">
+            <div class="agenda-hover-card__client">
+                <span class="agenda-hover-card__avatar">
+                    <svg x-show="preview?.isWalkIn" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="13.5" cy="4" r="2"></circle>
+                        <path d="m11.5 7-2.8 4.2 3.2 2.1-1.2 6.1M11.5 7l4 2.2 2.5-1.7M12 13.4l4 5.6M8.7 11.2 5 14"></path>
+                    </svg>
+                    <span x-show="! preview?.isWalkIn" x-text="preview?.initial"></span>
+                </span>
+                <div>
+                    <strong x-text="preview?.clientName"></strong>
+                    <p x-show="preview?.contact" x-text="preview?.contact"></p>
+                    <span x-show="preview?.status === 'no_show'" class="agenda-hover-card__alert">1 persona no se presentó</span>
+                    <button x-show="preview?.status === 'no_show'" type="button" tabindex="-1" class="agenda-hover-card__tag"><flux:icon.plus class="size-4" /> Agregar etiqueta</button>
+                </div>
+            </div>
+
+            <div class="agenda-hover-card__service">
+                <div>
+                    <strong x-text="preview?.service"></strong>
+                    <p><span x-text="preview?.duration"></span> · <span x-text="preview?.professional"></span></p>
+                </div>
+                <strong x-text="preview?.price"></strong>
+            </div>
+
+            <div x-show="preview?.status === 'completed'" class="agenda-hover-card__footer">
+                <div><strong>Venta</strong><p x-text="preview?.paymentLabel"></p></div>
+                <flux:icon.tag class="size-5" />
+            </div>
+            <div x-show="preview?.status === 'arrived'" class="agenda-hover-card__footer">
+                <strong><span x-text="preview?.serviceCount"></span> servicio</strong>
+                <flux:icon.calendar-days class="size-5" />
+            </div>
+        </div>
+    </aside>
 
     @if ($this->selectedAppointment)
         @php
@@ -514,6 +798,7 @@
             $statusLabels = [
                 \App\Services\Agenda\AppointmentStatusCatalog::PENDING => 'Reservada',
                 \App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED => 'Confirmada',
+                \App\Services\Agenda\AppointmentStatusCatalog::ARRIVED => 'Llegó',
                 \App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS => 'Iniciada',
                 \App\Services\Agenda\AppointmentStatusCatalog::COMPLETED => 'Completada',
                 \App\Services\Agenda\AppointmentStatusCatalog::NO_SHOW => 'No asistió',
@@ -572,6 +857,7 @@
                             <div x-show="statusOpen" x-cloak x-transition.origin.top.right class="agenda-detail-status__menu">
                                 <button type="button" wire:click="changeStatusInline({{ $appointment->id }}, '{{ \App\Services\Agenda\AppointmentStatusCatalog::PENDING }}')" @click="statusOpen = false"><flux:icon.calendar-days class="size-5" /> Reservada @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::PENDING)<flux:icon.check class="size-5" />@endif</button>
                                 <button type="button" wire:click="changeStatusInline({{ $appointment->id }}, '{{ \App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED }}')" @click="statusOpen = false"><flux:icon.check class="size-5" /> Confirmada @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED)<flux:icon.check class="size-5" />@endif</button>
+                                <button type="button" wire:click="changeStatusInline({{ $appointment->id }}, '{{ \App\Services\Agenda\AppointmentStatusCatalog::ARRIVED }}')" @click="statusOpen = false"><flux:icon.map-pin class="size-5" /> Llegó @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::ARRIVED)<flux:icon.check class="size-5" />@endif</button>
                                 <button type="button" wire:click="changeStatusInline({{ $appointment->id }}, '{{ \App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS }}')" @click="statusOpen = false"><flux:icon.arrow-path class="size-5" /> Iniciada @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS)<flux:icon.check class="size-5" />@endif</button>
                                 <button type="button" wire:click="completeAppointment" @click="statusOpen = false"><flux:icon.check class="size-5" /> Completada @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::COMPLETED)<flux:icon.check class="size-5" />@endif</button>
                                 <button type="button" class="is-danger" wire:click="markNoShow" @click="statusOpen = false"><flux:icon.eye class="size-5" /> No asistió @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::NO_SHOW)<flux:icon.check class="size-5" />@endif</button>
