@@ -92,8 +92,145 @@
     </header>
 
     @if ($this->viewMode === 'month')
-        <div class="agenda-grid-scroll">
-            <div class="agenda-calendar">
+        <div
+            class="agenda-grid-scroll"
+            x-data="{
+                swipeActive: false,
+                swipeHandled: false,
+                swipeAxis: null,
+                swipeAnimating: false,
+                swipeWheelLocked: false,
+                swipeStartX: 0,
+                swipeStartY: 0,
+                dragX: 0,
+                startSwipeAt(x, y) {
+                    if (this.swipeAnimating) return;
+
+                    this.swipeActive = true;
+                    this.swipeHandled = false;
+                    this.swipeAxis = null;
+                    this.dragX = 0;
+                    this.swipeStartX = x;
+                    this.swipeStartY = y;
+                },
+                moveSwipeAt(x, y, event) {
+                    if (! this.swipeActive || this.swipeAnimating) return;
+
+                    const distanceX = x - this.swipeStartX;
+                    const distanceY = y - this.swipeStartY;
+
+                    if (this.swipeAxis === null && Math.max(Math.abs(distanceX), Math.abs(distanceY)) >= 6) {
+                        this.swipeAxis = Math.abs(distanceX) > Math.abs(distanceY) * 1.1 ? 'horizontal' : 'vertical';
+                    }
+
+                    if (this.swipeAxis !== 'horizontal') return;
+
+                    event.preventDefault();
+                    const limit = this.$el.clientWidth * 0.92;
+                    this.dragX = Math.max(-limit, Math.min(limit, distanceX));
+                },
+                finishSwipeAt(x, y) {
+                    if (! this.swipeActive) return;
+
+                    this.swipeActive = false;
+
+                    const distanceX = x - this.swipeStartX;
+                    const distanceY = y - this.swipeStartY;
+                    const isHorizontalSwipe = this.swipeAxis === 'horizontal'
+                        && Math.abs(distanceX) >= Math.min(90, this.$el.clientWidth * 0.12)
+                        && Math.abs(distanceX) > Math.abs(distanceY) * 1.1;
+
+                    if (! isHorizontalSwipe) {
+                        this.snapBack();
+                        return;
+                    }
+
+                    this.swipeHandled = true;
+                    this.$dispatch('agenda-quick-open', { date: null });
+                    this.navigateMonth(distanceX < 0 ? 1 : -1);
+                },
+                navigateMonth(direction) {
+                    if (this.swipeAnimating) return;
+
+                    this.swipeAnimating = true;
+                    this.dragX = direction > 0 ? -this.$el.clientWidth : this.$el.clientWidth;
+
+                    setTimeout(() => {
+                        const navigation = direction > 0 ? $wire.next() : $wire.previous();
+                        const resetFallback = setTimeout(() => this.finishNavigation(), 1500);
+
+                        navigation.then(() => {
+                            clearTimeout(resetFallback);
+                            this.$nextTick(() => this.finishNavigation());
+                        });
+                    }, 230);
+                },
+                finishNavigation() {
+                    this.swipeActive = false;
+                    this.swipeAnimating = false;
+                    this.dragX = 0;
+                    this.swipeAxis = null;
+                },
+                snapBack() {
+                    if (this.dragX === 0) {
+                        this.swipeAxis = null;
+                        return;
+                    }
+
+                    this.swipeAnimating = true;
+                    this.dragX = 0;
+                    setTimeout(() => {
+                        this.swipeAnimating = false;
+                        this.swipeAxis = null;
+                    }, 230);
+                },
+                handleHorizontalWheel(event) {
+                    if (this.swipeWheelLocked || this.swipeAnimating) return;
+
+                    const isHorizontalSwipe = Math.abs(event.deltaX) >= 40
+                        && Math.abs(event.deltaX) > Math.abs(event.deltaY);
+
+                    if (! isHorizontalSwipe) return;
+
+                    event.preventDefault();
+                    this.swipeWheelLocked = true;
+                    this.$dispatch('agenda-quick-open', { date: null });
+                    this.navigateMonth(event.deltaX > 0 ? 1 : -1);
+                    setTimeout(() => this.swipeWheelLocked = false, 500);
+                },
+                cancelSwipe() {
+                    this.swipeActive = false;
+                    this.snapBack();
+                },
+                consumeSwipeClick(event) {
+                    if (! this.swipeHandled) return;
+
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    this.swipeHandled = false;
+                },
+            }"
+            :class="{ 'agenda-grid-scroll--dragging': swipeActive && swipeAxis === 'horizontal' }"
+            @pointerdown="if ($event.button === 0 || $event.pointerType !== 'mouse') startSwipeAt($event.clientX, $event.clientY)"
+            @pointermove.window="moveSwipeAt($event.clientX, $event.clientY, $event)"
+            @pointerup.window="finishSwipeAt($event.clientX, $event.clientY)"
+            @pointercancel.window="cancelSwipe()"
+            @wheel="handleHorizontalWheel($event)"
+            @click.capture="consumeSwipeClick($event)"
+        >
+            <div
+                class="agenda-month-track"
+                wire:key="agenda-month-track-{{ substr($this->selectedDate, 0, 7) }}"
+                :class="{ 'agenda-month-track--animating': swipeAnimating }"
+                :style="`transform: translate3d(calc(-33.333333% + ${dragX}px), 0, 0)`"
+            >
+            @foreach ($this->monthSlides as $slide)
+            <div
+                class="agenda-calendar agenda-calendar--slide"
+                wire:key="agenda-month-slide-{{ $slide['key'] }}"
+                data-month="{{ $slide['key'] }}"
+                @if ($slide['offset'] !== 0) aria-hidden="true" @endif
+            >
                 <div class="agenda-weekdays" aria-hidden="true">
                     <div>Domingo</div>
                     <div>Lunes</div>
@@ -106,10 +243,25 @@
 
                 <div
                     class="agenda-month-grid"
-                    style="--agenda-weeks: {{ count($this->monthGrid) / 7 }}"
-                    data-testid="agenda-month-grid"
+                    style="--agenda-weeks: {{ count($slide['grid']) / 7 }}"
+                    @if ($slide['offset'] === 0) data-testid="agenda-month-grid" @endif
                 >
-                    @foreach ($this->monthGrid as $cell)
+                    @foreach ($slide['grid'] as $cell)
+                        @if ($slide['offset'] !== 0)
+                            <article
+                                wire:key="agenda-preview-{{ $slide['key'] }}-{{ $cell['key'] }}"
+                                @class([
+                                    'agenda-day',
+                                    'agenda-day--outside' => ! $cell['is_in_month'] || $cell['is_unavailable'],
+                                ])
+                            >
+                                <span @class(['agenda-day-number', 'agenda-day-number--today' => $cell['is_today']])>
+                                    {{ $cell['day'] === 1 ? $cell['date']->translatedFormat('j \d\e F') : $cell['day'] }}
+                                </span>
+                            </article>
+                            @continue
+                        @endif
+
                         <article
                             wire:key="agenda-day-{{ $cell['key'] }}"
                             x-data="{ quickOpen: false }"
@@ -137,7 +289,7 @@
                                 @class([
                                     'agenda-quick-menu',
                                     'agenda-quick-menu--left' => ($loop->index % 7) >= 2,
-                                    'agenda-quick-menu--up' => $loop->index >= count($this->monthGrid) - 14,
+                                    'agenda-quick-menu--up' => $loop->index >= count($slide['grid']) - 14,
                                 ])
                             >
                                 <div class="agenda-quick-header">
@@ -188,6 +340,8 @@
                         </article>
                     @endforeach
                 </div>
+            </div>
+            @endforeach
             </div>
         </div>
     @elseif ($this->viewMode === 'list')

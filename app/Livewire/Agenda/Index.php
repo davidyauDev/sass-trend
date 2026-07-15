@@ -831,8 +831,38 @@ class Index extends Component
     #[Computed]
     public function monthGrid(): array
     {
-        $anchor = CarbonImmutable::parse($this->selectedDate)->startOfMonth()->startOfWeek(CarbonImmutable::SUNDAY);
-        $gridEnd = CarbonImmutable::parse($this->selectedDate)->endOfMonth()->endOfWeek(CarbonImmutable::SATURDAY);
+        return $this->buildMonthGrid(CarbonImmutable::parse($this->selectedDate)->startOfMonth());
+    }
+
+    /**
+     * @return array<int, array{offset: int, key: string, grid: array<int, array<string, mixed>>}>
+     */
+    #[Computed]
+    public function monthSlides(): array
+    {
+        $selectedMonth = CarbonImmutable::parse($this->selectedDate)->startOfMonth();
+        $slides = [];
+
+        foreach ([-1, 0, 1] as $offset) {
+            $month = $selectedMonth->addMonths($offset);
+            $slides[] = [
+                'offset' => $offset,
+                'key' => $month->format('Y-m'),
+                'grid' => $this->buildMonthGrid($month, $offset === 0),
+            ];
+        }
+
+        return $slides;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildMonthGrid(CarbonImmutable $month, bool $includeEntries = true): array
+    {
+        $anchor = $month->startOfWeek(CarbonImmutable::SUNDAY);
+        $gridEnd = $month->endOfMonth()->endOfWeek(CarbonImmutable::SATURDAY);
+        $selectedDate = CarbonImmutable::parse($this->selectedDate);
         $grid = [];
 
         for ($cursor = $anchor; $cursor->lessThanOrEqualTo($gridEnd); $cursor = $cursor->addDay()) {
@@ -840,12 +870,14 @@ class Index extends Component
                 'date' => $cursor,
                 'key' => $cursor->toDateString(),
                 'day' => $cursor->day,
-                'is_in_month' => $cursor->month === CarbonImmutable::parse($this->selectedDate)->month,
+                'is_in_month' => $cursor->isSameMonth($month),
                 'is_unavailable' => $cursor->lessThan(CarbonImmutable::now()->startOfWeek(CarbonImmutable::MONDAY)),
                 'is_today' => $cursor->isToday(),
-                'is_selected' => $cursor->isSameDay(CarbonImmutable::parse($this->selectedDate)),
-                'appointments' => $this->appointments()->filter(fn (Appointment $appointment): bool => $appointment->starts_at->isSameDay($cursor))->values(),
-                'blocks' => $this->scheduleBlocksForDate($cursor),
+                'is_selected' => $cursor->isSameDay($selectedDate),
+                'appointments' => $includeEntries
+                    ? $this->appointments()->filter(fn (Appointment $appointment): bool => $appointment->starts_at->isSameDay($cursor))->values()
+                    : collect(),
+                'blocks' => $includeEntries ? $this->scheduleBlocksForDate($cursor) : [],
             ];
         }
 

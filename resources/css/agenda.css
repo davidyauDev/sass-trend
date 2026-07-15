@@ -152,13 +152,38 @@
 }
 
 .agenda-grid-scroll {
+    position: relative;
     height: calc(100dvh - 69px);
-    overflow: auto;
+    overflow: hidden;
     background: var(--agenda-bg);
+    cursor: grab;
+    touch-action: pan-y;
+    user-select: none;
+}
+
+.agenda-grid-scroll--dragging {
+    cursor: grabbing;
 }
 
 .agenda-calendar {
     min-width: 980px;
+}
+
+.agenda-month-track {
+    display: flex;
+    width: 300%;
+    height: 100%;
+    will-change: transform;
+}
+
+.agenda-month-track--animating {
+    transition: transform 230ms cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+.agenda-calendar--slide {
+    flex: 0 0 33.333333%;
+    width: 33.333333%;
+    min-width: 0;
 }
 
 .agenda-weekdays,
