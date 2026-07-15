@@ -26,7 +26,7 @@
                         <flux:sidebar.collapse class="lg:hidden" />
                     </div>
 
-                    
+
                 </div>
 
                 <div class="flex-1 overflow-y-auto px-3 py-4">
@@ -40,9 +40,9 @@
                                 <flux:sidebar.item icon="shopping-bag" :href="route('sales.index')" :current="request()->routeIs('sales.*')" wire:navigate>
                                     {{ __('Ventas') }}
                                 </flux:sidebar.item>
-                                {{-- <flux:sidebar.item icon="calendar-days" :href="route('agenda.index')" :current="request()->routeIs('agenda.*')" wire:navigate>
+                                <flux:sidebar.item icon="calendar-days" :href="route('agenda.index')" :current="request()->routeIs('agenda.*')" wire:navigate>
                                     {{ __('Calendar') }}
-                                </flux:sidebar.item> --}}
+                                </flux:sidebar.item>
                                 <flux:sidebar.item icon="users" :href="route('clientes.index')" :current="request()->routeIs('clientes.*')" wire:navigate>
                                     {{ __('Clients') }}
                                 </flux:sidebar.item>

@@ -11,6 +11,7 @@ use App\Livewire\Administracion\Profesionales\Index as ProfessionalsIndex;
 use App\Livewire\Administracion\Servicios\Index as ServicesIndex;
 use App\Livewire\Administracion\Tenants\Index as TenantsIndex;
 use App\Livewire\Administracion\Usuarios\Index as UsersIndex;
+use App\Livewire\Agenda\Index as AgendaIndex;
 use App\Livewire\Clients\Index as ClientsIndex;
 use App\Livewire\Sales\Index as SalesIndex;
 use App\Livewire\SitioWeb\Booking as PublicBooking;
@@ -37,6 +38,7 @@ Route::middleware(['auth', 'verified', EnsureTenantIsActive::class])->group(func
     Route::get('ventas', SalesIndex::class)->name('sales.index');
     Route::get('ventas/export', [SaleReceiptController::class, 'export'])->name('sales.export');
     Route::get('ventas/{sale}/comprobante', [SaleReceiptController::class, 'show'])->whereNumber('sale')->name('sales.receipt.show');
+    Route::get('agenda', AgendaIndex::class)->name('agenda.index');
     Route::get('clientes', ClientsIndex::class)->name('clientes.index');
     Route::get('products', [ProductController::class, 'index'])->name('products.index');
     Route::post('products', [ProductController::class, 'store'])->name('products.store');

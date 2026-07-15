@@ -5,6 +5,7 @@ namespace App\Livewire\Agenda;
 use App\Actions\Agenda\AddAppointmentNoteAction;
 use App\Actions\Agenda\ChangeAppointmentStatusAction;
 use App\Actions\Agenda\CreateAppointmentAction;
+use App\Actions\Agenda\CreateScheduleBlockAction;
 use App\Actions\Agenda\RescheduleAppointmentAction;
 use App\Actions\Agenda\UpdateAppointmentAction;
 use App\Livewire\Forms\AppointmentForm;
@@ -14,6 +15,7 @@ use App\Models\AppointmentNote;
 use App\Models\AppointmentPayment;
 use App\Models\AppointmentStatus;
 use App\Models\Branch;
+use App\Models\Client;
 use App\Models\Resource;
 use App\Models\ScheduleBlock;
 use App\Models\Service;
@@ -36,7 +38,7 @@ class Index extends Component
     public AppointmentForm $form;
 
     #[Url(as: 'view')]
-    public string $viewMode = 'week';
+    public string $viewMode = 'month';
 
     #[Url(as: 'date')]
     public string $selectedDate = '';
@@ -54,6 +56,24 @@ class Index extends Component
 
     public bool $isFullscreen = false;
 
+    public bool $appointmentPanelOpen = false;
+
+    public string $appointmentStep = 'picker';
+
+    public string $serviceSearch = '';
+
+    /** @var list<int> */
+    public array $selectedServiceIds = [];
+
+    /** @var array<int, int|null> */
+    public array $selectedServiceProfessionals = [];
+
+    public string $appointmentTimeDate = '';
+
+    public string $selectedSlotStart = '';
+
+    public string $selectedSlotEnd = '';
+
     public ?int $selectedAppointmentId = null;
 
     public string $noteDraft = '';
@@ -69,6 +89,16 @@ class Index extends Component
     public ?int $slotSearchResourceId = null;
 
     public string $slotSearchDuration = '60';
+
+    public string $blockStartsAt = '';
+
+    public string $blockEndsAt = '';
+
+    public string $blockType = 'unavailable';
+
+    public string $blockReason = '';
+
+    public bool $blockAllDay = false;
 
     /** @var array<int, array{starts_at: string, ends_at: string, label: string, branch_name: string}> */
     public array $slotSearchResults = [];
@@ -86,7 +116,7 @@ class Index extends Component
     public function updatedViewMode(): void
     {
         if (! in_array($this->viewMode, ['day', 'week', 'month', 'list'], true)) {
-            $this->viewMode = 'week';
+            $this->viewMode = 'month';
         }
     }
 
@@ -163,10 +193,71 @@ class Index extends Component
         $this->form->resource_id = $this->resourceFilterId;
         $this->form->status_slug = AppointmentStatusCatalog::PENDING;
         $this->prefillFormStartAndEnd();
+        $this->appointmentStep = 'picker';
+        $this->serviceSearch = '';
+        $this->selectedServiceIds = [];
+        $this->selectedServiceProfessionals = [];
+        $this->appointmentTimeDate = $this->selectedDate;
+        $this->selectedSlotStart = '';
+        $this->selectedSlotEnd = '';
+        $this->appointmentPanelOpen = true;
         $this->resetValidation();
         $this->resetErrorBag();
+    }
 
-        $this->modal('appointment-form')->show();
+    public function openCreateModalForDate(string $date): void
+    {
+        $this->selectedDate = CarbonImmutable::parse($date)->toDateString();
+        $this->openCreateModal();
+    }
+
+    public function openScheduleBlockModalForDate(string $date): void
+    {
+        $this->authorize('create', ScheduleBlock::class);
+
+        $day = CarbonImmutable::parse($date);
+        $this->blockStartsAt = $day->setTime(9, 0)->format('Y-m-d\TH:i');
+        $this->blockEndsAt = $day->setTime(18, 0)->format('Y-m-d\TH:i');
+        $this->blockType = 'unavailable';
+        $this->blockReason = '';
+        $this->blockAllDay = false;
+        $this->resetValidation();
+
+        $this->modal('schedule-block-form')->show();
+    }
+
+    public function saveScheduleBlock(CreateScheduleBlockAction $createScheduleBlock): void
+    {
+        $this->authorize('create', ScheduleBlock::class);
+
+        $validated = $this->validate([
+            'blockStartsAt' => ['required', 'date'],
+            'blockEndsAt' => ['required', 'date', 'after:blockStartsAt'],
+            'blockType' => ['required', 'string', 'max:40'],
+            'blockReason' => ['nullable', 'string', 'max:1000'],
+            'blockAllDay' => ['boolean'],
+        ]);
+
+        $createScheduleBlock->handle($this->authUser(), [
+            'branch_id' => $this->branchFilterId,
+            'resource_id' => $this->resourceFilterId,
+            'user_id' => $this->professionalFilterId,
+            'starts_at' => $validated['blockStartsAt'],
+            'ends_at' => $validated['blockEndsAt'],
+            'block_type' => $validated['blockType'],
+            'reason' => $validated['blockReason'] !== '' ? $validated['blockReason'] : null,
+            'is_all_day' => $validated['blockAllDay'],
+            'recurrence_rule' => null,
+        ]);
+
+        $this->modal('schedule-block-form')->close();
+        Flux::toast(variant: 'success', text: 'Tiempo bloqueado agregado correctamente.');
+    }
+
+    public function openDayView(string $date): void
+    {
+        $this->selectedDate = CarbonImmutable::parse($date)->toDateString();
+        $this->viewMode = 'day';
     }
 
     public function openEditModal(int $appointmentId): void
@@ -178,14 +269,24 @@ class Index extends Component
         $this->authorize('update', $appointment);
 
         $this->form->fillFromAppointment($appointment);
+        $this->selectedServiceIds = [$appointment->service_id];
+        $this->selectedServiceProfessionals = [$appointment->service_id => $appointment->professional_id];
+        $this->appointmentStep = 'details';
+        $this->serviceSearch = '';
+        $this->appointmentPanelOpen = true;
         $this->resetValidation();
         $this->resetErrorBag();
-
-        $this->modal('appointment-form')->show();
     }
 
     public function closeModal(): void
     {
+        $this->appointmentPanelOpen = false;
+        $this->appointmentStep = 'picker';
+        $this->serviceSearch = '';
+        $this->selectedServiceIds = [];
+        $this->selectedServiceProfessionals = [];
+        $this->selectedSlotStart = '';
+        $this->selectedSlotEnd = '';
         $this->form->resetForm();
         $this->resetValidation();
         $this->resetErrorBag();
@@ -212,6 +313,7 @@ class Index extends Component
         $payload = $this->form->payload();
         $actor = $this->authUser();
         $isEditing = $this->form->appointmentId !== null;
+        $serviceCount = count($this->selectedServiceIds);
 
         if ($isEditing) {
             $appointment = Appointment::query()->with('status')->findOrFail($this->form->appointmentId);
@@ -219,16 +321,35 @@ class Index extends Component
             $appointment = $updateAppointment->handle($actor, $appointment, $payload);
         } else {
             $this->authorize('create', Appointment::class);
-            $appointment = $createAppointment->handle($actor, $payload);
+            $appointment = null;
+            $startsAt = CarbonImmutable::parse($payload['starts_at']);
+
+            foreach ($this->selectedServices() as $service) {
+                $endsAt = $startsAt->addMinutes($service->duration_minutes);
+                $appointment = $createAppointment->handle($actor, array_merge($payload, [
+                    'service_id' => $service->id,
+                    'professional_id' => $this->selectedServiceProfessionals[$service->id] ?? null,
+                    'title' => $service->name,
+                    'starts_at' => $startsAt->toDateTimeString(),
+                    'ends_at' => $endsAt->toDateTimeString(),
+                    'duration_minutes' => $service->duration_minutes,
+                    'price' => (float) $service->price,
+                ]));
+                $startsAt = $endsAt;
+            }
+
+            abort_if($appointment === null, 422, 'Debe seleccionar al menos un servicio.');
         }
 
         $this->selectedAppointmentId = $appointment->id;
+        $this->appointmentPanelOpen = false;
         $this->closeModal();
-        $this->modal('appointment-form')->close();
 
         Flux::toast(
             variant: 'success',
-            text: $isEditing ? 'Cita actualizada correctamente.' : 'Cita creada correctamente.',
+            text: $isEditing
+                ? 'Cita actualizada correctamente.'
+                : ($serviceCount > 1 ? 'Servicios agendados correctamente.' : 'Cita creada correctamente.'),
         );
     }
 
@@ -363,10 +484,123 @@ class Index extends Component
         $this->form->ends_at = CarbonImmutable::parse($endsAt)->format('Y-m-d\TH:i');
         $this->form->status_slug = AppointmentStatusCatalog::PENDING;
         $this->prefillFormStartAndEnd();
+        $this->appointmentStep = 'picker';
+        $this->serviceSearch = '';
+        $this->selectedServiceIds = [];
+        $this->selectedServiceProfessionals = [];
+        $this->appointmentTimeDate = CarbonImmutable::parse($startsAt)->toDateString();
+        $this->selectedSlotStart = '';
+        $this->selectedSlotEnd = '';
+        $this->appointmentPanelOpen = true;
         $this->resetValidation();
         $this->resetErrorBag();
+    }
 
-        $this->modal('appointment-form')->show();
+    public function selectAppointmentService(int $serviceId): void
+    {
+        $service = Service::query()->where('is_active', true)->findOrFail($serviceId);
+
+        if (! in_array($serviceId, $this->selectedServiceIds, true)) {
+            $this->selectedServiceIds[] = $serviceId;
+            $this->selectedServiceProfessionals[$serviceId] = $this->professionalFilterId;
+        }
+
+        if ($this->form->service_id === null) {
+            $this->form->fillFromService($service);
+        }
+
+        $this->appointmentStep = 'services';
+    }
+
+    public function showServiceStep(): void
+    {
+        $this->appointmentStep = 'picker';
+    }
+
+    public function showServicesSummary(): void
+    {
+        $this->appointmentStep = 'services';
+    }
+
+    public function removeAppointmentService(int $serviceId): void
+    {
+        $this->selectedServiceIds = array_values(array_filter(
+            $this->selectedServiceIds,
+            fn (int $selectedId): bool => $selectedId !== $serviceId,
+        ));
+        unset($this->selectedServiceProfessionals[$serviceId]);
+
+        if ($this->selectedServiceIds === []) {
+            $this->appointmentStep = 'picker';
+        }
+    }
+
+    public function continueToAppointmentTime(AppointmentAvailabilityService $availability): void
+    {
+        if ($this->selectedServiceIds === []) {
+            return;
+        }
+
+        $date = CarbonImmutable::parse($this->appointmentTimeDate !== '' ? $this->appointmentTimeDate : $this->selectedDate);
+
+        if ($date->isBefore(CarbonImmutable::now()->startOfDay())) {
+            $date = CarbonImmutable::now()->startOfDay();
+        }
+
+        $this->appointmentTimeDate = $date->toDateString();
+        $this->loadAppointmentTimeSlots($availability);
+        $this->appointmentStep = 'time';
+    }
+
+    public function selectAppointmentDate(string $date, AppointmentAvailabilityService $availability): void
+    {
+        $this->appointmentTimeDate = CarbonImmutable::parse($date)->toDateString();
+        $this->selectedSlotStart = '';
+        $this->selectedSlotEnd = '';
+        $this->loadAppointmentTimeSlots($availability);
+    }
+
+    public function selectAppointmentSlot(string $startsAt, string $endsAt): void
+    {
+        $this->selectedSlotStart = $startsAt;
+        $this->selectedSlotEnd = $endsAt;
+    }
+
+    public function continueToAppointmentDetails(): void
+    {
+        if ($this->selectedSlotStart === '' || $this->selectedSlotEnd === '') {
+            return;
+        }
+
+        $services = $this->selectedServices();
+        $firstService = $services->first();
+
+        if (! $firstService instanceof Service) {
+            return;
+        }
+
+        $this->form->service_id = $firstService->id;
+        $this->form->title = $services->pluck('name')->implode(' + ');
+        $this->form->duration_minutes = (string) $this->selectedServicesDuration();
+        $this->form->price = (string) $this->selectedServicesTotal();
+        $this->form->starts_at = CarbonImmutable::parse($this->selectedSlotStart)->format('Y-m-d\TH:i');
+        $this->form->ends_at = CarbonImmutable::parse($this->selectedSlotEnd)->format('Y-m-d\TH:i');
+        $this->form->professional_id = $this->selectedServiceProfessionals[$firstService->id] ?? null;
+        $this->appointmentStep = 'details';
+    }
+
+    public function serviceDurationLabel(int $minutes): string
+    {
+        $hours = intdiv($minutes, 60);
+        $remainingMinutes = $minutes % 60;
+
+        if ($hours === 0) {
+            return $remainingMinutes.' minutos';
+        }
+
+        $label = $hours.' '.($hours === 1 ? 'hora' : 'horas');
+
+        return $remainingMinutes > 0 ? $label.' '.$remainingMinutes.' minutos' : $label;
     }
 
     public function clearFilters(): void
@@ -376,7 +610,7 @@ class Index extends Component
         $this->professionalFilterId = null;
         $this->resourceFilterId = null;
         $this->onlyAvailable = false;
-        $this->viewMode = 'week';
+        $this->viewMode = 'month';
         $this->selectedDate = now()->toDateString();
     }
 
@@ -432,6 +666,92 @@ class Index extends Component
         return AppointmentStatus::query()
             ->orderBy('sort_order')
             ->get();
+    }
+
+    /**
+     * @return SupportCollection<int, Service>
+     */
+    #[Computed]
+    public function servicesCatalog(): SupportCollection
+    {
+        return Service::query()
+            ->with('category')
+            ->where('is_active', true)
+            ->search(trim($this->serviceSearch))
+            ->orderBy('service_category_id')
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * @return SupportCollection<int, Service>
+     */
+    #[Computed]
+    public function selectedServices(): SupportCollection
+    {
+        $services = Service::query()
+            ->with('category')
+            ->whereIn('id', $this->selectedServiceIds)
+            ->get()
+            ->keyBy('id');
+        $selected = [];
+
+        foreach ($this->selectedServiceIds as $serviceId) {
+            $service = $services->get($serviceId);
+
+            if ($service instanceof Service) {
+                $selected[] = $service;
+            }
+        }
+
+        return collect($selected);
+    }
+
+    #[Computed]
+    public function selectedServicesDuration(): int
+    {
+        return (int) $this->selectedServices()->sum('duration_minutes');
+    }
+
+    #[Computed]
+    public function selectedServicesTotal(): float
+    {
+        return (float) $this->selectedServices()->sum(fn (Service $service): float => (float) $service->price);
+    }
+
+    /**
+     * @return list<array{date: string, day: string, weekday: string, is_selected: bool}>
+     */
+    #[Computed]
+    public function appointmentDateOptions(): array
+    {
+        $start = CarbonImmutable::parse($this->selectedDate);
+
+        if ($start->isBefore(CarbonImmutable::now()->startOfDay())) {
+            $start = CarbonImmutable::now()->startOfDay();
+        }
+        $options = [];
+
+        for ($offset = 0; $offset < 7; $offset++) {
+            $date = $start->addDays($offset);
+            $options[] = [
+                'date' => $date->toDateString(),
+                'day' => $date->format('j'),
+                'weekday' => ucfirst($date->translatedFormat('D')),
+                'is_selected' => $date->isSameDay(CarbonImmutable::parse($this->appointmentTimeDate)),
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return SupportCollection<int, Client>
+     */
+    #[Computed]
+    public function clientsCatalog(): SupportCollection
+    {
+        return Client::query()->orderBy('first_name')->orderBy('last_name')->get();
     }
 
     /**
@@ -511,15 +831,17 @@ class Index extends Component
     #[Computed]
     public function monthGrid(): array
     {
-        $anchor = CarbonImmutable::parse($this->selectedDate)->startOfMonth()->startOfWeek(CarbonImmutable::MONDAY);
+        $anchor = CarbonImmutable::parse($this->selectedDate)->startOfMonth()->startOfWeek(CarbonImmutable::SUNDAY);
+        $gridEnd = CarbonImmutable::parse($this->selectedDate)->endOfMonth()->endOfWeek(CarbonImmutable::SATURDAY);
         $grid = [];
 
-        for ($cursor = $anchor; count($grid) < 42; $cursor = $cursor->addDay()) {
+        for ($cursor = $anchor; $cursor->lessThanOrEqualTo($gridEnd); $cursor = $cursor->addDay()) {
             $grid[] = [
                 'date' => $cursor,
                 'key' => $cursor->toDateString(),
                 'day' => $cursor->day,
                 'is_in_month' => $cursor->month === CarbonImmutable::parse($this->selectedDate)->month,
+                'is_unavailable' => $cursor->lessThan(CarbonImmutable::now()->startOfWeek(CarbonImmutable::MONDAY)),
                 'is_today' => $cursor->isToday(),
                 'is_selected' => $cursor->isSameDay(CarbonImmutable::parse($this->selectedDate)),
                 'appointments' => $this->appointments()->filter(fn (Appointment $appointment): bool => $appointment->starts_at->isSameDay($cursor))->values(),
@@ -596,6 +918,28 @@ class Index extends Component
         return collect(array_merge($historyEntries, $noteEntries))
             ->sortByDesc('created_at')
             ->values();
+    }
+
+    private function loadAppointmentTimeSlots(AppointmentAvailabilityService $availability): void
+    {
+        $slots = $availability->searchSlots(
+            CarbonImmutable::parse($this->appointmentTimeDate),
+            max(15, $this->selectedServicesDuration()),
+            $this->form->branch_id,
+            null,
+            $this->form->resource_id,
+            15,
+        );
+
+        $this->slotSearchResults = collect($slots)
+            ->map(fn (array $slot): array => [
+                'starts_at' => $slot['starts_at'],
+                'ends_at' => $slot['ends_at'],
+                'label' => CarbonImmutable::parse($slot['starts_at'])->format('H:i'),
+                'branch_name' => '',
+            ])
+            ->values()
+            ->all();
     }
 
     private function applyStatusToSelected(string $statusSlug, ChangeAppointmentStatusAction $changeStatus, ?string $reason = null): void
