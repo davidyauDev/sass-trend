@@ -20,14 +20,17 @@ use App\Models\Resource;
 use App\Models\ScheduleBlock;
 use App\Models\Service;
 use App\Models\User;
+use App\Models\WaitlistEntry;
 use App\Services\Agenda\AppointmentAvailabilityService;
 use App\Services\Agenda\AppointmentStatusCatalog;
+use App\Services\Agenda\AppointmentStatusResolver;
 use Carbon\CarbonImmutable;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection as SupportCollection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -48,7 +51,8 @@ class Index extends Component
 
     public ?int $branchFilterId = null;
 
-    public ?int $professionalFilterId = null;
+    /** @var list<int> */
+    public array $professionalFilterIds = [];
 
     public ?int $resourceFilterId = null;
 
@@ -57,6 +61,8 @@ class Index extends Component
     public bool $isFullscreen = false;
 
     public bool $appointmentPanelOpen = false;
+
+    public ?int $waitlistEntryPendingBookingId = null;
 
     public string $appointmentStep = 'picker';
 
@@ -103,13 +109,16 @@ class Index extends Component
     /** @var array<int, array{starts_at: string, ends_at: string, label: string, branch_name: string}> */
     public array $slotSearchResults = [];
 
-    public function mount(): void
+    public function mount(AppointmentStatusResolver $statuses): void
     {
         abort_unless(auth()->user()->can('viewAny', Appointment::class), 403);
+
+        $statuses->ensureAll();
 
         $this->selectedDate = now()->toDateString();
         $this->slotSearchDate = $this->selectedDate;
         $this->slotSearchBranchId = Branch::query()->orderBy('name')->value('id');
+        $this->professionalFilterIds = $this->allProfessionalIds();
         $this->form->resetForm();
     }
 
@@ -189,7 +198,7 @@ class Index extends Component
     {
         $this->form->resetForm();
         $this->form->branch_id = $this->branchFilterId ?? Branch::query()->orderBy('name')->value('id');
-        $this->form->professional_id = $this->professionalFilterId;
+        $this->form->professional_id = $this->selectedProfessionalFilterId();
         $this->form->resource_id = $this->resourceFilterId;
         $this->form->status_slug = AppointmentStatusCatalog::PENDING;
         $this->prefillFormStartAndEnd();
@@ -241,7 +250,7 @@ class Index extends Component
         $createScheduleBlock->handle($this->authUser(), [
             'branch_id' => $this->branchFilterId,
             'resource_id' => $this->resourceFilterId,
-            'user_id' => $this->professionalFilterId,
+            'user_id' => $this->selectedProfessionalFilterId(),
             'starts_at' => $validated['blockStartsAt'],
             'ends_at' => $validated['blockEndsAt'],
             'block_type' => $validated['blockType'],
@@ -287,6 +296,7 @@ class Index extends Component
         $this->selectedServiceProfessionals = [];
         $this->selectedSlotStart = '';
         $this->selectedSlotEnd = '';
+        $this->waitlistEntryPendingBookingId = null;
         $this->form->resetForm();
         $this->resetValidation();
         $this->resetErrorBag();
@@ -295,8 +305,38 @@ class Index extends Component
     public function openDrawer(int $appointmentId): void
     {
         $this->selectedAppointmentId = $appointmentId;
+        $this->appointmentPanelOpen = false;
         $this->noteDraft = '';
         $this->statusReason = '';
+    }
+
+    #[On('agenda-book-waitlist')]
+    public function openWaitlistBooking(int $entryId): void
+    {
+        $this->authorize('create', Appointment::class);
+
+        $entry = WaitlistEntry::query()
+            ->with('service')
+            ->where('status', WaitlistEntry::STATUS_WAITING)
+            ->findOrFail($entryId);
+        $startsAt = CarbonImmutable::parse($entry->desired_date->toDateString().' '.$entry->available_from);
+
+        $this->form->resetForm();
+        $this->form->branch_id = $entry->branch_id;
+        $this->form->client_id = $entry->client_id;
+        $this->form->fillFromService($entry->service);
+        $this->form->professional_id = $entry->professional_id;
+        $this->form->starts_at = $startsAt->format('Y-m-d\TH:i');
+        $this->form->ends_at = $startsAt->addMinutes($entry->service->duration_minutes)->format('Y-m-d\TH:i');
+        $this->form->notes = $entry->notes ?? '';
+        $this->selectedServiceIds = [$entry->service_id];
+        $this->selectedServiceProfessionals = [$entry->service_id => $entry->professional_id];
+        $this->appointmentTimeDate = $entry->desired_date->toDateString();
+        $this->appointmentStep = 'details';
+        $this->waitlistEntryPendingBookingId = $entry->id;
+        $this->appointmentPanelOpen = true;
+        $this->resetValidation();
+        $this->resetErrorBag();
     }
 
     public function closeDrawer(): void
@@ -346,6 +386,18 @@ class Index extends Component
             abort_if($appointment === null, 422, 'Debe seleccionar al menos un servicio.');
         }
 
+        if (! $isEditing && $this->waitlistEntryPendingBookingId !== null) {
+            WaitlistEntry::query()
+                ->whereKey($this->waitlistEntryPendingBookingId)
+                ->where('status', WaitlistEntry::STATUS_WAITING)
+                ->update([
+                    'status' => WaitlistEntry::STATUS_BOOKED,
+                    'appointment_id' => $appointment->id,
+                    'booked_at' => now(),
+                ]);
+            $this->dispatch('waitlist-updated');
+        }
+
         $this->selectedDate = CarbonImmutable::parse($payload['starts_at'])->toDateString();
         $this->selectedAppointmentId = $appointment->id;
         $this->appointmentPanelOpen = false;
@@ -393,8 +445,29 @@ class Index extends Component
 
         $this->selectedAppointmentId = $appointment->id;
         $changeStatus->handle($this->authUser(), $appointment, $statusSlug);
+        unset($this->selectedAppointment);
 
         Flux::toast(variant: 'success', text: 'Estado actualizado.');
+    }
+
+    public function checkoutSelectedAppointment(): void
+    {
+        if ($this->selectedAppointmentId === null) {
+            return;
+        }
+
+        $this->redirectRoute('sales.index', ['appointment' => $this->selectedAppointmentId], navigate: true);
+    }
+
+    public function viewSelectedClientProfile(): void
+    {
+        $appointment = $this->selectedAppointment();
+
+        if ($appointment === null) {
+            return;
+        }
+
+        $this->redirectRoute('clientes.index', ['q' => $appointment->client->email ?: $appointment->client->fullName()], navigate: true);
     }
 
     public function completeAppointment(ChangeAppointmentStatusAction $changeStatus): void
@@ -514,7 +587,7 @@ class Index extends Component
 
         if (! in_array($serviceId, $this->selectedServiceIds, true)) {
             $this->selectedServiceIds[] = $serviceId;
-            $this->selectedServiceProfessionals[$serviceId] = $this->professionalFilterId;
+            $this->selectedServiceProfessionals[$serviceId] = $this->selectedProfessionalFilterId();
         }
 
         if ($this->form->service_id === null) {
@@ -624,7 +697,7 @@ class Index extends Component
     {
         $this->search = '';
         $this->branchFilterId = null;
-        $this->professionalFilterId = null;
+        $this->professionalFilterIds = $this->allProfessionalIds();
         $this->resourceFilterId = null;
         $this->onlyAvailable = false;
         $this->viewMode = 'month';
@@ -818,7 +891,10 @@ class Index extends Component
             ->with(['branch', 'client', 'service', 'resource', 'professional', 'status', 'payments', 'notes', 'histories'])
             ->search($this->search)
             ->when($this->branchFilterId !== null, fn (Builder $query): Builder => $query->where('branch_id', $this->branchFilterId))
-            ->when($this->professionalFilterId !== null, fn (Builder $query): Builder => $query->where('professional_id', $this->professionalFilterId))
+            ->when(
+                $this->professionalFilterIds !== $this->allProfessionalIds(),
+                fn (Builder $query): Builder => $query->whereIn('professional_id', $this->professionalFilterIds),
+            )
             ->when($this->resourceFilterId !== null, fn (Builder $query): Builder => $query->where('resource_id', $this->resourceFilterId))
             ->when($this->onlyAvailable, fn (Builder $query): Builder => $query->whereHas('status', fn (Builder $statusQuery): Builder => $statusQuery->where('is_terminal', false)))
             ->whereBetween('starts_at', [$start->toDateTimeString(), $end->toDateTimeString()])
@@ -1046,6 +1122,7 @@ class Index extends Component
 
         $changeStatus->handle($this->authUser(), $appointment, $statusSlug, $reason);
         $this->selectedAppointmentId = $appointment->id;
+        unset($this->selectedAppointment);
 
         Flux::toast(variant: 'success', text: 'Estado actualizado correctamente.');
     }
@@ -1063,6 +1140,24 @@ class Index extends Component
             'month', 'list' => [$date->startOfMonth()->startOfDay(), $date->endOfMonth()->endOfDay()],
             default => [$date->startOfWeek(CarbonImmutable::MONDAY), $date->endOfWeek(CarbonImmutable::SUNDAY)],
         };
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function allProfessionalIds(): array
+    {
+        return array_values($this->professionalsCatalog()
+            ->pluck('id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all());
+    }
+
+    private function selectedProfessionalFilterId(): ?int
+    {
+        return count($this->professionalFilterIds) === 1
+            ? (int) $this->professionalFilterIds[0]
+            : null;
     }
 
     /**

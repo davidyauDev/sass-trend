@@ -2,7 +2,6 @@
 
 use App\Livewire\Agenda\Index as AgendaIndex;
 use App\Models\Appointment;
-use App\Models\AppointmentStatus;
 use App\Models\Branch;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -33,14 +32,6 @@ test('guarda una cita corta para un cliente sin cita previa', function (): void 
         'is_active' => true,
     ]);
 
-    AppointmentStatus::query()->create([
-        'name' => 'Pendiente',
-        'slug' => AppointmentStatusCatalog::PENDING,
-        'color' => '#f59e0b',
-        'sort_order' => 1,
-        'is_terminal' => false,
-    ]);
-
     Livewire::test(AgendaIndex::class)
         ->set('selectedServiceIds', [$service->id])
         ->set('selectedServiceProfessionals', [$service->id => null])
@@ -55,11 +46,14 @@ test('guarda una cita corta para un cliente sin cita previa', function (): void 
         ->set('form.status_slug', AppointmentStatusCatalog::PENDING)
         ->call('save')
         ->assertHasNoErrors()
-        ->assertSet('appointmentPanelOpen', false);
+        ->assertSet('appointmentPanelOpen', false)
+        ->assertSee('Reservada')
+        ->assertSee('Checkout');
 
-    $appointment = Appointment::query()->with('client')->sole();
+    $appointment = Appointment::query()->with(['client', 'status'])->sole();
 
     expect($appointment->duration_minutes)->toBe(10)
         ->and($appointment->starts_at->format('Y-m-d H:i'))->toBe('2026-07-15 13:15')
-        ->and($appointment->client->fullName())->toBe('Cliente sin cita previa');
+        ->and($appointment->client->fullName())->toBe('Cliente sin cita previa')
+        ->and($appointment->status->slug)->toBe(AppointmentStatusCatalog::PENDING);
 });

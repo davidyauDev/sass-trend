@@ -3,13 +3,13 @@
 namespace App\Actions\Website;
 
 use App\Models\Appointment;
-use App\Models\AppointmentStatus;
 use App\Models\Client;
 use App\Models\Location;
 use App\Models\Professional;
 use App\Models\Service;
 use App\Services\Agenda\AppointmentHistoryService;
 use App\Services\Agenda\AppointmentStatusCatalog;
+use App\Services\Agenda\AppointmentStatusResolver;
 use App\Services\Website\PublicBookingAvailabilityService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +21,7 @@ final class BookPublicAppointmentAction
     public function __construct(
         private readonly PublicBookingAvailabilityService $availability,
         private readonly AppointmentHistoryService $history,
+        private readonly AppointmentStatusResolver $statuses,
     ) {}
 
     /**
@@ -52,7 +53,7 @@ final class BookPublicAppointmentAction
             }
 
             $client = $this->upsertClient($data);
-            $statusId = $this->resolveStatusId(AppointmentStatusCatalog::PENDING);
+            $statusId = $this->statuses->resolveId(AppointmentStatusCatalog::PENDING);
 
             $appointment = Appointment::query()->create([
                 'reference_code' => 'WEB-'.Str::upper(Str::random(8)),
@@ -89,24 +90,6 @@ final class BookPublicAppointmentAction
 
             return $appointment->load(['branch', 'client', 'service', 'professional', 'status']);
         });
-    }
-
-    private function resolveStatusId(string $slug): int
-    {
-        $definition = collect(AppointmentStatusCatalog::definitions())
-            ->firstWhere('slug', $slug);
-
-        $status = AppointmentStatus::query()->firstOrCreate(
-            ['slug' => $slug],
-            [
-                'name' => $definition['name'] ?? 'Pending',
-                'color' => $definition['color'] ?? 'zinc',
-                'sort_order' => $definition['sort_order'] ?? 10,
-                'is_terminal' => $definition['is_terminal'] ?? false,
-            ],
-        );
-
-        return (int) $status->id;
     }
 
     private function ensureBookableConfiguration(Location $location, Service $service, Professional $professional): void

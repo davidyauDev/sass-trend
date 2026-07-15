@@ -17,16 +17,145 @@
                 </button>
             </div>
 
-            <label class="agenda-control">
-                <span class="sr-only">Profesional</span>
-                <select wire:model.live="professionalFilterId" aria-label="Equipo programado">
-                    <option value="">Equipo programado</option>
-                    @foreach ($this->professionalsCatalog as $professional)
-                        <option value="{{ $professional->id }}">{{ $professional->fullName() }}</option>
-                    @endforeach
-                </select>
-                <flux:icon.chevron-down class="size-4" />
-            </label>
+            <div
+                x-data="agendaTeamFilter({
+                    selectedIds: @js($professionalFilterIds),
+                    professionals: @js(
+                        $this->professionalsCatalog
+                            ->values()
+                            ->map(fn ($professional, int $index): array => [
+                                'id' => (int) $professional->id,
+                                'label' => $professional->fullName(),
+                                'initial' => mb_strtoupper(mb_substr($professional->fullName(), 0, 1)),
+                                'photo' => $professional->photoUrl(),
+                                'isCurrent' => (int) $professional->id === (int) auth()->id(),
+                                'tone' => ($index % 3) + 1,
+                            ])
+                    ),
+                    onChange(ids) {
+                        $wire.set('professionalFilterIds', ids);
+                    },
+                })"
+                class="agenda-team-filter"
+                @click.outside="closePanel()"
+                @keydown.escape.window="closePanel()"
+            >
+                <button
+                    type="button"
+                    class="agenda-control agenda-team-filter__trigger"
+                    aria-label="Filtrar miembros del equipo"
+                    x-bind:aria-expanded="open"
+                    @click="open ? closePanel() : openPanel()"
+                >
+                    <span class="truncate" x-text="triggerLabel"></span>
+                    <flux:icon.chevron-down class="size-4 shrink-0 transition" x-bind:class="{ 'rotate-180': open }" />
+                </button>
+
+                <div
+                    x-show="open"
+                    x-cloak
+                    x-transition.opacity.scale.origin.top.left
+                    class="agenda-team-filter__panel"
+                    role="dialog"
+                    aria-label="Miembros del equipo"
+                >
+                    <label class="agenda-team-filter__search">
+                        <flux:icon.magnifying-glass class="size-5" />
+                        <input
+                            x-ref="search"
+                            x-model="query"
+                            type="search"
+                            placeholder="Buscar"
+                            aria-label="Buscar profesional"
+                        >
+                    </label>
+
+                    <div class="agenda-team-filter__scheduled">
+                        <div class="agenda-team-filter__heading">
+                            <flux:icon.calendar-days class="size-5" />
+                            <span>Equipo programado</span>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="agenda-team-filter__quick-option"
+                            :class="{ 'is-selected': allSelected }"
+                            @click="selectAll()"
+                        >
+                            <span class="agenda-team-filter__option-icon">
+                                <flux:icon.users class="size-5" />
+                            </span>
+                            <span>Todo el equipo</span>
+                        </button>
+
+                        <template x-if="currentProfessional">
+                            <button
+                                type="button"
+                                class="agenda-team-filter__quick-option"
+                                :class="{ 'is-selected': onlyCurrentSelected }"
+                                @click="selectCurrent()"
+                            >
+                                <span class="agenda-team-filter__option-avatar agenda-team-filter__option-avatar--1">
+                                    <img x-show="currentProfessional.photo" :src="currentProfessional.photo" alt="">
+                                    <span x-show="! currentProfessional.photo" x-text="currentProfessional.initial"></span>
+                                </span>
+                                <span class="truncate">
+                                    <span x-text="currentProfessional.label"></span>
+                                    <span>(Tú)</span>
+                                </span>
+                            </button>
+                        </template>
+                    </div>
+
+                    <div class="agenda-team-filter__divider"></div>
+
+                    <div class="agenda-team-filter__members">
+                        <button
+                            type="button"
+                            class="agenda-team-filter__member agenda-team-filter__member--all"
+                            role="checkbox"
+                            :aria-checked="allSelected"
+                            @click="toggleAll()"
+                        >
+                            <span class="agenda-team-filter__checkbox" :class="{ 'is-checked': allSelected }">
+                                <flux:icon.check class="size-4" />
+                            </span>
+                            <strong>Todos los miembros del equipo</strong>
+                        </button>
+
+                        <div class="agenda-team-filter__member-list">
+                            <template x-for="professional in filteredProfessionals" :key="professional.id">
+                                <button
+                                    type="button"
+                                    class="agenda-team-filter__member"
+                                    role="checkbox"
+                                    :aria-checked="isSelected(professional.id)"
+                                    @click="toggleProfessional(professional.id)"
+                                >
+                                    <span class="agenda-team-filter__checkbox" :class="{ 'is-checked': isSelected(professional.id) }">
+                                        <flux:icon.check class="size-4" />
+                                    </span>
+                                    <span
+                                        class="agenda-team-filter__option-avatar"
+                                        :class="`agenda-team-filter__option-avatar--${professional.tone}`"
+                                    >
+                                        <img x-show="professional.photo" :src="professional.photo" alt="">
+                                        <span x-show="! professional.photo" x-text="professional.initial"></span>
+                                    </span>
+                                    <span class="truncate">
+                                        <span x-text="professional.label"></span>
+                                        <span x-show="professional.isCurrent"> (Tú)</span>
+                                    </span>
+                                </button>
+                            </template>
+                        </div>
+
+                        <div x-show="filteredProfessionals.length === 0" class="agenda-team-filter__empty">
+                            No encontramos profesionales.
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <details class="agenda-filters" x-data @agenda-open-filters.window="$el.open = true">
                 <summary class="agenda-icon-button" aria-label="Abrir filtros">
@@ -67,9 +196,7 @@
             <button type="button" class="agenda-icon-button" aria-label="Pantalla completa" wire:click="toggleFullscreen">
                 <flux:icon.cog-6-tooth class="size-5" />
             </button>
-            <button type="button" class="agenda-icon-button" aria-label="Ir a hoy" wire:click="today">
-                <flux:icon.calendar-days class="size-5" />
-            </button>
+            <livewire:agenda.waitlist-panel />
             <button type="button" class="agenda-icon-button" aria-label="Actualizar" wire:click="$refresh">
                 <flux:icon.arrow-path class="size-5" />
             </button>
@@ -380,33 +507,108 @@
     @endif
 
     @if ($this->selectedAppointment)
-        <aside class="agenda-detail" data-testid="appointment-detail">
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <flux:badge :color="$this->selectedAppointment->status?->color ?? 'zinc'">
-                        {{ $this->selectedAppointment->status?->name ?? 'Pendiente' }}
-                    </flux:badge>
-                    <h2 class="mt-3 text-xl font-bold">{{ $this->selectedAppointment->title }}</h2>
-                    <p class="mt-1 text-sm text-zinc-400">{{ $this->selectedAppointment->reference_code }}</p>
+        @php
+            $appointment = $this->selectedAppointment;
+            $paidAmount = (float) $appointment->payments->where('status', 'paid')->sum('amount');
+            $amountDue = max(0, (float) $appointment->price - $paidAmount);
+            $statusLabels = [
+                \App\Services\Agenda\AppointmentStatusCatalog::PENDING => 'Reservada',
+                \App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED => 'Confirmada',
+                \App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS => 'Iniciada',
+                \App\Services\Agenda\AppointmentStatusCatalog::COMPLETED => 'Completada',
+                \App\Services\Agenda\AppointmentStatusCatalog::NO_SHOW => 'No asistió',
+                \App\Services\Agenda\AppointmentStatusCatalog::CANCELLED => 'Cancelada',
+                \App\Services\Agenda\AppointmentStatusCatalog::RESCHEDULED => 'Reprogramada',
+            ];
+        @endphp
+
+        <div class="agenda-detail-overlay" data-testid="appointment-detail" wire:key="appointment-detail-{{ $appointment->id }}" x-data="{ statusOpen: false, actionsOpen: false }" @keydown.escape.window="statusOpen || actionsOpen ? (statusOpen = false, actionsOpen = false) : $wire.closeDrawer()">
+            <button type="button" class="agenda-detail-backdrop" aria-label="Cerrar detalle" wire:click="closeDrawer"></button>
+
+            <aside class="agenda-detail-drawer">
+                <div class="agenda-detail-rail">
+                    <button type="button" aria-label="Cerrar" wire:click="closeDrawer"><flux:icon.x-mark class="size-6" /></button>
+                    <button type="button" aria-label="Pantalla completa" wire:click="toggleFullscreen"><flux:icon.arrows-pointing-out class="size-5" /></button>
+                    <button type="button" aria-label="Configuración"><flux:icon.cog-6-tooth class="size-5" /></button>
                 </div>
-                <button type="button" class="agenda-icon-button" aria-label="Cerrar detalle" wire:click="closeDrawer">
-                    <flux:icon.x-mark class="size-5" />
-                </button>
-            </div>
 
-            <div class="mt-8 grid gap-5 text-sm">
-                <div><span class="text-zinc-500">Cliente</span><p class="mt-1 font-semibold">{{ $this->selectedAppointment->client->fullName() }}</p></div>
-                <div><span class="text-zinc-500">Servicio</span><p class="mt-1 font-semibold">{{ $this->selectedAppointment->service->name }}</p></div>
-                <div><span class="text-zinc-500">Fecha y hora</span><p class="mt-1 font-semibold">{{ $this->selectedAppointment->starts_at?->translatedFormat('d F Y · H:i') }} - {{ $this->selectedAppointment->ends_at?->format('H:i') }}</p></div>
-                <div><span class="text-zinc-500">Sucursal</span><p class="mt-1 font-semibold">{{ $this->selectedAppointment->branch->name }}</p></div>
-                <div><span class="text-zinc-500">Profesional</span><p class="mt-1 font-semibold">{{ $this->selectedAppointment->professional?->fullName() ?? 'Sin asignar' }}</p></div>
-            </div>
+                <section class="agenda-detail-client">
+                    <div class="agenda-detail-client__profile">
+                        <span class="agenda-detail-client__avatar">{{ mb_strtoupper(mb_substr($appointment->client->fullName(), 0, 1)) }}</span>
+                        <h2>{{ $appointment->client->fullName() }}</h2>
+                        <p>{{ $appointment->client->email ?: ($appointment->client->phone ?: 'Sin datos de contacto') }}</p>
+                    </div>
 
-            <div class="mt-8 flex gap-2 border-t border-zinc-800 pt-5">
-                <flux:button variant="primary" icon="pencil-square" wire:click="openEditModal({{ $this->selectedAppointment->id }})">Editar</flux:button>
-                <flux:button variant="ghost" wire:click="completeAppointment">Completar</flux:button>
-            </div>
-        </aside>
+                    <div class="agenda-detail-client__actions">
+                        <div class="agenda-detail-actions-menu" @click.outside="actionsOpen = false">
+                            <button type="button" @click="actionsOpen = ! actionsOpen">Acciones <flux:icon.chevron-down class="size-4" /></button>
+                            <div x-show="actionsOpen" x-cloak x-transition class="agenda-detail-actions-menu__panel">
+                                <button type="button" wire:click="openEditModal({{ $appointment->id }})" @click="actionsOpen = false">Editar cita</button>
+                                <button type="button" wire:click="rescheduleSelected" @click="actionsOpen = false">Reprogramar una hora</button>
+                            </div>
+                        </div>
+                        <button type="button" wire:click="viewSelectedClientProfile">Ver perfil</button>
+                    </div>
+
+                    <div class="agenda-detail-client__meta">
+                        <p><flux:icon.user class="size-5" /> {{ $appointment->client->gender ?: 'Agregar género' }}</p>
+                        <p><flux:icon.calendar-days class="size-5" /> {{ $appointment->client->birth_date?->translatedFormat('d M Y') ?? 'Agregar fecha de nacimiento' }}</p>
+                        <p><flux:icon.plus-circle class="size-5" /> Creado {{ $appointment->client->created_at?->translatedFormat('d M Y') }}</p>
+                    </div>
+                </section>
+
+                <section class="agenda-detail-booking">
+                    <header class="agenda-detail-booking__header">
+                        <div>
+                            <h2>{{ ucfirst($appointment->starts_at->translatedFormat('D d M')) }} <flux:icon.chevron-down class="size-4" /></h2>
+                            <p>{{ $appointment->starts_at->format('H:i') }} · No se repite</p>
+                        </div>
+
+                        <div class="agenda-detail-status" @click.outside="statusOpen = false">
+                            <button type="button" @click="statusOpen = ! statusOpen" :aria-expanded="statusOpen">
+                                {{ $statusLabels[$appointment->status->slug] ?? $appointment->status->name }}
+                                <flux:icon.chevron-down class="size-4" />
+                            </button>
+                            <div x-show="statusOpen" x-cloak x-transition.origin.top.right class="agenda-detail-status__menu">
+                                <button type="button" wire:click="changeStatusInline({{ $appointment->id }}, '{{ \App\Services\Agenda\AppointmentStatusCatalog::PENDING }}')" @click="statusOpen = false"><flux:icon.calendar-days class="size-5" /> Reservada @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::PENDING)<flux:icon.check class="size-5" />@endif</button>
+                                <button type="button" wire:click="changeStatusInline({{ $appointment->id }}, '{{ \App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED }}')" @click="statusOpen = false"><flux:icon.check class="size-5" /> Confirmada @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED)<flux:icon.check class="size-5" />@endif</button>
+                                <button type="button" wire:click="changeStatusInline({{ $appointment->id }}, '{{ \App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS }}')" @click="statusOpen = false"><flux:icon.arrow-path class="size-5" /> Iniciada @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS)<flux:icon.check class="size-5" />@endif</button>
+                                <button type="button" wire:click="completeAppointment" @click="statusOpen = false"><flux:icon.check class="size-5" /> Completada @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::COMPLETED)<flux:icon.check class="size-5" />@endif</button>
+                                <button type="button" class="is-danger" wire:click="markNoShow" @click="statusOpen = false"><flux:icon.eye class="size-5" /> No asistió @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::NO_SHOW)<flux:icon.check class="size-5" />@endif</button>
+                                <button type="button" class="is-danger" wire:click="cancelAppointment" @click="statusOpen = false"><flux:icon.x-mark class="size-5" /> Cancelar @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::CANCELLED)<flux:icon.check class="size-5" />@endif</button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="agenda-detail-booking__body">
+                        <h3>Servicios</h3>
+                        <article class="agenda-detail-service">
+                            <div>
+                                <strong>{{ $appointment->service->name }}</strong>
+                                <p>{{ $appointment->starts_at->format('H:i') }} · {{ $this->serviceDurationLabel($appointment->duration_minutes) }} · {{ $appointment->professional?->fullName() ?? 'Cualquier miembro del equipo' }}</p>
+                            </div>
+                            <strong>PEN {{ number_format((float) $appointment->price, 0) }}</strong>
+                        </article>
+                        <button type="button" class="agenda-detail-add-service" wire:click="openEditModal({{ $appointment->id }})"><flux:icon.plus-circle class="size-5" /> Agregar servicio</button>
+
+                        @if ($appointment->notes)
+                            <div class="agenda-detail-note"><strong>Notas</strong><p>{{ $appointment->notes }}</p></div>
+                        @endif
+                    </div>
+
+                    <footer class="agenda-detail-booking__footer">
+                        <div class="agenda-detail-total">
+                            <span>Total</span><span>PEN {{ number_format((float) $appointment->price, 0) }}</span>
+                            <strong>Por pagar <flux:icon.chevron-right class="size-4" /></strong><strong>PEN {{ number_format($amountDue, 0) }}</strong>
+                        </div>
+                        <div class="agenda-detail-checkout">
+                            <button type="button" class="agenda-detail-more" aria-label="Más opciones"><flux:icon.ellipsis-vertical class="size-5" /></button>
+                            <button type="button" wire:click="checkoutSelectedAppointment">Checkout</button>
+                        </div>
+                    </footer>
+                </section>
+            </aside>
+        </div>
     @endif
 
     <flux:modal name="schedule-block-form" class="w-full max-w-xl">

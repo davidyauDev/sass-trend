@@ -97,6 +97,99 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('agendaTeamFilter', (config) => ({
+        open: false,
+        query: '',
+        professionals: config.professionals ?? [],
+        selectedIds: [],
+        onChange: typeof config.onChange === 'function' ? config.onChange : null,
+        init() {
+            const availableIds = new Set(this.professionals.map((professional) => Number(professional.id)));
+
+            this.selectedIds = [...new Set((config.selectedIds ?? []).map(Number))]
+                .filter((id) => availableIds.has(id));
+        },
+        get currentProfessional() {
+            return this.professionals.find((professional) => professional.isCurrent) ?? null;
+        },
+        get allSelected() {
+            return this.professionals.length > 0 && this.selectedIds.length === this.professionals.length;
+        },
+        get onlyCurrentSelected() {
+            return this.currentProfessional !== null
+                && this.selectedIds.length === 1
+                && this.selectedIds[0] === Number(this.currentProfessional.id);
+        },
+        get triggerLabel() {
+            if (this.allSelected) {
+                return 'Todo el equipo';
+            }
+
+            if (this.selectedIds.length === 0) {
+                return 'Ningún miembro';
+            }
+
+            if (this.selectedIds.length === 1) {
+                return this.professionals.find((professional) => Number(professional.id) === this.selectedIds[0])?.label
+                    ?? '1 miembro';
+            }
+
+            return `${this.selectedIds.length} miembros`;
+        },
+        get filteredProfessionals() {
+            const term = this.query.trim().toLocaleLowerCase('es');
+
+            if (term === '') {
+                return this.professionals;
+            }
+
+            return this.professionals.filter((professional) => (
+                professional.label.toLocaleLowerCase('es').includes(term)
+            ));
+        },
+        openPanel() {
+            this.open = true;
+
+            this.$nextTick(() => this.$refs.search?.focus());
+        },
+        closePanel() {
+            this.open = false;
+            this.query = '';
+        },
+        isSelected(professionalId) {
+            return this.selectedIds.includes(Number(professionalId));
+        },
+        selectAll() {
+            this.selectedIds = this.professionals.map((professional) => Number(professional.id));
+            this.syncSelection();
+        },
+        selectCurrent() {
+            if (! this.currentProfessional) {
+                return;
+            }
+
+            this.selectedIds = [Number(this.currentProfessional.id)];
+            this.syncSelection();
+        },
+        toggleAll() {
+            this.selectedIds = this.allSelected
+                ? []
+                : this.professionals.map((professional) => Number(professional.id));
+            this.syncSelection();
+        },
+        toggleProfessional(professionalId) {
+            const id = Number(professionalId);
+
+            this.selectedIds = this.isSelected(id)
+                ? this.selectedIds.filter((selectedId) => selectedId !== id)
+                : [...this.selectedIds, id];
+            this.syncSelection();
+        },
+        syncSelection() {
+            this.onChange?.([...this.selectedIds]);
+        },
+    }));
+
     Alpine.data('productInventory', (config) => ({
         activeTab: 'basic',
         isOpen: false,

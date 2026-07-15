@@ -3,11 +3,11 @@
 namespace App\Actions\Agenda;
 
 use App\Models\Appointment;
-use App\Models\AppointmentStatus;
 use App\Models\User;
 use App\Services\Agenda\AppointmentAvailabilityService;
 use App\Services\Agenda\AppointmentHistoryService;
 use App\Services\Agenda\AppointmentStatusCatalog;
+use App\Services\Agenda\AppointmentStatusResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -16,6 +16,7 @@ final class UpdateAppointmentAction
     public function __construct(
         private readonly AppointmentAvailabilityService $availability,
         private readonly AppointmentHistoryService $history,
+        private readonly AppointmentStatusResolver $statuses,
     ) {}
 
     /**
@@ -36,9 +37,9 @@ final class UpdateAppointmentAction
                 $data['resource_id'] !== null ? (int) $data['resource_id'] : null,
             );
 
-            $statusId = AppointmentStatus::query()
-                ->where('slug', $data['status_slug'] ?? $appointment->status->slug ?? AppointmentStatusCatalog::PENDING)
-                ->value('id');
+            $statusId = $this->statuses->resolveId(
+                (string) ($data['status_slug'] ?? $appointment->status->slug ?? AppointmentStatusCatalog::PENDING),
+            );
 
             $appointment->update([
                 'branch_id' => $data['branch_id'],
