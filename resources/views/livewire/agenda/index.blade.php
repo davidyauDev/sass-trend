@@ -640,6 +640,70 @@
                                 </button>
                             </div>
                         </div>
+                    @elseif ($appointmentStep === 'summary')
+                        <form
+                            wire:submit="save"
+                            class="agenda-booking-summary"
+                            data-testid="appointment-summary"
+                        >
+                            <header class="agenda-summary-header">
+                                <button type="button" wire:click="showAppointmentTime" aria-label="Volver a seleccionar hora">
+                                    <h2>{{ ucfirst(\Carbon\CarbonImmutable::parse($form->starts_at)->translatedFormat('D j M')) }}</h2>
+                                    <flux:icon.chevron-down class="size-4" />
+                                </button>
+                                <p>{{ \Carbon\CarbonImmutable::parse($form->starts_at)->format('H:i') }} · No se repite</p>
+                            </header>
+
+                            <div class="agenda-summary-body">
+                                <h3>Servicios</h3>
+
+                                <div class="agenda-summary-services">
+                                    @foreach ($this->appointmentSummaryServices as $summaryService)
+                                        <article wire:key="appointment-summary-service-{{ $summaryService['service']->id }}">
+                                            <div>
+                                                <strong>{{ $summaryService['service']->name }}</strong>
+                                                <p>
+                                                    {{ $summaryService['starts_at']->format('H:i') }}
+                                                    · {{ $this->serviceDurationLabel($summaryService['service']->duration_minutes) }}
+                                                    · {{ $summaryService['professional_name'] }}
+                                                </p>
+                                            </div>
+                                            <b>S/ {{ number_format((float) $summaryService['service']->price, 2) }}</b>
+                                        </article>
+                                    @endforeach
+                                </div>
+
+                                <div class="agenda-summary-add-row">
+                                    <button type="button" wire:click="showServiceStep" class="agenda-add-service-button">
+                                        <flux:icon.plus-circle class="size-4" />
+                                        Agregar servicio
+                                    </button>
+                                    <span>{{ $this->serviceDurationLabel($this->selectedServicesDuration) }}</span>
+                                </div>
+                            </div>
+
+                            <footer class="agenda-summary-footer">
+                                <div class="agenda-wizard-total">
+                                    <span>Total</span>
+                                    <b>S/ {{ number_format($this->selectedServicesTotal, 2) }}</b>
+                                    <strong>Para pagar <flux:icon.chevron-right class="size-4" /></strong>
+                                    <strong>S/ {{ number_format($this->selectedServicesTotal, 2) }}</strong>
+                                </div>
+
+                                <div class="agenda-summary-actions">
+                                    <button type="button" class="agenda-summary-more" aria-label="Más opciones">
+                                        <flux:icon.ellipsis-vertical class="size-5" />
+                                    </button>
+                                    <button type="button" class="agenda-summary-checkout" wire:click="checkout">
+                                        Checkout
+                                    </button>
+                                    <button type="submit" class="agenda-summary-save" wire:loading.attr="disabled" wire:target="save">
+                                        <span wire:loading.remove wire:target="save">Guardar</span>
+                                        <span wire:loading wire:target="save">Guardando...</span>
+                                    </button>
+                                </div>
+                            </footer>
+                        </form>
                     @else
                         <form wire:submit="save" class="agenda-appointment-details">
                             <div class="agenda-details-header">

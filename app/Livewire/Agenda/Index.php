@@ -308,11 +308,17 @@ class Index extends Component
 
     public function save(CreateAppointmentAction $createAppointment, UpdateAppointmentAction $updateAppointment): void
     {
+        $isEditing = $this->form->appointmentId !== null;
+
+        if (! $isEditing) {
+            $this->authorize('create', Appointment::class);
+            $this->form->client_id ??= $this->walkInClientId();
+        }
+
         $this->form->withAvailabilityValidation()->validate();
 
         $payload = $this->form->payload();
         $actor = $this->authUser();
-        $isEditing = $this->form->appointmentId !== null;
         $serviceCount = count($this->selectedServiceIds);
 
         if ($isEditing) {
@@ -320,7 +326,6 @@ class Index extends Component
             $this->authorize('update', $appointment);
             $appointment = $updateAppointment->handle($actor, $appointment, $payload);
         } else {
-            $this->authorize('create', Appointment::class);
             $appointment = null;
             $startsAt = CarbonImmutable::parse($payload['starts_at']);
 
@@ -341,6 +346,7 @@ class Index extends Component
             abort_if($appointment === null, 422, 'Debe seleccionar al menos un servicio.');
         }
 
+        $this->selectedDate = CarbonImmutable::parse($payload['starts_at'])->toDateString();
         $this->selectedAppointmentId = $appointment->id;
         $this->appointmentPanelOpen = false;
         $this->closeModal();
@@ -351,6 +357,12 @@ class Index extends Component
                 ? 'Cita actualizada correctamente.'
                 : ($serviceCount > 1 ? 'Servicios agendados correctamente.' : 'Cita creada correctamente.'),
         );
+    }
+
+    public function checkout(CreateAppointmentAction $createAppointment, UpdateAppointmentAction $updateAppointment): void
+    {
+        $this->save($createAppointment, $updateAppointment);
+        $this->redirectRoute('sales.index', navigate: true);
     }
 
     public function moveAppointment(int $appointmentId, string $startsAt, RescheduleAppointmentAction $rescheduleAppointment): void
@@ -586,7 +598,12 @@ class Index extends Component
         $this->form->starts_at = CarbonImmutable::parse($this->selectedSlotStart)->format('Y-m-d\TH:i');
         $this->form->ends_at = CarbonImmutable::parse($this->selectedSlotEnd)->format('Y-m-d\TH:i');
         $this->form->professional_id = $this->selectedServiceProfessionals[$firstService->id] ?? null;
-        $this->appointmentStep = 'details';
+        $this->appointmentStep = 'summary';
+    }
+
+    public function showAppointmentTime(): void
+    {
+        $this->appointmentStep = 'time';
     }
 
     public function serviceDurationLabel(int $minutes): string
@@ -717,6 +734,41 @@ class Index extends Component
     public function selectedServicesTotal(): float
     {
         return (float) $this->selectedServices()->sum(fn (Service $service): float => (float) $service->price);
+    }
+
+    /**
+     * @return list<array{service: Service, starts_at: CarbonImmutable, ends_at: CarbonImmutable, professional_name: string}>
+     */
+    #[Computed]
+    public function appointmentSummaryServices(): array
+    {
+        if ($this->form->starts_at === '') {
+            return [];
+        }
+
+        $professionalIds = collect($this->selectedServiceProfessionals)
+            ->filter(fn (?int $professionalId): bool => $professionalId !== null)
+            ->values();
+        $professionals = User::query()->whereKey($professionalIds)->get()->keyBy('id');
+        $startsAt = CarbonImmutable::parse($this->form->starts_at);
+        $summary = [];
+
+        foreach ($this->selectedServices() as $service) {
+            $endsAt = $startsAt->addMinutes($service->duration_minutes);
+            $professionalId = $this->selectedServiceProfessionals[$service->id] ?? null;
+            $professional = $professionalId !== null ? $professionals->get($professionalId) : null;
+            $summary[] = [
+                'service' => $service,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'professional_name' => $professional instanceof User
+                    ? $professional->fullName()
+                    : 'Cualquier miembro del equipo',
+            ];
+            $startsAt = $endsAt;
+        }
+
+        return $summary;
     }
 
     /**
@@ -1082,6 +1134,14 @@ class Index extends Component
         $startsAt = CarbonImmutable::parse($this->selectedDate.' 09:00');
         $this->form->starts_at = $startsAt->format('Y-m-d\TH:i');
         $this->form->ends_at = $startsAt->addMinutes(60)->format('Y-m-d\TH:i');
+    }
+
+    private function walkInClientId(): int
+    {
+        return Client::query()->firstOrCreate([
+            'first_name' => 'Cliente',
+            'last_name' => 'sin cita previa',
+        ])->id;
     }
 
     private function authUser(): User

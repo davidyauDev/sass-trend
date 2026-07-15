@@ -142,7 +142,7 @@ class AppointmentForm extends Form
             'title' => ['required', 'string', 'max:255'],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['required', 'date'],
-            'duration_minutes' => ['required', 'integer', 'min:15', 'max:480'],
+            'duration_minutes' => ['required', 'integer', 'min:1', 'max:480'],
             'timezone' => ['required', 'string', 'max:100'],
             'price' => ['required', 'numeric', 'min:0'],
             'currency' => ['required', 'string', 'size:3'],
