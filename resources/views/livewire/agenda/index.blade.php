@@ -861,7 +861,7 @@
                                 <button type="button" wire:click="changeStatusInline({{ $appointment->id }}, '{{ \App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS }}')" @click="statusOpen = false"><flux:icon.arrow-path class="size-5" /> Iniciada @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS)<flux:icon.check class="size-5" />@endif</button>
                                 <button type="button" wire:click="completeAppointment" @click="statusOpen = false"><flux:icon.check class="size-5" /> Completada @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::COMPLETED)<flux:icon.check class="size-5" />@endif</button>
                                 <button type="button" class="is-danger" wire:click="markNoShow" @click="statusOpen = false"><flux:icon.eye class="size-5" /> No asistió @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::NO_SHOW)<flux:icon.check class="size-5" />@endif</button>
-                                <button type="button" class="is-danger" wire:click="cancelAppointment" @click="statusOpen = false"><flux:icon.x-mark class="size-5" /> Cancelar @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::CANCELLED)<flux:icon.check class="size-5" />@endif</button>
+                                <button type="button" class="is-danger" wire:click="openCancellationConfirmation" @click="statusOpen = false"><flux:icon.x-mark class="size-5" /> Cancelar @if ($appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::CANCELLED)<flux:icon.check class="size-5" />@endif</button>
                             </div>
                         </div>
                     </header>
@@ -895,6 +895,78 @@
                 </section>
             </aside>
         </div>
+    @endif
+
+    @if ($cancellationPanelOpen && $this->selectedAppointment)
+        @php
+            $cancellationAppointment = $this->selectedAppointment;
+            $cancellationReasons = [
+                'none' => 'No se proporcionó motivo',
+                'duplicate' => 'Cita duplicada',
+                'appointment_made_by_mistake' => 'Cita creada por error',
+                'client_not_available' => 'Cliente no disponible',
+            ];
+        @endphp
+
+        <section
+            class="agenda-cancellation-page"
+            data-testid="cancellation-page"
+            x-data="{ reasonOpen: false }"
+            @keydown.escape.window="reasonOpen ? reasonOpen = false : $wire.closeCancellationConfirmation()"
+        >
+            <header class="agenda-cancellation-page__topbar">
+                <button type="button" wire:click="closeCancellationConfirmation">Cerrar</button>
+            </header>
+
+            <main class="agenda-cancellation-page__main">
+                <h1>¿Seguro que quieres cancelar?</h1>
+
+                <div class="agenda-cancellation-layout">
+                    <div class="agenda-cancellation-form">
+                        <div class="agenda-cancellation-notice">
+                            <flux:icon.information-circle class="size-5" />
+                            <span>No se aplicó ninguna política a esta cita</span>
+                        </div>
+
+                        <label>Motivo de cancelación</label>
+                        <div class="agenda-cancellation-select" @click.outside="reasonOpen = false">
+                            <button type="button" @click="reasonOpen = ! reasonOpen" :aria-expanded="reasonOpen">
+                                <span>{{ $cancellationReasons[$cancellationReason] ?? $cancellationReasons['appointment_made_by_mistake'] }}</span>
+                                <flux:icon.chevron-down class="size-4" />
+                            </button>
+
+                            <div x-show="reasonOpen" x-cloak x-transition.origin.top class="agenda-cancellation-select__menu">
+                                @foreach ($cancellationReasons as $reasonValue => $reasonLabel)
+                                    <button
+                                        type="button"
+                                        wire:click="$set('cancellationReason', '{{ $reasonValue }}')"
+                                        @click="reasonOpen = false"
+                                    >
+                                        <span>{{ $reasonLabel }}</span>
+                                        @if ($cancellationReason === $reasonValue)
+                                            <flux:icon.check class="size-5" />
+                                        @endif
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside class="agenda-cancellation-card">
+                        <h2>Detalles de cancelación</h2>
+                        <div>
+                            <span>Total de la cita</span>
+                            <strong>PEN {{ number_format((float) $cancellationAppointment->price, 0) }}</strong>
+                        </div>
+                        <p>No se cobrará ninguna comisión</p>
+                        <button type="button" wire:click="confirmCancellation" wire:loading.attr="disabled" wire:target="confirmCancellation">
+                            <span wire:loading.remove wire:target="confirmCancellation">Cancelar cita</span>
+                            <span wire:loading wire:target="confirmCancellation">Cancelando...</span>
+                        </button>
+                    </aside>
+                </div>
+            </main>
+        </section>
     @endif
 
     <flux:modal name="schedule-block-form" class="w-full max-w-xl">

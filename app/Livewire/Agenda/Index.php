@@ -62,6 +62,8 @@ class Index extends Component
 
     public bool $appointmentPanelOpen = false;
 
+    public bool $appointmentStartedFromCalendarSlot = false;
+
     public ?int $waitlistEntryPendingBookingId = null;
 
     public string $appointmentStep = 'picker';
@@ -85,6 +87,10 @@ class Index extends Component
     public string $noteDraft = '';
 
     public string $statusReason = '';
+
+    public bool $cancellationPanelOpen = false;
+
+    public string $cancellationReason = 'appointment_made_by_mistake';
 
     public string $slotSearchDate = '';
 
@@ -200,6 +206,7 @@ class Index extends Component
 
     public function openCreateModal(): void
     {
+        $this->appointmentStartedFromCalendarSlot = false;
         $this->form->resetForm();
         $this->form->branch_id = $this->branchFilterId ?? Branch::query()->orderBy('name')->value('id');
         $this->form->professional_id = $this->selectedProfessionalFilterId();
@@ -236,6 +243,7 @@ class Index extends Component
         $this->appointmentTimeDate = $slot->toDateString();
         $this->selectedSlotStart = $this->form->starts_at;
         $this->selectedSlotEnd = $this->form->ends_at;
+        $this->appointmentStartedFromCalendarSlot = true;
     }
 
     public function openScheduleBlockModalForDate(string $date): void
@@ -326,6 +334,7 @@ class Index extends Component
     public function closeModal(): void
     {
         $this->appointmentPanelOpen = false;
+        $this->appointmentStartedFromCalendarSlot = false;
         $this->appointmentStep = 'picker';
         $this->serviceSearch = '';
         $this->selectedServiceIds = [];
@@ -516,9 +525,38 @@ class Index extends Component
         $this->applyStatusToSelected(AppointmentStatusCatalog::NO_SHOW, $changeStatus);
     }
 
-    public function cancelAppointment(ChangeAppointmentStatusAction $changeStatus): void
+    public function openCancellationConfirmation(): void
     {
-        $this->applyStatusToSelected(AppointmentStatusCatalog::CANCELLED, $changeStatus, $this->statusReason !== '' ? $this->statusReason : 'Cancelled from agenda.');
+        $appointment = $this->selectedAppointment();
+
+        if ($appointment === null) {
+            return;
+        }
+
+        $this->authorize('cancel', $appointment);
+        $this->cancellationReason = 'appointment_made_by_mistake';
+        $this->cancellationPanelOpen = true;
+    }
+
+    public function closeCancellationConfirmation(): void
+    {
+        $this->cancellationPanelOpen = false;
+    }
+
+    public function confirmCancellation(ChangeAppointmentStatusAction $changeStatus): void
+    {
+        $reason = match ($this->cancellationReason) {
+            'none' => 'No se proporcionó ningún motivo.',
+            'duplicate' => 'Cita duplicada.',
+            'appointment_made_by_mistake' => 'Cita creada por error.',
+            'client_not_available' => 'Cliente no disponible.',
+            default => 'Cita creada por error.',
+        };
+
+        $this->applyStatusToSelected(AppointmentStatusCatalog::CANCELLED, $changeStatus, $reason);
+        $this->cancellationPanelOpen = false;
+        $this->selectedAppointmentId = null;
+        unset($this->selectedAppointment, $this->appointments);
     }
 
     public function rescheduleSelected(RescheduleAppointmentAction $rescheduleAppointment): void
@@ -620,14 +658,24 @@ class Index extends Component
     public function selectAppointmentService(int $serviceId): void
     {
         $service = Service::query()->where('is_active', true)->findOrFail($serviceId);
+        $calendarProfessionalId = $this->appointmentStartedFromCalendarSlot
+            ? $this->form->professional_id
+            : null;
 
         if (! in_array($serviceId, $this->selectedServiceIds, true)) {
             $this->selectedServiceIds[] = $serviceId;
-            $this->selectedServiceProfessionals[$serviceId] = $this->selectedProfessionalFilterId();
+            $this->selectedServiceProfessionals[$serviceId] = $calendarProfessionalId
+                ?? $this->selectedProfessionalFilterId();
         }
 
         if ($this->form->service_id === null) {
             $this->form->fillFromService($service);
+        }
+
+        if ($this->appointmentStartedFromCalendarSlot) {
+            $this->prepareCalendarSlotSummary();
+
+            return;
         }
 
         $this->appointmentStep = 'services';
@@ -962,6 +1010,7 @@ class Index extends Component
 
         return Appointment::query()
             ->with(['branch', 'client', 'service', 'resource', 'professional', 'status', 'payments', 'notes', 'histories'])
+            ->whereHas('status', fn (Builder $query): Builder => $query->where('slug', '!=', AppointmentStatusCatalog::CANCELLED))
             ->search($this->search)
             ->when($this->branchFilterId !== null, fn (Builder $query): Builder => $query->where('branch_id', $this->branchFilterId))
             ->when(
@@ -1188,6 +1237,35 @@ class Index extends Component
         return collect(array_merge($historyEntries, $noteEntries))
             ->sortByDesc('created_at')
             ->values();
+    }
+
+    private function prepareCalendarSlotSummary(): void
+    {
+        if ($this->selectedSlotStart === '') {
+            return;
+        }
+
+        $services = $this->selectedServices();
+        $firstService = $services->first();
+
+        if (! $firstService instanceof Service) {
+            return;
+        }
+
+        $startsAt = CarbonImmutable::parse($this->selectedSlotStart);
+        $endsAt = $startsAt->addMinutes($this->selectedServicesDuration());
+        $professionalId = $this->selectedServiceProfessionals[$firstService->id]
+            ?? $this->form->professional_id;
+
+        $this->selectedSlotEnd = $endsAt->format('Y-m-d\TH:i');
+        $this->form->service_id = $firstService->id;
+        $this->form->professional_id = $professionalId;
+        $this->form->title = $services->pluck('name')->implode(' + ');
+        $this->form->starts_at = $startsAt->format('Y-m-d\TH:i');
+        $this->form->ends_at = $this->selectedSlotEnd;
+        $this->form->duration_minutes = (string) $this->selectedServicesDuration();
+        $this->form->price = (string) $this->selectedServicesTotal();
+        $this->appointmentStep = 'summary';
     }
 
     private function loadAppointmentTimeSlots(AppointmentAvailabilityService $availability): void

@@ -2500,6 +2500,212 @@
     font-weight: 750;
 }
 
+.agenda-cancellation-page {
+    position: fixed;
+    z-index: 130;
+    inset: 0;
+    overflow-y: auto;
+    background: #fff;
+    color: #101010;
+}
+
+.agenda-cancellation-page__topbar {
+    display: flex;
+    width: min(1180px, calc(100% - 48px));
+    min-height: 72px;
+    align-items: center;
+    justify-content: flex-end;
+    margin: 0 auto;
+}
+
+.agenda-cancellation-page__topbar button {
+    min-height: 48px;
+    padding: 0 22px;
+    border: 1px solid #d4d4d7;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.agenda-cancellation-page__topbar button:hover {
+    background: #f5f5f5;
+}
+
+.agenda-cancellation-page__main {
+    width: min(1180px, calc(100% - 48px));
+    margin: 28px auto 80px;
+}
+
+.agenda-cancellation-page__main h1 {
+    margin: 0 0 32px;
+    font-size: clamp(30px, 2.15vw, 40px);
+    font-weight: 750;
+    letter-spacing: -0.035em;
+}
+
+.agenda-cancellation-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 644px) minmax(360px, 444px);
+    gap: 96px;
+    align-items: start;
+}
+
+.agenda-cancellation-form {
+    min-width: 0;
+}
+
+.agenda-cancellation-notice {
+    display: flex;
+    min-height: 56px;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 25px;
+    border: 1px solid #d4d2ff;
+    border-radius: 11px;
+    background: #f0efff;
+    padding: 0 13px;
+    font-size: 14px;
+}
+
+.agenda-cancellation-notice svg {
+    flex: 0 0 auto;
+    color: #6848ff;
+}
+
+.agenda-cancellation-form > label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.agenda-cancellation-select {
+    position: relative;
+}
+
+.agenda-cancellation-select > button {
+    display: flex;
+    width: 100%;
+    min-height: 49px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    border: 1px solid #d4d4d7;
+    border-radius: 9px;
+    background: #fff;
+    padding: 0 16px;
+    font-size: 14px;
+    text-align: left;
+}
+
+.agenda-cancellation-select__menu {
+    position: absolute;
+    z-index: 3;
+    top: calc(100% + 8px);
+    right: 0;
+    left: 0;
+    display: grid;
+    gap: 1px;
+    border: 1px solid #dedee2;
+    border-radius: 11px;
+    background: #fff;
+    padding: 8px;
+    box-shadow: 0 10px 22px rgb(0 0 0 / 0.18);
+}
+
+.agenda-cancellation-select__menu button {
+    display: flex;
+    min-height: 39px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    border-radius: 7px;
+    padding: 0 12px;
+    font-size: 14px;
+    text-align: left;
+}
+
+.agenda-cancellation-select__menu button:hover {
+    background: #f3f3f5;
+}
+
+.agenda-cancellation-card {
+    border: 1px solid #dedee2;
+    border-radius: 13px;
+    background: #fafafa;
+    padding: 38px 39px;
+}
+
+.agenda-cancellation-card h2 {
+    margin: 0 0 19px;
+    font-size: 19px;
+    font-weight: 750;
+}
+
+.agenda-cancellation-card > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #dedee2;
+    font-size: 14px;
+}
+
+.agenda-cancellation-card > div strong {
+    font-weight: 500;
+}
+
+.agenda-cancellation-card p {
+    margin: 11px 0 32px;
+    color: #77777c;
+    font-size: 14px;
+}
+
+.agenda-cancellation-card > button {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 999px;
+    background: #dd1239;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 750;
+}
+
+.agenda-cancellation-card > button:hover {
+    background: #c90e32;
+}
+
+.agenda-cancellation-card > button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+@media (max-width: 900px) {
+    .agenda-cancellation-page__topbar,
+    .agenda-cancellation-page__main {
+        width: min(100% - 32px, 650px);
+    }
+
+    .agenda-cancellation-page__main {
+        margin-top: 12px;
+    }
+
+    .agenda-cancellation-page__main h1 {
+        margin-bottom: 24px;
+    }
+
+    .agenda-cancellation-layout {
+        grid-template-columns: 1fr;
+        gap: 28px;
+    }
+
+    .agenda-cancellation-card {
+        padding: 28px 24px;
+    }
+}
+
 .agenda-detail-checkout .agenda-detail-more {
     display: grid;
     place-items: center;
@@ -2607,16 +2813,18 @@
 }
 
 .agenda-day-schedule__header {
+    position: relative;
+    z-index: 7;
     display: grid;
     min-width: max(100%, calc(var(--agenda-professionals) * 420px + 50px));
     min-height: 110px;
     grid-template-columns: 50px repeat(var(--agenda-professionals), minmax(420px, 1fr));
-    border-bottom: 1px solid #dedfe2;
     background: #fff;
+    box-shadow: 0 5px 9px -6px rgb(0 0 0 / 0.32);
 }
 
 .agenda-day-schedule__corner {
-    border-right: 1px solid #dedfe2;
+    background: #fff;
 }
 
 .agenda-professional-heading {
@@ -2625,7 +2833,6 @@
     flex-direction: column;
     justify-content: center;
     gap: 6px;
-    border-right: 1px solid #dedfe2;
 }
 
 .agenda-professional-heading strong,

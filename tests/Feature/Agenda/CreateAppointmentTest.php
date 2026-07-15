@@ -32,7 +32,7 @@ test('guarda una cita corta para un cliente sin cita previa', function (): void 
         'is_active' => true,
     ]);
 
-    Livewire::test(AgendaIndex::class)
+    $component = Livewire::test(AgendaIndex::class)
         ->set('selectedServiceIds', [$service->id])
         ->set('selectedServiceProfessionals', [$service->id => null])
         ->set('form.branch_id', $branch->id)
@@ -56,6 +56,29 @@ test('guarda una cita corta para un cliente sin cita previa', function (): void 
         ->and($appointment->starts_at->format('Y-m-d H:i'))->toBe('2026-07-15 13:15')
         ->and($appointment->client->fullName())->toBe('Cliente sin cita previa')
         ->and($appointment->status->slug)->toBe(AppointmentStatusCatalog::PENDING);
+
+    $component
+        ->call('openCancellationConfirmation')
+        ->assertSet('cancellationPanelOpen', true)
+        ->assertSee('¿Seguro que quieres cancelar?')
+        ->assertSee('Cancelar cita')
+        ->call('closeCancellationConfirmation')
+        ->assertSet('cancellationPanelOpen', false);
+
+    expect($appointment->fresh()->status->slug)->toBe(AppointmentStatusCatalog::PENDING);
+
+    $component
+        ->call('openCancellationConfirmation')
+        ->set('cancellationReason', 'duplicate')
+        ->call('confirmCancellation')
+        ->assertSet('cancellationPanelOpen', false)
+        ->assertSet('selectedAppointmentId', null);
+
+    $appointment = $appointment->fresh(['status']);
+
+    expect($appointment->status->slug)->toBe(AppointmentStatusCatalog::CANCELLED)
+        ->and($appointment->cancellation_reason)->toBe('Cita duplicada.')
+        ->and($component->get('appointments'))->toHaveCount(0);
 });
 
 test('muestra y navega la agenda de tres dias', function (): void {
@@ -83,13 +106,46 @@ test('precarga una cita desde un intervalo de quince minutos', function (): void
     $user = User::factory()->administratorGeneral()->create();
     actingAs($user);
 
-    Livewire::test(AgendaIndex::class)
+    $category = ServiceCategory::factory()->create();
+    $firstService = Service::factory()->create([
+        'service_category_id' => $category->id,
+        'duration_minutes' => 90,
+        'price' => 25,
+        'is_active' => true,
+    ]);
+    $secondService = Service::factory()->create([
+        'service_category_id' => $category->id,
+        'duration_minutes' => 30,
+        'price' => 15,
+        'is_active' => true,
+    ]);
+
+    $component = Livewire::test(AgendaIndex::class)
         ->call('openCreateModalForSlot', '2026-07-15T13:15', $user->id)
         ->assertSet('appointmentPanelOpen', true)
+        ->assertSet('appointmentStartedFromCalendarSlot', true)
         ->assertSet('selectedDate', '2026-07-15')
         ->assertSet('form.professional_id', $user->id)
         ->assertSet('form.starts_at', '2026-07-15T13:15')
         ->assertSet('form.ends_at', '2026-07-15T14:15')
         ->assertSet('selectedSlotStart', '2026-07-15T13:15')
         ->assertSet('selectedSlotEnd', '2026-07-15T14:15');
+
+    $component
+        ->call('selectAppointmentService', $firstService->id)
+        ->assertSet('appointmentStep', 'summary')
+        ->assertSet('form.professional_id', $user->id)
+        ->assertSet('form.starts_at', '2026-07-15T13:15')
+        ->assertSet('form.ends_at', '2026-07-15T14:45')
+        ->assertSet('form.duration_minutes', '90')
+        ->assertSee('Checkout')
+        ->assertSee('Guardar');
+
+    $component
+        ->call('showServiceStep')
+        ->call('selectAppointmentService', $secondService->id)
+        ->assertSet('appointmentStep', 'summary')
+        ->assertSet('form.ends_at', '2026-07-15T15:15')
+        ->assertSet('form.duration_minutes', '120')
+        ->assertSet('form.price', '40');
 });
