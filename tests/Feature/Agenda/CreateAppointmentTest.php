@@ -98,6 +98,16 @@ test('muestra y navega la agenda de tres dias', function (): void {
 
     $component->call('next')->assertSet('selectedDate', '2026-07-18');
     $component->call('previous')->assertSet('selectedDate', '2026-07-15');
+
+    $component
+        ->call('openCreateModalForDateAndProfessional', '2026-07-16', $user->id)
+        ->assertSet('appointmentPanelOpen', true)
+        ->assertSet('selectedDate', '2026-07-16')
+        ->assertSet('form.professional_id', $user->id)
+        ->call('closeModal')
+        ->call('openDayView', '2026-07-17')
+        ->assertSet('viewMode', 'day')
+        ->assertSet('selectedDate', '2026-07-17');
 });
 
 test('precarga una cita desde un intervalo de quince minutos', function (): void {

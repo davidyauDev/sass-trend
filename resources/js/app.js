@@ -45,6 +45,86 @@ const createToastMixin = (storageKey) => ({
 });
 
 document.addEventListener('alpine:init', () => {
+    Alpine.data('agendaDatePicker', (config) => ({
+        open: false,
+        moreOpen: false,
+        selectedDate: config.selectedDate,
+        monthOffset: 0,
+        weekdays: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+        parseDate(value) {
+            const [year, month, day] = value.split('-').map(Number);
+
+            return new Date(year, month - 1, day);
+        },
+        monthDate(offset = 0) {
+            const date = this.parseDate(this.selectedDate);
+
+            return new Date(date.getFullYear(), date.getMonth() + this.monthOffset + offset, 1);
+        },
+        monthTitle(offset = 0) {
+            const label = new Intl.DateTimeFormat('es-PE', {
+                month: 'long',
+                year: 'numeric',
+            }).format(this.monthDate(offset));
+
+            return label.charAt(0).toUpperCase() + label.slice(1);
+        },
+        monthDays(offset = 0) {
+            const month = this.monthDate(offset);
+            const firstWeekday = month.getDay();
+            const totalDays = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+
+            return [
+                ...Array(firstWeekday).fill(null),
+                ...Array.from({ length: totalDays }, (_, index) => index + 1),
+            ];
+        },
+        isoDate(day, offset = 0) {
+            const month = this.monthDate(offset);
+            const date = new Date(month.getFullYear(), month.getMonth(), day);
+            const year = date.getFullYear();
+            const monthNumber = String(date.getMonth() + 1).padStart(2, '0');
+            const dayNumber = String(date.getDate()).padStart(2, '0');
+
+            return `${year}-${monthNumber}-${dayNumber}`;
+        },
+        isSelected(day, offset = 0) {
+            return day !== null && this.isoDate(day, offset) === this.selectedDate;
+        },
+        chooseDate(day, offset = 0) {
+            if (day === null) {
+                return;
+            }
+
+            this.selectedDate = this.isoDate(day, offset);
+            config.onChange?.(this.selectedDate);
+            this.open = false;
+            this.moreOpen = false;
+            this.monthOffset = 0;
+        },
+        chooseWeeks(weeks) {
+            const date = this.parseDate(this.selectedDate);
+            date.setDate(date.getDate() + (weeks * 7));
+
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            this.selectedDate = `${year}-${month}-${day}`;
+            config.onChange?.(this.selectedDate);
+            this.open = false;
+            this.moreOpen = false;
+            this.monthOffset = 0;
+        },
+        shiftMonths(amount) {
+            this.monthOffset += amount;
+        },
+        close() {
+            this.open = false;
+            this.moreOpen = false;
+            this.monthOffset = 0;
+        },
+    }));
+
     Alpine.data('filterableSelect', (config) => ({
         open: false,
         query: '',
@@ -242,9 +322,34 @@ document.addEventListener('alpine:init', () => {
                 ? slot.bottom + 4
                 : Math.max(gutter, slot.top - menuHeight - 4);
             this.quickSlot = {
+                kind: 'time',
                 dateTime,
                 professionalId: Number(professionalId),
                 time: dateTime.slice(11, 16),
+                title: dateTime.slice(11, 16),
+            };
+        },
+        openDateQuickMenu(event, date, dateLabel, professionalId) {
+            const menuWidth = 282;
+            const menuHeight = 266;
+            const gutter = 12;
+            const desiredX = event.clientX - 22;
+            const fitsBelow = event.clientY + menuHeight + gutter <= window.innerHeight;
+
+            this.preview = null;
+            this.quickSlotX = Math.max(
+                gutter,
+                Math.min(desiredX, window.innerWidth - menuWidth - gutter),
+            );
+            this.quickSlotY = fitsBelow
+                ? event.clientY + 4
+                : Math.max(gutter, event.clientY - menuHeight - 4);
+            this.quickSlot = {
+                kind: 'date',
+                date,
+                dateTime: `${date}T09:00`,
+                professionalId: Number(professionalId),
+                title: dateLabel,
             };
         },
         closeDaySlotMenu() {

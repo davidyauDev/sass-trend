@@ -231,6 +231,13 @@ class Index extends Component
         $this->openCreateModal();
     }
 
+    public function openCreateModalForDateAndProfessional(string $date, int $professionalId): void
+    {
+        $this->selectedDate = CarbonImmutable::parse($date)->toDateString();
+        $this->openCreateModal();
+        $this->form->professional_id = $professionalId;
+    }
+
     public function openCreateModalForSlot(string $startsAt, int $professionalId): void
     {
         $slot = CarbonImmutable::parse($startsAt);
@@ -658,14 +665,12 @@ class Index extends Component
     public function selectAppointmentService(int $serviceId): void
     {
         $service = Service::query()->where('is_active', true)->findOrFail($serviceId);
-        $calendarProfessionalId = $this->appointmentStartedFromCalendarSlot
-            ? $this->form->professional_id
-            : null;
+        $defaultProfessionalId = $this->form->professional_id
+            ?? $this->selectedProfessionalFilterId();
 
         if (! in_array($serviceId, $this->selectedServiceIds, true)) {
             $this->selectedServiceIds[] = $serviceId;
-            $this->selectedServiceProfessionals[$serviceId] = $calendarProfessionalId
-                ?? $this->selectedProfessionalFilterId();
+            $this->selectedServiceProfessionals[$serviceId] = $defaultProfessionalId;
         }
 
         if ($this->form->service_id === null) {

@@ -8,14 +8,92 @@
         <div class="agenda-toolbar-group">
             <button type="button" class="agenda-control" wire:click="today">Hoy</button>
 
-            <div class="agenda-month-switcher">
+            <div
+                class="agenda-month-switcher"
+                wire:key="agenda-date-picker-{{ $this->selectedDate }}"
+                x-data="agendaDatePicker({
+                    selectedDate: @js($this->selectedDate),
+                    onChange(date) {
+                        $wire.set('selectedDate', date);
+                    },
+                })"
+                @click.outside="close()"
+                @keydown.escape.window="close()"
+            >
                 <button type="button" aria-label="Periodo anterior" wire:click="previous">
                     <flux:icon.chevron-left class="size-4" />
                 </button>
-                <span title="{{ $this->periodLabel }}">{{ $this->periodLabel }}</span>
+                <button
+                    type="button"
+                    class="agenda-date-trigger"
+                    title="{{ $this->periodLabel }}"
+                    :aria-expanded="open"
+                    @click="open = ! open"
+                >
+                    {{ $this->periodLabel }}
+                </button>
                 <button type="button" aria-label="Periodo siguiente" wire:click="next">
                     <flux:icon.chevron-right class="size-4" />
                 </button>
+
+                <div
+                    x-show="open"
+                    x-cloak
+                    x-transition.opacity.scale.origin.top.left
+                    class="agenda-date-picker"
+                    role="dialog"
+                    aria-label="Seleccionar fecha"
+                >
+                    <div class="agenda-date-picker__months-header">
+                        <button type="button" aria-label="Mes anterior" @click="shiftMonths(-1)">
+                            <flux:icon.chevron-left class="size-5" />
+                        </button>
+                        <strong x-text="monthTitle(0)"></strong>
+                        <strong x-text="monthTitle(1)"></strong>
+                        <button type="button" aria-label="Mes siguiente" @click="shiftMonths(1)">
+                            <flux:icon.chevron-right class="size-5" />
+                        </button>
+                    </div>
+
+                    <div class="agenda-date-picker__months">
+                        <template x-for="monthIndex in [0, 1]" :key="monthIndex">
+                            <section class="agenda-date-picker__month">
+                                <div class="agenda-date-picker__weekdays">
+                                    <template x-for="weekday in weekdays" :key="weekday">
+                                        <span x-text="weekday"></span>
+                                    </template>
+                                </div>
+                                <div class="agenda-date-picker__days">
+                                    <template x-for="(day, dayIndex) in monthDays(monthIndex)" :key="`${monthIndex}-${dayIndex}`">
+                                        <button
+                                            type="button"
+                                            :disabled="day === null"
+                                            :class="{ 'is-selected': isSelected(day, monthIndex) }"
+                                            @click="chooseDate(day, monthIndex)"
+                                            x-text="day ?? ''"
+                                        ></button>
+                                    </template>
+                                </div>
+                            </section>
+                        </template>
+                    </div>
+
+                    <div class="agenda-date-picker__quick-actions">
+                        <template x-for="weeks in [1, 2, 3, 4, 5]" :key="weeks">
+                            <button type="button" @click="chooseWeeks(weeks)" x-text="`En ${weeks} semana${weeks > 1 ? 's' : ''}`"></button>
+                        </template>
+                        <div class="agenda-date-picker__more" @click.outside="moreOpen = false">
+                            <button type="button" @click="moreOpen = ! moreOpen">
+                                Más
+                                <flux:icon.chevron-down class="size-4" />
+                            </button>
+                            <div x-show="moreOpen" x-cloak class="agenda-date-picker__more-menu">
+                                <button type="button" @click="chooseWeeks(6)">En 6 semanas</button>
+                                <button type="button" @click="chooseWeeks(8)">En 8 semanas</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div
@@ -662,7 +740,10 @@
                         </aside>
 
                         @foreach ($this->rangeDays as $day)
-                            <div @class(['agenda-professional-day', 'is-selected' => $day['is_selected'], 'is-closed' => $day['date']->isSunday()])>
+                            <div
+                                @class(['agenda-professional-day', 'is-selected' => $day['is_selected'], 'is-closed' => $day['date']->isSunday()])
+                                @click.self="openDateQuickMenu($event, @js($day['key']), @js(ucfirst($day['date']->translatedFormat('l, j \d\e F'))), {{ $professional->id }})"
+                            >
                                 <div class="agenda-events">
                                     @foreach ($day['appointments']->filter(fn ($appointment) => (int) $appointment->professional_id === (int) $professional->id || ($loop->parent->first && $appointment->professional_id === null)) as $appointment)
                                         <button
@@ -709,23 +790,27 @@
         @keydown.escape.window="closeDaySlotMenu()"
     >
         <header>
-            <strong x-text="quickSlot?.time"></strong>
+            <strong x-text="quickSlot?.title"></strong>
             <button type="button" aria-label="Cerrar acciones rápidas" @click="closeDaySlotMenu()">
                 <flux:icon.x-mark class="size-5" />
             </button>
         </header>
         <div>
-            <button type="button" @click="$wire.openCreateModalForSlot(quickSlot.dateTime, quickSlot.professionalId); closeDaySlotMenu()">
+            <button type="button" @click="quickSlot.kind === 'date' ? $wire.openCreateModalForDateAndProfessional(quickSlot.date, quickSlot.professionalId) : $wire.openCreateModalForSlot(quickSlot.dateTime, quickSlot.professionalId); closeDaySlotMenu()">
                 <flux:icon.calendar-days class="size-5" />
                 <span>Agregar cita</span>
             </button>
-            <button type="button" @click="$wire.openCreateModalForSlot(quickSlot.dateTime, quickSlot.professionalId); closeDaySlotMenu()">
+            <button type="button" @click="quickSlot.kind === 'date' ? $wire.openCreateModalForDateAndProfessional(quickSlot.date, quickSlot.professionalId) : $wire.openCreateModalForSlot(quickSlot.dateTime, quickSlot.professionalId); closeDaySlotMenu()">
                 <flux:icon.users class="size-5" />
                 <span>Agregar cita grupal</span>
             </button>
             <button type="button" @click="$wire.openScheduleBlockModalForSlot(quickSlot.dateTime, quickSlot.professionalId); closeDaySlotMenu()">
                 <flux:icon.calendar-days class="size-5" />
                 <span>Agregar tiempo bloqueado</span>
+            </button>
+            <button x-show="quickSlot?.kind === 'date'" type="button" @click="$wire.openDayView(quickSlot.date); closeDaySlotMenu()">
+                <flux:icon.rectangle-stack class="size-5" />
+                <span>Vista diurna</span>
             </button>
             <button type="button" class="agenda-slot-menu__settings" @click="closeDaySlotMenu(); $dispatch('agenda-open-filters')">
                 Configuración de acciones rápidas
