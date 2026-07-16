@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\TenantOwned;
+use App\Support\TenantAsset;
 use Database\Factories\ProfessionalFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +13,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -112,9 +112,9 @@ class Professional extends Model
             ->implode('');
     }
 
-    public function photoUrl(): ?string
+    public function photoUrl(?string $tenantSlug = null): ?string
     {
-        return $this->photo_path !== null ? Storage::disk('public')->url($this->photo_path) : null;
+        return $this->photo_path !== null ? TenantAsset::url($this->photo_path, $tenantSlug) : null;
     }
 
     public function hasLinkedUser(): bool

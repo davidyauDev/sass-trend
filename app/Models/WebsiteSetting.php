@@ -3,17 +3,23 @@
 namespace App\Models;
 
 use App\Models\Concerns\TenantOwned;
+use App\Support\TenantAsset;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property int $id
+ * @property int|null $primary_location_id
  * @property string $site_name
  * @property string|null $tagline
  * @property string|null $description
  * @property string|null $logo_path
  * @property string|null $hero_image_path
+ * @property array<int, string>|null $gallery_paths
+ * @property array<int, string>|null $amenities
+ * @property array<int, string>|null $highlights
+ * @property string|null $directions
  * @property string $primary_color
  * @property string $currency_symbol
  * @property string|null $contact_phone
@@ -27,13 +33,19 @@ use Illuminate\Support\Facades\Storage;
  * @property string $booking_button_label
  * @property string|null $booking_intro
  * @property bool $is_active
+ * @property bool $instant_confirmation
  */
 #[Fillable([
+    'primary_location_id',
     'site_name',
     'tagline',
     'description',
     'logo_path',
     'hero_image_path',
+    'gallery_paths',
+    'amenities',
+    'highlights',
+    'directions',
     'primary_color',
     'currency_symbol',
     'contact_phone',
@@ -46,6 +58,7 @@ use Illuminate\Support\Facades\Storage;
     'youtube_url',
     'booking_button_label',
     'booking_intro',
+    'instant_confirmation',
     'is_active',
 ])]
 class WebsiteSetting extends Model
@@ -55,6 +68,10 @@ class WebsiteSetting extends Model
     protected function casts(): array
     {
         return [
+            'gallery_paths' => 'array',
+            'amenities' => 'array',
+            'highlights' => 'array',
+            'instant_confirmation' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
@@ -65,11 +82,16 @@ class WebsiteSetting extends Model
     public static function defaults(): array
     {
         return [
+            'primary_location_id' => null,
             'site_name' => 'Trend Belleza',
             'tagline' => 'Reserva tus servicios en linea',
             'description' => 'Explora nuestros servicios, elige a tu profesional y agenda en minutos.',
             'logo_path' => null,
             'hero_image_path' => null,
+            'gallery_paths' => [],
+            'amenities' => [],
+            'highlights' => [],
+            'directions' => null,
             'primary_color' => '#4b3626',
             'currency_symbol' => 'S/',
             'contact_phone' => null,
@@ -82,6 +104,7 @@ class WebsiteSetting extends Model
             'youtube_url' => null,
             'booking_button_label' => 'Reservar ahora',
             'booking_intro' => 'Selecciona local, servicio, profesional y horario para confirmar tu reserva.',
+            'instant_confirmation' => true,
             'is_active' => false,
         ];
     }
@@ -91,13 +114,32 @@ class WebsiteSetting extends Model
         return self::query()->first() ?? self::query()->create(self::defaults());
     }
 
-    public function logoUrl(): ?string
+    public function logoUrl(?string $tenantSlug = null): ?string
     {
-        return $this->logo_path !== null ? Storage::disk('public')->url($this->logo_path) : null;
+        return $this->logo_path !== null ? TenantAsset::url($this->logo_path, $tenantSlug) : null;
     }
 
-    public function heroImageUrl(): ?string
+    public function heroImageUrl(?string $tenantSlug = null): ?string
     {
-        return $this->hero_image_path !== null ? Storage::disk('public')->url($this->hero_image_path) : null;
+        return $this->hero_image_path !== null ? TenantAsset::url($this->hero_image_path, $tenantSlug) : null;
+    }
+
+    /**
+     * @return BelongsTo<Location, $this>
+     */
+    public function primaryLocation(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'primary_location_id');
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function galleryUrls(?string $tenantSlug = null): array
+    {
+        return array_values(array_map(
+            fn (string $path): string => TenantAsset::url($path, $tenantSlug),
+            $this->gallery_paths ?? [],
+        ));
     }
 }

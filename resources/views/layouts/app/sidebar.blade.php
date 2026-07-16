@@ -83,8 +83,11 @@
                                     <flux:sidebar.item icon="shield-check" :href="route('administracion.usuarios.index')" :current="request()->routeIs('administracion.usuarios.*')" wire:navigate>
                                         {{ __('Users') }}
                                     </flux:sidebar.item>
-                                    <flux:sidebar.item icon="building-office-2" :href="route('administracion.empresa')" :current="request()->routeIs('administracion.empresa') || request()->routeIs('administracion.sitio-web')" wire:navigate>
+                                    <flux:sidebar.item icon="building-office-2" :href="route('administracion.empresa')" :current="request()->routeIs('administracion.empresa')" wire:navigate>
                                         {{ __('Empresa') }}
+                                    </flux:sidebar.item>
+                                    <flux:sidebar.item icon="globe-alt" :href="route('perfil-web.index')" :current="request()->routeIs('perfil-web.*')" wire:navigate>
+                                        Perfil web
                                     </flux:sidebar.item>
                                     <flux:sidebar.item icon="building-storefront" :href="route('locales.index')" :current="request()->routeIs('locales.*')" wire:navigate>
                                         {{ __('Branches') }}

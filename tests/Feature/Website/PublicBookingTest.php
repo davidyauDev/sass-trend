@@ -67,7 +67,7 @@ test('una reserva publica crea cliente y cita', function () {
         'phone' => '999111222',
         'email' => 'miraflores@test.pe',
         'timezone' => 'America/Lima',
-        'branch_id' => $branch->id,
+        'branch_id' => null,
         'accepts_online_bookings' => true,
         'is_active' => true,
     ]);
@@ -135,6 +135,22 @@ test('una reserva publica crea cliente y cita', function () {
     $startsAt = CarbonImmutable::now()->startOfDay()->setTime(9, 0)->toDateTimeString();
 
     Livewire::test(Booking::class)
+        ->assertSee('Servicios')
+        ->assertSee('Limpieza facial')
+        ->assertSee('Equipo')
+        ->assertSee('Camila Rojas')
+        ->call('chooseService', $service->id)
+        ->assertSet('service_id', $service->id)
+        ->assertDispatched('open-booking')
+        ->call('continueBooking')
+        ->assertSet('bookingStep', 2)
+        ->call('selectBookingProfessional', $professional->id)
+        ->assertSet('professional_id', $professional->id)
+        ->call('continueBooking')
+        ->assertSet('bookingStep', 3)
+        ->call('selectSlot', $startsAt)
+        ->call('continueBooking')
+        ->assertSet('bookingStep', 4)
         ->set('location_id', $location->id)
         ->set('service_id', $service->id)
         ->set('professional_id', $professional->id)

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SaleReceiptController;
+use App\Http\Controllers\TenantAssetController;
 use App\Http\Middleware\EnsureTenantIsActive;
 use App\Livewire\Administracion\Comisiones\Index as CommissionsIndex;
 use App\Livewire\Administracion\Comisiones\Report as CommissionsReport;
@@ -9,14 +10,18 @@ use App\Livewire\Administracion\Empresa\Settings as CompanySettings;
 use App\Livewire\Administracion\Locales\Index as LocationsIndex;
 use App\Livewire\Administracion\Profesionales\Index as ProfessionalsIndex;
 use App\Livewire\Administracion\Servicios\Index as ServicesIndex;
+use App\Livewire\Administracion\SitioWeb\Settings as WebProfileSettings;
 use App\Livewire\Administracion\Tenants\Index as TenantsIndex;
 use App\Livewire\Administracion\Usuarios\Index as UsersIndex;
 use App\Livewire\Agenda\Index as AgendaIndex;
 use App\Livewire\Clients\Index as ClientsIndex;
 use App\Livewire\Sales\Index as SalesIndex;
 use App\Livewire\SitioWeb\Booking as PublicBooking;
+use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
+
+Route::bind('tenant', fn (string $slug): Tenant => Tenant::query()->where('slug', $slug)->firstOrFail());
 
 Route::redirect('/', '/login')->name('home');
 
@@ -31,6 +36,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 Route::prefix('negocios/{tenant:slug}')
     ->middleware(['tenant.route', EnsureTenantIsActive::class])
     ->group(function (): void {
+        Route::get('archivos/{path}', TenantAssetController::class)
+            ->where('path', '.*')
+            ->name('perfil.archivo');
+        Route::get('/', PublicBooking::class)->name('perfil.publico');
         Route::get('reservas', PublicBooking::class)->name('reservas.index');
     });
 
@@ -59,7 +68,8 @@ Route::middleware(['auth', 'verified', EnsureTenantIsActive::class])->group(func
     Route::get('administracion/comisiones/reporte', CommissionsReport::class)->name('administracion.comisiones.reporte');
     Route::get('administracion/profesionales', ProfessionalsIndex::class)->name('administracion.profesionales.index');
     Route::get('administracion/empresa', CompanySettings::class)->name('administracion.empresa');
-    Route::get('administracion/sitio-web', CompanySettings::class)->name('administracion.sitio-web');
+    Route::get('perfil-web', WebProfileSettings::class)->name('perfil-web.index');
+    Route::redirect('administracion/sitio-web', '/perfil-web')->name('administracion.sitio-web');
     Route::get('administracion/usuarios', UsersIndex::class)->name('administracion.usuarios.index');
     Route::get('administracion/servicios', ServicesIndex::class)->name('administracion.servicios.index');
 

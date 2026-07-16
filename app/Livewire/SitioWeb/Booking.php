@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\Location;
 use App\Models\Professional;
 use App\Models\Service;
+use App\Models\Tenant;
 use App\Models\WebsiteSetting;
 use App\Services\Website\PublicBookingAvailabilityService;
 use Carbon\CarbonImmutable;
@@ -42,9 +43,19 @@ class Booking extends Component
 
     public ?int $confirmedAppointmentId = null;
 
-    public function mount(): void
+    public int $bookingStep = 1;
+
+    public string $tenantSlug = '';
+
+    public function mount(?Tenant $tenant = null): void
     {
+        $currentTenantSlug = tenant('slug');
+        $this->tenantSlug = $tenant !== null
+            ? $tenant->slug
+            : (is_string($currentTenantSlug) ? $currentTenantSlug : '');
         $this->selected_date = now()->toDateString();
+        $this->location_id = $this->settings()->primary_location_id
+            ?? $this->locations()->first()?->id;
     }
 
     public function updatedLocationId(): void
@@ -80,6 +91,136 @@ class Booking extends Component
         $this->confirmedAppointmentId = null;
     }
 
+    public function selectBookingService(int $serviceId): void
+    {
+        $service = $this->services()->firstWhere('id', $serviceId);
+
+        if (! $service instanceof Service) {
+            return;
+        }
+
+        $this->service_id = $service->id;
+        $this->professional_id = null;
+        $this->selected_starts_at = '';
+        $this->confirmedAppointmentId = null;
+        $this->resetValidation();
+    }
+
+    public function selectBookingProfessional(int $professionalId): void
+    {
+        $professional = $this->professionals()->firstWhere('id', $professionalId);
+
+        if (! $professional instanceof Professional) {
+            return;
+        }
+
+        $this->professional_id = $professional->id;
+        $this->selected_starts_at = '';
+        $this->confirmedAppointmentId = null;
+        $this->resetValidation();
+    }
+
+    public function selectBookingDate(string $date): void
+    {
+        $selectedDate = CarbonImmutable::parse($date)->startOfDay();
+
+        if ($selectedDate->isBefore(now()->startOfDay())) {
+            return;
+        }
+
+        $this->selected_date = $selectedDate->toDateString();
+        $this->selected_starts_at = '';
+        $this->confirmedAppointmentId = null;
+        $this->resetValidation('starts_at');
+    }
+
+    public function continueBooking(): void
+    {
+        $this->resetValidation();
+
+        if ($this->bookingStep === 1) {
+            if ($this->location_id === null || ! $this->services()->contains('id', $this->service_id)) {
+                $this->addError('service_id', 'Selecciona un servicio disponible para continuar.');
+
+                return;
+            }
+
+            $this->bookingStep = 2;
+
+            return;
+        }
+
+        if ($this->bookingStep === 2) {
+            if (! $this->professionals()->contains('id', $this->professional_id)) {
+                $this->addError('professional_id', 'Selecciona un profesional para continuar.');
+
+                return;
+            }
+
+            $this->bookingStep = 3;
+
+            return;
+        }
+
+        if ($this->bookingStep === 3) {
+            if ($this->selected_starts_at === '') {
+                $this->addError('starts_at', 'Selecciona un horario para continuar.');
+
+                return;
+            }
+
+            $this->bookingStep = 4;
+        }
+    }
+
+    public function previousBookingStep(): void
+    {
+        $this->bookingStep = max(1, $this->bookingStep - 1);
+        $this->resetValidation();
+    }
+
+    public function resetBookingFlow(): void
+    {
+        $this->reset([
+            'service_id',
+            'professional_id',
+            'selected_starts_at',
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'notes',
+            'confirmedAppointmentId',
+        ]);
+        $this->bookingStep = 1;
+        $this->selected_date = now()->toDateString();
+        $this->location_id = $this->settings()->primary_location_id
+            ?? $this->locations()->first()?->id;
+        $this->resetValidation();
+    }
+
+    public function chooseService(int $serviceId): void
+    {
+        $service = $this->profileServices()->firstWhere('id', $serviceId);
+        $location = $this->profileLocation();
+
+        if (! $service instanceof Service) {
+            return;
+        }
+
+        if ($location instanceof Location) {
+            $this->location_id = $location->id;
+        }
+
+        $this->service_id = $service->id;
+        $this->professional_id = null;
+        $this->selected_starts_at = '';
+        $this->confirmedAppointmentId = null;
+        $this->bookingStep = 1;
+
+        $this->dispatch('open-booking');
+    }
+
     public function submit(BookPublicAppointmentAction $bookPublicAppointment): void
     {
         if ($this->selected_starts_at === '') {
@@ -108,12 +249,61 @@ class Booking extends Component
             'notes',
         ]);
         $this->selected_date = now()->toDateString();
+        $this->bookingStep = 4;
     }
 
     #[Computed]
     public function settings(): WebsiteSetting
     {
-        return WebsiteSetting::current();
+        return WebsiteSetting::current()->loadMissing('primaryLocation.schedules');
+    }
+
+    #[Computed]
+    public function profileLocation(): ?Location
+    {
+        return $this->settings()->primaryLocation
+            ?? $this->locations()->first();
+    }
+
+    /**
+     * @return Collection<int, Professional>
+     */
+    #[Computed]
+    public function profileProfessionals(): Collection
+    {
+        $location = $this->profileLocation();
+
+        $query = Professional::query()
+            ->where('is_active', true)
+            ->orderBy('public_name');
+
+        if (! $location instanceof Location) {
+            return $query->get();
+        }
+
+        $locationTeam = (clone $query)
+            ->whereHas('locations', fn (Builder $locationQuery): Builder => $locationQuery->whereKey($location->id))
+            ->get();
+
+        return $locationTeam->isNotEmpty() ? $locationTeam : $query->get();
+    }
+
+    /**
+     * Services shown in the public profile are broader than the bookable
+     * availability query, which still validates staff and location links.
+     *
+     * @return Collection<int, Service>
+     */
+    #[Computed]
+    public function profileServices(): Collection
+    {
+        return Service::query()
+            ->with('category')
+            ->where('is_active', true)
+            ->where('is_bookable_online', true)
+            ->orderBy('service_category_id')
+            ->orderBy('name')
+            ->get();
     }
 
     /**
@@ -122,13 +312,17 @@ class Booking extends Component
     #[Computed]
     public function locations(): Collection
     {
-        return Location::query()
+        $query = Location::query()
             ->with(['schedules', 'branch'])
             ->where('is_active', true)
             ->where('accepts_online_bookings', true)
-            ->whereNotNull('branch_id')
-            ->orderBy('name')
-            ->get();
+            ->whereNotNull('address');
+
+        if ($this->settings()->primary_location_id !== null) {
+            $query->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$this->settings()->primary_location_id]);
+        }
+
+        return $query->orderBy('name')->get();
     }
 
     /**

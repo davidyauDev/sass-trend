@@ -3,6 +3,7 @@
 namespace App\Actions\Website;
 
 use App\Models\Appointment;
+use App\Models\Branch;
 use App\Models\Client;
 use App\Models\Location;
 use App\Models\Professional;
@@ -40,6 +41,7 @@ final class BookPublicAppointmentAction
                 ->with(['locations', 'services', 'user', 'schedules.breaks'])
                 ->findOrFail((int) $data['professional_id']);
 
+            $this->assignOnlyActiveBranch($location);
             $this->ensureBookableConfiguration($location, $service, $professional);
 
             $startsAt = CarbonImmutable::parse((string) $data['starts_at']);
@@ -129,6 +131,22 @@ final class BookPublicAppointmentAction
                 'professional_id' => 'El profesional no atiende en el local seleccionado.',
             ]);
         }
+    }
+
+    private function assignOnlyActiveBranch(Location $location): void
+    {
+        if ($location->branch_id !== null) {
+            return;
+        }
+
+        $activeBranches = Branch::query()->where('is_active', true)->limit(2)->get();
+
+        if ($activeBranches->count() !== 1) {
+            return;
+        }
+
+        $location->update(['branch_id' => $activeBranches->firstOrFail()->id]);
+        $location->refresh();
     }
 
     /**
