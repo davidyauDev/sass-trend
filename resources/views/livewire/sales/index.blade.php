@@ -1035,6 +1035,77 @@
                                     </div>
 
                                     <div class="border-t border-zinc-200 pt-5 dark:border-white/10">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div>
+                                                <div class="text-sm text-zinc-400 dark:text-zinc-500">Productos y servicios</div>
+                                                <div class="mt-1 text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                                                    {{ $selectedSale->items->count() }} {{ $selectedSale->items->count() === 1 ? 'artículo vendido' : 'artículos vendidos' }}
+                                                </div>
+                                            </div>
+                                            <span class="inline-flex size-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">
+                                                <flux:icon.shopping-bag class="size-5" />
+                                            </span>
+                                        </div>
+
+                                        <div class="mt-4 space-y-3">
+                                            @forelse ($selectedSale->items as $saleItem)
+                                                @php
+                                                    $isServiceItem = $saleItem->item_type === 'service';
+                                                    $itemQuantity = (float) $saleItem->quantity;
+                                                    $itemGross = round($itemQuantity * (float) $saleItem->unit_price, 2);
+                                                    $itemDiscount = max(0, round($itemGross - (float) $saleItem->subtotal, 2));
+                                                    $itemProfessional = data_get($saleItem->meta, 'professional_name');
+                                                @endphp
+
+                                                <article class="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 dark:border-white/10 dark:bg-white/[0.025]">
+                                                    <div class="flex items-start gap-3">
+                                                        <div class="flex size-10 shrink-0 items-center justify-center rounded-xl {{ $isServiceItem ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' }}">
+                                                            @if ($isServiceItem)
+                                                                <flux:icon.scissors class="size-5" />
+                                                            @else
+                                                                <flux:icon.archive-box class="size-5" />
+                                                            @endif
+                                                        </div>
+
+                                                        <div class="min-w-0 flex-1">
+                                                            <div class="flex items-start justify-between gap-3">
+                                                                <div class="min-w-0">
+                                                                    <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide {{ $isServiceItem ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' }}">
+                                                                        {{ $isServiceItem ? 'Servicio' : 'Producto' }}
+                                                                    </span>
+                                                                    <div class="mt-1.5 font-semibold text-zinc-900 dark:text-white">{{ $saleItem->item_name }}</div>
+                                                                </div>
+                                                                <div class="shrink-0 text-right font-semibold text-zinc-900 dark:text-white">S/{{ number_format((float) $saleItem->subtotal, 2) }}</div>
+                                                            </div>
+
+                                                            @if ($saleItem->item_detail)
+                                                                <div class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $saleItem->item_detail }}</div>
+                                                            @endif
+
+                                                            @if ($itemProfessional)
+                                                                <div class="mt-1.5 text-xs {{ $isServiceItem ? 'text-violet-600 dark:text-violet-300' : 'text-emerald-600 dark:text-emerald-300' }}">
+                                                                    {{ $isServiceItem ? 'Profesional' : 'Vendedor' }}: {{ $itemProfessional }}
+                                                                </div>
+                                                            @endif
+
+                                                            <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+                                                                <span>{{ rtrim(rtrim(number_format($itemQuantity, 2, '.', ''), '0'), '.') }} × S/{{ number_format((float) $saleItem->unit_price, 2) }}</span>
+                                                                @if ($itemDiscount > 0)
+                                                                    <span class="font-medium text-emerald-600 dark:text-emerald-400">Descuento: -S/{{ number_format($itemDiscount, 2) }}</span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </article>
+                                            @empty
+                                                <div class="rounded-2xl border border-dashed border-zinc-300 px-4 py-6 text-center text-sm text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+                                                    Esta venta no tiene productos ni servicios registrados.
+                                                </div>
+                                            @endforelse
+                                        </div>
+                                    </div>
+
+                                    <div class="border-t border-zinc-200 pt-5 dark:border-white/10">
                                         <div class="text-sm text-zinc-400 dark:text-zinc-500">Medio de pago</div>
                                         @forelse ($selectedSale->payments as $payment)
                                             <div class="mt-3 flex items-start justify-between gap-3">

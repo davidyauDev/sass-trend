@@ -126,6 +126,58 @@ test('puede registrar una venta mixta desde livewire y descontar stock del produ
     ]);
 });
 
+test('detalle de venta muestra los productos y servicios vendidos', function () {
+    $admin = salesAdmin();
+    actingAs($admin);
+
+    ['branch' => $branch, 'client' => $client, 'service' => $service, 'product' => $product] = createSalesFixtures();
+
+    $sale = app(CreateSaleAction::class)->handle($admin, [
+        'branch_id' => $branch->id,
+        'client_id' => $client->id,
+        'notes' => null,
+        'status' => SaleStatusCatalog::PAID,
+        'items' => [
+            [
+                'item_type' => 'service',
+                'service_id' => $service->id,
+                'product_id' => null,
+                'item_name' => $service->name,
+                'item_detail' => '30 min',
+                'quantity' => 1,
+                'unit_price' => 100,
+                'subtotal' => 100,
+                'meta' => null,
+            ],
+            [
+                'item_type' => 'product',
+                'service_id' => null,
+                'product_id' => $product->id,
+                'item_name' => $product->name,
+                'item_detail' => 'Presentación de prueba',
+                'quantity' => 1,
+                'unit_price' => 100,
+                'subtotal' => 100,
+                'meta' => null,
+            ],
+        ],
+        'payments' => [[
+            'method' => SalePaymentMethodCatalog::CASH,
+            'amount' => 200,
+            'reference' => null,
+        ]],
+    ]);
+
+    Livewire::test(SalesIndex::class)
+        ->call('openSaleDetail', $sale->id)
+        ->assertSet('drawerStep', 'success')
+        ->assertSee('Productos y servicios')
+        ->assertSee('Corte de Cabello')
+        ->assertSee('Shampooo')
+        ->assertSee('Servicio')
+        ->assertSee('Producto');
+});
+
 test('continuar sin cliente abre la busqueda de clientes', function () {
     actingAs(salesAdmin());
 
@@ -228,7 +280,7 @@ test('puede ver comprobante y exportar ventas', function () {
     $exportResponse->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
     $filePath = $exportResponse->baseResponse->getFile()->getPathname();
-    $zip = new ZipArchive();
+    $zip = new ZipArchive;
 
     expect($zip->open($filePath))->toBeTrue();
 
