@@ -1014,7 +1014,7 @@ class Index extends Component
         [$start, $end] = $this->rangeBounds();
 
         return Appointment::query()
-            ->with(['branch', 'client', 'service', 'resource', 'professional', 'status', 'payments', 'notes', 'histories'])
+            ->with(['branch', 'client', 'service', 'professional', 'status', 'payments'])
             ->whereHas('status', fn (Builder $query): Builder => $query->where('slug', '!=', AppointmentStatusCatalog::CANCELLED))
             ->search($this->search)
             ->when($this->branchFilterId !== null, fn (Builder $query): Builder => $query->where('branch_id', $this->branchFilterId))

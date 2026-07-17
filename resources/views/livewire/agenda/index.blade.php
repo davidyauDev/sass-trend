@@ -332,7 +332,12 @@
                 </div>
             </div>
 
-            <button type="button" class="agenda-primary-button" wire:click="openCreateModal">
+            <button
+                type="button"
+                class="agenda-primary-button"
+                @click="openAppointmentPanel(() => $wire.openCreateModal())"
+                x-bind:disabled="appointmentOpening"
+            >
                 Agregar
                 <flux:icon.chevron-down class="size-4" />
             </button>
@@ -548,7 +553,7 @@
                                 </div>
 
                                 <div class="agenda-quick-actions">
-                                    <button type="button" wire:click="openCreateModalForDate('{{ $cell['key'] }}')" @click="quickOpen = false">
+                                    <button type="button" @click="quickOpen = false; openAppointmentPanel(() => $wire.openCreateModalForDate('{{ $cell['key'] }}'))">
                                         <flux:icon.calendar-days class="size-5" />
                                         <span>Agregar cita</span>
                                     </button>
@@ -796,11 +801,11 @@
             </button>
         </header>
         <div>
-            <button type="button" @click="quickSlot.kind === 'date' ? $wire.openCreateModalForDateAndProfessional(quickSlot.date, quickSlot.professionalId) : $wire.openCreateModalForSlot(quickSlot.dateTime, quickSlot.professionalId); closeDaySlotMenu()">
+            <button type="button" @click="openAppointmentPanel(() => quickSlot.kind === 'date' ? $wire.openCreateModalForDateAndProfessional(quickSlot.date, quickSlot.professionalId) : $wire.openCreateModalForSlot(quickSlot.dateTime, quickSlot.professionalId)); closeDaySlotMenu()">
                 <flux:icon.calendar-days class="size-5" />
                 <span>Agregar cita</span>
             </button>
-            <button type="button" @click="quickSlot.kind === 'date' ? $wire.openCreateModalForDateAndProfessional(quickSlot.date, quickSlot.professionalId) : $wire.openCreateModalForSlot(quickSlot.dateTime, quickSlot.professionalId); closeDaySlotMenu()">
+            <button type="button" @click="openAppointmentPanel(() => quickSlot.kind === 'date' ? $wire.openCreateModalForDateAndProfessional(quickSlot.date, quickSlot.professionalId) : $wire.openCreateModalForSlot(quickSlot.dateTime, quickSlot.professionalId)); closeDaySlotMenu()">
                 <flux:icon.users class="size-5" />
                 <span>Agregar cita grupal</span>
             </button>
@@ -1085,13 +1090,68 @@
         </form>
     </flux:modal>
 
+    <div
+        x-show="appointmentOpening"
+        x-cloak
+        class="agenda-appointment-overlay agenda-appointment-overlay--loading"
+        aria-live="polite"
+        aria-label="Preparando nueva cita"
+    >
+        <div class="agenda-appointment-backdrop"></div>
+
+        <aside class="agenda-appointment-drawer" aria-busy="true">
+            <div class="agenda-appointment-rail">
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--circle"></span>
+            </div>
+
+            <div class="agenda-appointment-stepbar">
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--step-icon"></span>
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--step-title"></span>
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--step-copy"></span>
+            </div>
+
+            <div class="agenda-appointment-loading">
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--heading"></span>
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--search"></span>
+
+                <div class="agenda-appointment-loading__groups">
+                    @foreach ([3, 2, 4] as $rows)
+                        <section class="agenda-appointment-loading__group">
+                            <div class="agenda-appointment-loading__category">
+                                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--category"></span>
+                                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--count"></span>
+                            </div>
+
+                            <div class="agenda-appointment-loading__services">
+                                @for ($row = 0; $row < $rows; $row++)
+                                    <div class="agenda-appointment-loading__row">
+                                        <div>
+                                            <span class="agenda-appointment-skeleton agenda-appointment-skeleton--service"></span>
+                                            <span class="agenda-appointment-skeleton agenda-appointment-skeleton--duration"></span>
+                                        </div>
+                                        <span class="agenda-appointment-skeleton agenda-appointment-skeleton--price"></span>
+                                    </div>
+                                @endfor
+                            </div>
+                        </section>
+                    @endforeach
+                </div>
+            </div>
+        </aside>
+    </div>
+
     @if ($appointmentPanelOpen)
-        <div class="agenda-appointment-overlay" wire:key="appointment-panel" x-data @keydown.escape.window="$wire.closeModal()">
-            <button type="button" class="agenda-appointment-backdrop" aria-label="Cerrar panel de cita" wire:click="closeModal"></button>
+        <div
+            class="agenda-appointment-overlay agenda-appointment-overlay--ready"
+            x-bind:class="{ 'is-closing': appointmentClosing }"
+            wire:key="appointment-panel"
+            @keydown.escape.window="closeAppointmentPanel(() => $wire.closeModal())"
+        >
+            <button type="button" class="agenda-appointment-backdrop" aria-label="Cerrar panel de cita" @click="closeAppointmentPanel(() => $wire.closeModal())"></button>
 
             <aside class="agenda-appointment-drawer" data-testid="appointment-panel">
                 <div class="agenda-appointment-rail">
-                    <button type="button" aria-label="Cerrar" wire:click="closeModal">
+                    <button type="button" aria-label="Cerrar" @click="closeAppointmentPanel(() => $wire.closeModal())" x-bind:disabled="appointmentClosing">
                         <flux:icon.x-mark class="size-6" />
                     </button>
                     <button type="button" aria-label="Pantalla completa" wire:click="toggleFullscreen">
@@ -1402,7 +1462,7 @@
                             </div>
 
                             <div class="agenda-details-footer">
-                                <button type="button" wire:click="closeModal">Cancelar</button>
+                                <button type="button" @click="closeAppointmentPanel(() => $wire.closeModal())" x-bind:disabled="appointmentClosing">Cancelar</button>
                                 <button type="submit">{{ $form->appointmentId ? 'Guardar cambios' : 'Crear cita' }}</button>
                             </div>
                         </form>

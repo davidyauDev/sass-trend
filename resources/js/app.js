@@ -272,6 +272,8 @@ document.addEventListener('alpine:init', () => {
 
     Alpine.data('agendaAppointmentPreview', () => ({
         preview: null,
+        appointmentOpening: false,
+        appointmentClosing: false,
         previewX: 16,
         previewY: 16,
         hideTimer: null,
@@ -354,6 +356,30 @@ document.addEventListener('alpine:init', () => {
         },
         closeDaySlotMenu() {
             this.quickSlot = null;
+        },
+        async openAppointmentPanel(action) {
+            this.appointmentClosing = false;
+            this.appointmentOpening = true;
+
+            try {
+                await action();
+            } finally {
+                this.appointmentOpening = false;
+            }
+        },
+        async closeAppointmentPanel(action) {
+            if (this.appointmentClosing) {
+                return;
+            }
+
+            this.appointmentClosing = true;
+            await new Promise((resolve) => window.setTimeout(resolve, 420));
+
+            try {
+                await action();
+            } finally {
+                this.appointmentClosing = false;
+            }
         },
     }));
 
