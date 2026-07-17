@@ -277,6 +277,11 @@ document.addEventListener('alpine:init', () => {
         appointmentOpeningTransition: false,
         appointmentPanelIsReady: Boolean(config.panelReady),
         appointmentVisible: Boolean(config.panelOpen),
+        appointmentServiceSelecting: false,
+        appointmentServiceSelectingId: null,
+        appointmentDirty: false,
+        appointmentExitConfirmationOpen: false,
+        pendingAppointmentCloseAction: null,
         previewX: 16,
         previewY: 16,
         hideTimer: null,
@@ -362,6 +367,9 @@ document.addEventListener('alpine:init', () => {
         },
         async openAppointmentPanel(action) {
             this.appointmentClosing = false;
+            this.appointmentDirty = false;
+            this.appointmentExitConfirmationOpen = false;
+            this.pendingAppointmentCloseAction = null;
             if (this.appointmentPanelIsReady) {
                 this.showAppointmentPanelLayer();
             }
@@ -378,6 +386,22 @@ document.addEventListener('alpine:init', () => {
         appointmentPanelReady() {
             this.appointmentPanelIsReady = true;
         },
+        async selectAppointmentService(serviceId, action) {
+            if (this.appointmentServiceSelecting) {
+                return;
+            }
+
+            this.appointmentServiceSelecting = true;
+            this.appointmentServiceSelectingId = Number(serviceId);
+            this.appointmentDirty = true;
+
+            try {
+                await action();
+            } finally {
+                this.appointmentServiceSelecting = false;
+                this.appointmentServiceSelectingId = null;
+            }
+        },
         appointmentPanelOpened() {
             this.appointmentPanelIsReady = true;
             this.showAppointmentPanelLayer();
@@ -389,12 +413,18 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.appointmentVisible = true;
+            this.appointmentDirty = false;
+            this.appointmentExitConfirmationOpen = false;
             this.appointmentOpeningTransition = true;
             window.setTimeout(() => {
                 this.appointmentOpeningTransition = false;
             }, 500);
         },
         appointmentPanelClosed() {
+            this.appointmentDirty = false;
+            this.appointmentExitConfirmationOpen = false;
+            this.pendingAppointmentCloseAction = null;
+
             if (!this.appointmentVisible) {
                 this.appointmentClosing = false;
 
@@ -407,6 +437,34 @@ document.addEventListener('alpine:init', () => {
                 this.appointmentVisible = false;
                 this.appointmentClosing = false;
             }, 420);
+        },
+        requestAppointmentClose(action) {
+            if (!this.appointmentDirty) {
+                this.closeAppointmentPanel(action);
+
+                return;
+            }
+
+            this.pendingAppointmentCloseAction = action;
+            this.appointmentExitConfirmationOpen = true;
+        },
+        cancelAppointmentExit() {
+            this.appointmentExitConfirmationOpen = false;
+            this.pendingAppointmentCloseAction = null;
+        },
+        async confirmAppointmentExit() {
+            const action = this.pendingAppointmentCloseAction;
+
+            if (typeof action !== 'function') {
+                this.cancelAppointmentExit();
+
+                return;
+            }
+
+            this.appointmentExitConfirmationOpen = false;
+            this.pendingAppointmentCloseAction = null;
+            this.appointmentDirty = false;
+            await this.closeAppointmentPanel(action);
         },
         async closeAppointmentPanel(action) {
             if (this.appointmentClosing) {

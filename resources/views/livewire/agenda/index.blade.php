@@ -1157,13 +1157,15 @@
             x-show="appointmentVisible"
             x-cloak
             wire:key="appointment-panel-persistent"
-            @keydown.escape.window="closeAppointmentPanel(() => $wire.closeModal())"
+            @keydown.escape.window="appointmentExitConfirmationOpen
+                ? cancelAppointmentExit()
+                : requestAppointmentClose(() => $wire.closeModal())"
         >
-            <button type="button" class="agenda-appointment-backdrop" aria-label="Cerrar panel de cita" @click="closeAppointmentPanel(() => $wire.closeModal())"></button>
+            <button type="button" class="agenda-appointment-backdrop" aria-label="Cerrar panel de cita" @click="requestAppointmentClose(() => $wire.closeModal())"></button>
 
             <aside class="agenda-appointment-drawer" data-testid="appointment-panel">
                 <div class="agenda-appointment-rail" wire:ignore>
-                    <button type="button" aria-label="Cerrar" @click="closeAppointmentPanel(() => $wire.closeModal())" x-bind:disabled="appointmentClosing">
+                    <button type="button" aria-label="Cerrar" @click="requestAppointmentClose(() => $wire.closeModal())" x-bind:disabled="appointmentClosing">
                         <flux:icon.x-mark class="size-6" />
                     </button>
                     <button type="button" aria-label="Pantalla completa" wire:click="toggleFullscreen">
@@ -1182,12 +1184,20 @@
                     <p>O déjelo vacío para clientes sin cita previa.</p>
                 </div>
 
-                <div class="agenda-appointment-content" wire:key="appointment-dynamic-content">
+                <div
+                    @class([
+                        'agenda-appointment-content',
+                        'agenda-appointment-content--fixed-footer' => $appointmentStep === 'time',
+                    ])
+                    wire:key="appointment-dynamic-content"
+                    @input="appointmentDirty = true"
+                    @change="appointmentDirty = true"
+                >
                     <div
                         class="agenda-appointment-stage"
                         wire:key="appointment-stage-{{ $appointmentStep }}"
                         wire:loading.class="is-changing"
-                        wire:target="selectAppointmentService,showServiceStep,showServicesSummary,continueToAppointmentTime,selectAppointmentDate,selectAppointmentSlot,continueToAppointmentDetails,showAppointmentTime"
+                        wire:target="showServiceStep,showServicesSummary,continueToAppointmentTime,selectAppointmentDate,selectAppointmentSlot,continueToAppointmentDetails,showAppointmentTime"
                     >
                         @if ($appointmentStep === 'picker')
                         <div class="agenda-service-step">
@@ -1217,7 +1227,12 @@
                                                 <button
                                                     type="button"
                                                     wire:key="appointment-service-{{ $service['id'] }}"
-                                                    wire:click="selectAppointmentService({{ $service['id'] }})"
+                                                    @click="selectAppointmentService(
+                                                        {{ $service['id'] }},
+                                                        () => $wire.selectAppointmentService({{ $service['id'] }})
+                                                    )"
+                                                    x-bind:disabled="appointmentServiceSelecting"
+                                                    x-bind:class="{ 'is-selecting': appointmentServiceSelectingId === {{ $service['id'] }} }"
                                                 >
                                                     <span>
                                                         <strong>{{ $service['name'] }}</strong>
@@ -1247,29 +1262,83 @@
 
                             <div class="agenda-selected-services">
                                 @foreach ($this->selectedServices as $service)
+                                    @php
+                                        $selectedProfessionalId = $selectedServiceProfessionals[$service->id] ?? null;
+                                        $selectedProfessional = $selectedProfessionalId !== null
+                                            ? $this->professionalsCatalog->firstWhere('id', $selectedProfessionalId)
+                                            : null;
+                                    @endphp
                                     <article wire:key="selected-service-{{ $service->id }}">
                                         <div class="agenda-selected-service-info">
                                             <span>
                                                 <strong>{{ $service->name }}</strong>
                                                 <small>{{ $this->serviceDurationLabel($service->duration_minutes) }}</small>
                                             </span>
-                                            <b>S/ {{ number_format((float) $service->price, 2) }}</b>
+                                            <div class="agenda-selected-service-actions">
+                                                <button type="button" wire:click="showServiceStep" aria-label="Editar {{ $service->name }}">
+                                                    <flux:icon.pencil class="size-4" />
+                                                </button>
+                                                <button type="button" wire:click="removeAppointmentService({{ $service->id }})" @click="appointmentDirty = true" aria-label="Quitar {{ $service->name }}">
+                                                    <flux:icon.trash class="size-4" />
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        <div class="agenda-service-member-row">
-                                            <label>
-                                                <flux:icon.user class="size-4" />
-                                                <select wire:model="selectedServiceProfessionals.{{ $service->id }}" aria-label="Profesional para {{ $service->name }}">
-                                                    <option value="">Cualquier miembro del equipo</option>
-                                                    @foreach ($this->professionalsCatalog as $professional)
-                                                        <option value="{{ $professional->id }}">{{ $professional->fullName() }}</option>
-                                                    @endforeach
-                                                </select>
-                                                <flux:icon.chevron-down class="size-4" />
-                                            </label>
-                                            <button type="button" wire:click="removeAppointmentService({{ $service->id }})" aria-label="Quitar {{ $service->name }}">
-                                                <flux:icon.x-mark class="size-4" />
+                                        <div class="agenda-member-select" x-data="{ open: false }" @click.outside="open = false">
+                                            <button
+                                                type="button"
+                                                class="agenda-member-select__trigger"
+                                                @click="open = !open"
+                                                x-bind:aria-expanded="open"
+                                            >
+                                                <span class="agenda-member-avatar">
+                                                    @if ($selectedProfessional?->photoUrl())
+                                                        <img src="{{ $selectedProfessional->photoUrl() }}" alt="">
+                                                    @elseif ($selectedProfessional)
+                                                        {{ $selectedProfessional->initials() }}
+                                                    @else
+                                                        <flux:icon.user class="size-4" />
+                                                    @endif
+                                                </span>
+                                                <strong>{{ $selectedProfessional?->fullName() ?? 'Cualquier miembro del equipo' }}</strong>
+                                                <flux:icon.chevron-down class="size-4 transition-transform" x-bind:class="{ 'rotate-180': open }" />
                                             </button>
+
+                                            <div x-show="open" x-cloak x-transition.origin.top class="agenda-member-select__menu">
+                                                <button
+                                                    type="button"
+                                                    wire:click="$set('selectedServiceProfessionals.{{ $service->id }}', null)"
+                                                    @click="open = false; appointmentDirty = true"
+                                                    class="agenda-member-select__option"
+                                                >
+                                                    <span class="agenda-member-avatar"><flux:icon.user class="size-4" /></span>
+                                                    <span>Cualquier miembro del equipo</span>
+                                                    @if ($selectedProfessionalId === null)
+                                                        <flux:icon.check class="size-5" />
+                                                    @endif
+                                                </button>
+
+                                                @foreach ($this->professionalsCatalog as $professional)
+                                                    <button
+                                                        type="button"
+                                                        wire:click="$set('selectedServiceProfessionals.{{ $service->id }}', {{ $professional->id }})"
+                                                        @click="open = false; appointmentDirty = true"
+                                                        class="agenda-member-select__option"
+                                                    >
+                                                        <span class="agenda-member-avatar">
+                                                            @if ($professional->photoUrl())
+                                                                <img src="{{ $professional->photoUrl() }}" alt="">
+                                                            @else
+                                                                {{ $professional->initials() }}
+                                                            @endif
+                                                        </span>
+                                                        <span>{{ $professional->fullName() }}</span>
+                                                        @if ((int) $selectedProfessionalId === $professional->id)
+                                                            <flux:icon.check class="size-5" />
+                                                        @endif
+                                                    </button>
+                                                @endforeach
+                                            </div>
                                         </div>
                                     </article>
                                 @endforeach
@@ -1300,14 +1369,27 @@
 
                             <h2>Seleccione una hora</h2>
 
-                            <div class="agenda-time-team">
-                                <flux:icon.user class="size-4" />
-                                <span>Cualquier miembro del equipo</span>
-                                <flux:icon.chevron-down class="size-4" />
+                            <div class="agenda-time-controls">
+                                <div class="agenda-time-team">
+                                    <flux:icon.user class="size-4" />
+                                    <span>Cualquier miembro del equipo</span>
+                                    <flux:icon.chevron-down class="size-4" />
+                                </div>
+                                <button type="button" class="agenda-time-calendar-button" aria-label="Abrir calendario">
+                                    <flux:icon.calendar-days class="size-5" />
+                                </button>
                             </div>
 
                             <div class="agenda-date-heading">
                                 <strong>{{ ucfirst(\Carbon\CarbonImmutable::parse($appointmentTimeDate)->translatedFormat('F')) }}</strong>
+                                <div>
+                                    <button type="button" wire:click="shiftAppointmentDateWindow(-7)" aria-label="Fechas anteriores">
+                                        <flux:icon.chevron-left class="size-4" />
+                                    </button>
+                                    <button type="button" wire:click="shiftAppointmentDateWindow(7)" aria-label="Fechas siguientes">
+                                        <flux:icon.chevron-right class="size-4" />
+                                    </button>
+                                </div>
                             </div>
 
                             <div class="agenda-date-options">
@@ -1328,7 +1410,7 @@
                                 <strong>Horarios disponibles</strong>
                                 <button type="button">
                                     <flux:icon.calendar-days class="size-4" />
-                                    Seleccione del calendario
+                                    Elegir del calendario
                                 </button>
                             </div>
 
@@ -1401,7 +1483,6 @@
                                         <flux:icon.plus-circle class="size-4" />
                                         Agregar servicio
                                     </button>
-                                    <span>{{ $this->serviceDurationLabel($this->selectedServicesDuration) }}</span>
                                 </div>
                             </div>
 
@@ -1480,7 +1561,7 @@
                             </div>
 
                             <div class="agenda-details-footer">
-                                <button type="button" @click="closeAppointmentPanel(() => $wire.closeModal())" x-bind:disabled="appointmentClosing">Cancelar</button>
+                                <button type="button" @click="requestAppointmentClose(() => $wire.closeModal())" x-bind:disabled="appointmentClosing">Cancelar</button>
                                 <button type="submit">{{ $form->appointmentId ? 'Guardar cambios' : 'Crear cita' }}</button>
                             </div>
                         </form>
@@ -1488,6 +1569,37 @@
                     </div>
                 </div>
             </aside>
+        </div>
+
+        <div
+            x-show="appointmentExitConfirmationOpen"
+            x-cloak
+            x-transition.opacity.duration.180ms
+            class="agenda-exit-confirmation"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="agenda-exit-confirmation-title"
+            aria-describedby="agenda-exit-confirmation-description"
+        >
+            <div class="agenda-exit-confirmation__backdrop"></div>
+
+            <section class="agenda-exit-confirmation__dialog" @click.outside="cancelAppointmentExit()">
+                <header>
+                    <h2 id="agenda-exit-confirmation-title">Tienes cambios sin guardar</h2>
+                    <button type="button" aria-label="Cerrar confirmación" @click="cancelAppointmentExit()">
+                        <flux:icon.x-mark class="size-5" />
+                    </button>
+                </header>
+
+                <p id="agenda-exit-confirmation-description">
+                    Si cierras la cita ahora, se perderán los cambios. ¿Deseas salir?
+                </p>
+
+                <footer>
+                    <button type="button" @click="cancelAppointmentExit()">Volver</button>
+                    <button type="button" @click="confirmAppointmentExit()">Sí, salir</button>
+                </footer>
+            </section>
         </div>
     @endif
 </section>

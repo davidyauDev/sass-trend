@@ -85,6 +85,8 @@ class Index extends Component
 
     public string $appointmentTimeDate = '';
 
+    public string $appointmentDateWindowStart = '';
+
     public string $selectedSlotStart = '';
 
     public string $selectedSlotEnd = '';
@@ -236,6 +238,7 @@ class Index extends Component
         $this->selectedServiceIds = [];
         $this->selectedServiceProfessionals = [];
         $this->appointmentTimeDate = $this->selectedDate;
+        $this->appointmentDateWindowStart = $this->selectedDate;
         $this->selectedSlotStart = '';
         $this->selectedSlotEnd = '';
         $this->showAppointmentPanel();
@@ -403,6 +406,7 @@ class Index extends Component
         $this->selectedServiceIds = [$entry->service_id];
         $this->selectedServiceProfessionals = [$entry->service_id => $entry->professional_id];
         $this->appointmentTimeDate = $entry->desired_date->toDateString();
+        $this->appointmentDateWindowStart = $this->appointmentTimeDate;
         $this->appointmentStep = 'details';
         $this->waitlistEntryPendingBookingId = $entry->id;
         $this->showAppointmentPanel();
@@ -674,6 +678,7 @@ class Index extends Component
         $this->selectedServiceIds = [];
         $this->selectedServiceProfessionals = [];
         $this->appointmentTimeDate = CarbonImmutable::parse($startsAt)->toDateString();
+        $this->appointmentDateWindowStart = $this->appointmentTimeDate;
         $this->selectedSlotStart = '';
         $this->selectedSlotEnd = '';
         $this->showAppointmentPanel();
@@ -741,8 +746,28 @@ class Index extends Component
         }
 
         $this->appointmentTimeDate = $date->toDateString();
+        $this->appointmentDateWindowStart = $this->appointmentTimeDate;
         $this->loadAppointmentTimeSlots($availability);
         $this->appointmentStep = 'time';
+    }
+
+    public function shiftAppointmentDateWindow(int $days, AppointmentAvailabilityService $availability): void
+    {
+        $start = CarbonImmutable::parse(
+            $this->appointmentDateWindowStart !== ''
+                ? $this->appointmentDateWindowStart
+                : $this->appointmentTimeDate,
+        )->addDays($days);
+
+        if ($start->isBefore(CarbonImmutable::now()->startOfDay())) {
+            $start = CarbonImmutable::now()->startOfDay();
+        }
+
+        $this->appointmentDateWindowStart = $start->toDateString();
+        $this->appointmentTimeDate = $start->toDateString();
+        $this->selectedSlotStart = '';
+        $this->selectedSlotEnd = '';
+        $this->loadAppointmentTimeSlots($availability);
     }
 
     public function selectAppointmentDate(string $date, AppointmentAvailabilityService $availability): void
@@ -1001,7 +1026,11 @@ class Index extends Component
     #[Computed]
     public function appointmentDateOptions(): array
     {
-        $start = CarbonImmutable::parse($this->selectedDate);
+        $start = CarbonImmutable::parse(
+            $this->appointmentDateWindowStart !== ''
+                ? $this->appointmentDateWindowStart
+                : $this->selectedDate,
+        );
 
         if ($start->isBefore(CarbonImmutable::now()->startOfDay())) {
             $start = CarbonImmutable::now()->startOfDay();
