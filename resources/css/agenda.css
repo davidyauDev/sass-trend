@@ -1502,12 +1502,12 @@
 }
 
 .agenda-appointment-overlay--loading .agenda-appointment-backdrop,
-.agenda-appointment-overlay--ready .agenda-appointment-backdrop {
+.agenda-appointment-overlay--ready.is-opening .agenda-appointment-backdrop {
     animation: agenda-backdrop-in 420ms ease-out both;
 }
 
 .agenda-appointment-overlay--loading .agenda-appointment-drawer,
-.agenda-appointment-overlay--ready .agenda-appointment-drawer {
+.agenda-appointment-overlay--ready.is-opening .agenda-appointment-drawer {
     animation: agenda-drawer-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -1714,9 +1714,9 @@
 
 @media (prefers-reduced-motion: reduce) {
     .agenda-appointment-overlay--loading .agenda-appointment-backdrop,
-    .agenda-appointment-overlay--ready .agenda-appointment-backdrop,
+    .agenda-appointment-overlay--ready.is-opening .agenda-appointment-backdrop,
     .agenda-appointment-overlay--loading .agenda-appointment-drawer,
-    .agenda-appointment-overlay--ready .agenda-appointment-drawer,
+    .agenda-appointment-overlay--ready.is-opening .agenda-appointment-drawer,
     .agenda-appointment-overlay--ready.is-closing .agenda-appointment-backdrop,
     .agenda-appointment-overlay--ready.is-closing .agenda-appointment-drawer,
     .agenda-appointment-skeleton::after {
@@ -1787,6 +1787,35 @@
     min-width: 0;
     overflow-y: auto;
     background: var(--agenda-bg);
+}
+
+.agenda-appointment-stage {
+    min-height: 100%;
+    animation: agenda-appointment-stage-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.agenda-appointment-stage.is-changing {
+    opacity: 0.35;
+    transform: translateX(-8px);
+}
+
+@keyframes agenda-appointment-stage-in {
+    from {
+        opacity: 0;
+        transform: translateX(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .agenda-appointment-stage {
+        animation-duration: 1ms;
+        transition-duration: 1ms;
+    }
 }
 
 .agenda-service-step {

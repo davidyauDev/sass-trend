@@ -270,10 +270,13 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
-    Alpine.data('agendaAppointmentPreview', () => ({
+    Alpine.data('agendaAppointmentPreview', (config = {}) => ({
         preview: null,
         appointmentOpening: false,
         appointmentClosing: false,
+        appointmentOpeningTransition: false,
+        appointmentPanelIsReady: Boolean(config.panelReady),
+        appointmentVisible: Boolean(config.panelOpen),
         previewX: 16,
         previewY: 16,
         hideTimer: null,
@@ -359,13 +362,51 @@ document.addEventListener('alpine:init', () => {
         },
         async openAppointmentPanel(action) {
             this.appointmentClosing = false;
-            this.appointmentOpening = true;
+            if (this.appointmentPanelIsReady) {
+                this.showAppointmentPanelLayer();
+            }
+            this.appointmentOpening = !this.appointmentPanelIsReady;
 
             try {
                 await action();
             } finally {
+                this.appointmentPanelIsReady = true;
+                this.showAppointmentPanelLayer();
                 this.appointmentOpening = false;
             }
+        },
+        appointmentPanelReady() {
+            this.appointmentPanelIsReady = true;
+        },
+        appointmentPanelOpened() {
+            this.appointmentPanelIsReady = true;
+            this.showAppointmentPanelLayer();
+            this.appointmentOpening = false;
+        },
+        showAppointmentPanelLayer() {
+            if (this.appointmentVisible) {
+                return;
+            }
+
+            this.appointmentVisible = true;
+            this.appointmentOpeningTransition = true;
+            window.setTimeout(() => {
+                this.appointmentOpeningTransition = false;
+            }, 500);
+        },
+        appointmentPanelClosed() {
+            if (!this.appointmentVisible) {
+                this.appointmentClosing = false;
+
+                return;
+            }
+
+            this.appointmentClosing = true;
+            this.appointmentOpeningTransition = false;
+            window.setTimeout(() => {
+                this.appointmentVisible = false;
+                this.appointmentClosing = false;
+            }, 420);
         },
         async closeAppointmentPanel(action) {
             if (this.appointmentClosing) {
@@ -374,6 +415,7 @@ document.addEventListener('alpine:init', () => {
 
             this.appointmentClosing = true;
             await new Promise((resolve) => window.setTimeout(resolve, 420));
+            this.appointmentVisible = false;
 
             try {
                 await action();

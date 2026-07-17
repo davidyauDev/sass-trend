@@ -62,6 +62,13 @@ class Index extends Component
 
     public bool $appointmentPanelOpen = false;
 
+    public bool $appointmentPanelLoaded = false;
+
+    public bool $appointmentServicesLoaded = false;
+
+    /** @var list<array{id: int, name: string, duration_minutes: int, price: float, category_name: string}> */
+    public array $appointmentServiceOptions = [];
+
     public bool $appointmentStartedFromCalendarSlot = false;
 
     public ?int $waitlistEntryPendingBookingId = null;
@@ -204,6 +211,17 @@ class Index extends Component
         $this->isFullscreen = ! $this->isFullscreen;
     }
 
+    public function preloadAppointmentPanel(): void
+    {
+        if ($this->appointmentPanelLoaded && $this->appointmentServicesLoaded) {
+            return;
+        }
+
+        $this->ensureAppointmentServicesLoaded();
+        $this->appointmentPanelLoaded = true;
+        $this->dispatch('appointment-panel-preloaded');
+    }
+
     public function openCreateModal(): void
     {
         $this->appointmentStartedFromCalendarSlot = false;
@@ -220,7 +238,7 @@ class Index extends Component
         $this->appointmentTimeDate = $this->selectedDate;
         $this->selectedSlotStart = '';
         $this->selectedSlotEnd = '';
-        $this->appointmentPanelOpen = true;
+        $this->showAppointmentPanel();
         $this->resetValidation();
         $this->resetErrorBag();
     }
@@ -333,7 +351,7 @@ class Index extends Component
         $this->selectedServiceProfessionals = [$appointment->service_id => $appointment->professional_id];
         $this->appointmentStep = 'details';
         $this->serviceSearch = '';
-        $this->appointmentPanelOpen = true;
+        $this->showAppointmentPanel();
         $this->resetValidation();
         $this->resetErrorBag();
     }
@@ -341,6 +359,7 @@ class Index extends Component
     public function closeModal(): void
     {
         $this->appointmentPanelOpen = false;
+        $this->dispatch('appointment-panel-closed');
         $this->appointmentStartedFromCalendarSlot = false;
         $this->appointmentStep = 'picker';
         $this->serviceSearch = '';
@@ -386,7 +405,7 @@ class Index extends Component
         $this->appointmentTimeDate = $entry->desired_date->toDateString();
         $this->appointmentStep = 'details';
         $this->waitlistEntryPendingBookingId = $entry->id;
-        $this->appointmentPanelOpen = true;
+        $this->showAppointmentPanel();
         $this->resetValidation();
         $this->resetErrorBag();
     }
@@ -657,7 +676,7 @@ class Index extends Component
         $this->appointmentTimeDate = CarbonImmutable::parse($startsAt)->toDateString();
         $this->selectedSlotStart = '';
         $this->selectedSlotEnd = '';
-        $this->appointmentPanelOpen = true;
+        $this->showAppointmentPanel();
         $this->resetValidation();
         $this->resetErrorBag();
     }
@@ -885,18 +904,24 @@ class Index extends Component
     }
 
     /**
-     * @return SupportCollection<int, Service>
+     * @return SupportCollection<int, array{id: int, name: string, duration_minutes: int, price: float, category_name: string}>
      */
     #[Computed]
     public function servicesCatalog(): SupportCollection
     {
-        return Service::query()
-            ->with('category')
-            ->where('is_active', true)
-            ->search(trim($this->serviceSearch))
-            ->orderBy('service_category_id')
-            ->orderBy('name')
-            ->get();
+        $search = mb_strtolower(trim($this->serviceSearch));
+        $services = collect($this->appointmentServiceOptions);
+
+        return $services
+            ->when(
+                $search !== '',
+                fn (SupportCollection $services): SupportCollection => $services
+                    ->filter(fn (array $service): bool => str_contains(
+                        mb_strtolower($service['name'].' '.$service['category_name']),
+                        $search,
+                    )),
+            )
+            ->values();
     }
 
     /**
@@ -1440,6 +1465,38 @@ class Index extends Component
         abort_unless($user instanceof User, 403);
 
         return $user;
+    }
+
+    private function showAppointmentPanel(): void
+    {
+        $this->ensureAppointmentServicesLoaded();
+        $this->appointmentPanelLoaded = true;
+        $this->appointmentPanelOpen = true;
+        $this->dispatch('appointment-panel-opened');
+    }
+
+    private function ensureAppointmentServicesLoaded(): void
+    {
+        if ($this->appointmentServicesLoaded) {
+            return;
+        }
+
+        $this->appointmentServiceOptions = Service::query()
+            ->with('category')
+            ->where('is_active', true)
+            ->orderBy('service_category_id')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Service $service): array => [
+                'id' => $service->id,
+                'name' => $service->name,
+                'duration_minutes' => $service->duration_minutes,
+                'price' => (float) $service->price,
+                'category_name' => $service->category?->name ?? 'Otros',
+            ])
+            ->values()
+            ->all();
+        $this->appointmentServicesLoaded = true;
     }
 
     public function render(): View

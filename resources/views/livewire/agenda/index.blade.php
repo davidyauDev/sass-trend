@@ -1,6 +1,13 @@
 <section
     @class(['agenda-page', 'fixed inset-0 z-50' => $isFullscreen])
-    x-data="agendaAppointmentPreview()"
+    x-data="agendaAppointmentPreview({
+        panelReady: @js($appointmentPanelLoaded),
+        panelOpen: @js($appointmentPanelOpen),
+    })"
+    wire:init="preloadAppointmentPanel"
+    @appointment-panel-preloaded.window="appointmentPanelReady()"
+    @appointment-panel-opened.window="appointmentPanelOpened()"
+    @appointment-panel-closed.window="appointmentPanelClosed()"
     wire:poll.30s
     data-testid="agenda-page"
 >
@@ -1140,17 +1147,22 @@
         </aside>
     </div>
 
-    @if ($appointmentPanelOpen)
+    @if ($appointmentPanelLoaded)
         <div
             class="agenda-appointment-overlay agenda-appointment-overlay--ready"
-            x-bind:class="{ 'is-closing': appointmentClosing }"
-            wire:key="appointment-panel"
+            x-bind:class="{
+                'is-opening': appointmentOpeningTransition,
+                'is-closing': appointmentClosing,
+            }"
+            x-show="appointmentVisible"
+            x-cloak
+            wire:key="appointment-panel-persistent"
             @keydown.escape.window="closeAppointmentPanel(() => $wire.closeModal())"
         >
             <button type="button" class="agenda-appointment-backdrop" aria-label="Cerrar panel de cita" @click="closeAppointmentPanel(() => $wire.closeModal())"></button>
 
             <aside class="agenda-appointment-drawer" data-testid="appointment-panel">
-                <div class="agenda-appointment-rail">
+                <div class="agenda-appointment-rail" wire:ignore>
                     <button type="button" aria-label="Cerrar" @click="closeAppointmentPanel(() => $wire.closeModal())" x-bind:disabled="appointmentClosing">
                         <flux:icon.x-mark class="size-6" />
                     </button>
@@ -1162,7 +1174,7 @@
                     </button>
                 </div>
 
-                <div class="agenda-appointment-stepbar">
+                <div class="agenda-appointment-stepbar" wire:ignore>
                     <div class="agenda-step-icon">
                         <flux:icon.user-plus class="size-5" />
                     </div>
@@ -1170,8 +1182,14 @@
                     <p>O déjelo vacío para clientes sin cita previa.</p>
                 </div>
 
-                <div class="agenda-appointment-content">
-                    @if ($appointmentStep === 'picker')
+                <div class="agenda-appointment-content" wire:key="appointment-dynamic-content">
+                    <div
+                        class="agenda-appointment-stage"
+                        wire:key="appointment-stage-{{ $appointmentStep }}"
+                        wire:loading.class="is-changing"
+                        wire:target="selectAppointmentService,showServiceStep,showServicesSummary,continueToAppointmentTime,selectAppointmentDate,selectAppointmentSlot,continueToAppointmentDetails,showAppointmentTime"
+                    >
+                        @if ($appointmentStep === 'picker')
                         <div class="agenda-service-step">
                             <h2>Seleccione un servicio</h2>
 
@@ -1187,7 +1205,7 @@
                             </label>
 
                             <div class="agenda-service-groups">
-                                @forelse ($this->servicesCatalog->groupBy(fn ($service) => $service->category?->name ?? 'Otros') as $category => $services)
+                                @forelse ($this->servicesCatalog->groupBy(fn (array $service): string => $service['category_name']) as $category => $services)
                                     <section class="agenda-service-group" wire:key="service-category-{{ md5($category) }}">
                                         <h3>
                                             {{ $category }}
@@ -1198,14 +1216,14 @@
                                             @foreach ($services as $service)
                                                 <button
                                                     type="button"
-                                                    wire:key="appointment-service-{{ $service->id }}"
-                                                    wire:click="selectAppointmentService({{ $service->id }})"
+                                                    wire:key="appointment-service-{{ $service['id'] }}"
+                                                    wire:click="selectAppointmentService({{ $service['id'] }})"
                                                 >
                                                     <span>
-                                                        <strong>{{ $service->name }}</strong>
-                                                        <small>{{ $this->serviceDurationLabel($service->duration_minutes) }}</small>
+                                                        <strong>{{ $service['name'] }}</strong>
+                                                        <small>{{ $this->serviceDurationLabel($service['duration_minutes']) }}</small>
                                                     </span>
-                                                    <b>S/ {{ number_format((float) $service->price, 2) }}</b>
+                                                    <b>S/ {{ number_format($service['price'], 2) }}</b>
                                                 </button>
                                             @endforeach
                                         </div>
@@ -1217,7 +1235,7 @@
                                 @endforelse
                             </div>
                         </div>
-                    @elseif ($appointmentStep === 'services')
+                        @elseif ($appointmentStep === 'services')
                         <div class="agenda-wizard-stage">
                             <nav class="agenda-wizard-breadcrumb" aria-label="Progreso de la cita">
                                 <strong>Servicios</strong>
@@ -1409,7 +1427,7 @@
                                 </div>
                             </footer>
                         </form>
-                    @else
+                        @else
                         <form wire:submit="save" class="agenda-appointment-details">
                             <div class="agenda-details-header">
                                 @if (! $form->appointmentId)
@@ -1466,7 +1484,8 @@
                                 <button type="submit">{{ $form->appointmentId ? 'Guardar cambios' : 'Crear cita' }}</button>
                             </div>
                         </form>
-                    @endif
+                        @endif
+                    </div>
                 </div>
             </aside>
         </div>

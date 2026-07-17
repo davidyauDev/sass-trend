@@ -110,6 +110,39 @@ test('muestra y navega la agenda de tres dias', function (): void {
         ->assertSet('selectedDate', '2026-07-17');
 });
 
+test('precarga los servicios y conserva el panel listo entre aperturas', function (): void {
+    $this->seed([PermissionSeeder::class, RoleSeeder::class]);
+
+    $user = User::factory()->administratorGeneral()->create();
+    actingAs($user);
+
+    $category = ServiceCategory::factory()->create(['name' => 'Cabello']);
+    Service::factory()->create([
+        'service_category_id' => $category->id,
+        'name' => 'Corte clásico',
+        'is_active' => true,
+    ]);
+    Service::factory()->create([
+        'service_category_id' => $category->id,
+        'name' => 'Servicio oculto',
+        'is_active' => false,
+    ]);
+
+    Livewire::test(AgendaIndex::class)
+        ->call('preloadAppointmentPanel')
+        ->assertSet('appointmentPanelLoaded', true)
+        ->assertSet('appointmentPanelOpen', false)
+        ->assertSee('Corte clásico')
+        ->assertDontSee('Servicio oculto')
+        ->call('openCreateModal')
+        ->assertSet('appointmentPanelOpen', true)
+        ->call('closeModal')
+        ->assertSet('appointmentPanelLoaded', true)
+        ->assertSet('appointmentPanelOpen', false)
+        ->call('openCreateModal')
+        ->assertSee('Corte clásico');
+});
+
 test('precarga una cita desde un intervalo de quince minutos', function (): void {
     $this->seed([PermissionSeeder::class, RoleSeeder::class]);
 
