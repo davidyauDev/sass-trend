@@ -584,10 +584,9 @@
                                         type="button"
                                         @class(['agenda-event', 'agenda-event--'.$appointment->status->slug])
                                         wire:key="agenda-appointment-{{ $appointment->id }}"
-                                        wire:click.stop="openDrawer({{ $appointment->id }})"
                                         @mouseenter="showAppointmentPreview($event, @js($this->appointmentPreviewData($appointment)))"
                                         @mouseleave="scheduleAppointmentPreviewHide()"
-                                        @click="hideAppointmentPreview()"
+                                        @click.stop="openAppointmentDetail(() => $wire.openDrawer({{ $appointment->id }}))"
                                         title="{{ $appointment->title }}"
                                     >
                                         <span>{{ $appointment->starts_at?->format('H:i') }} {{ $appointment->client->fullName() }}</span>
@@ -598,6 +597,9 @@
                                             @case(\App\Services\Agenda\AppointmentStatusCatalog::ARRIVED)<flux:icon.map-pin class="size-4" />@break
                                             @case(\App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS)<flux:icon.play class="size-4" />@break
                                         @endswitch
+                                        @if ($appointment->latestNote)
+                                            <flux:icon.chat-bubble-oval-left class="agenda-event-note-icon size-4" />
+                                        @endif
                                     </button>
                                 @endforeach
 
@@ -620,10 +622,9 @@
                 <button
                     type="button"
                     class="agenda-list-item"
-                    wire:click="openDrawer({{ $appointment->id }})"
                     @mouseenter="showAppointmentPreview($event, @js($this->appointmentPreviewData($appointment)))"
                     @mouseleave="scheduleAppointmentPreviewHide()"
-                    @click="hideAppointmentPreview()"
+                    @click="openAppointmentDetail(() => $wire.openDrawer({{ $appointment->id }}))"
                 >
                     <time>{{ $appointment->starts_at?->translatedFormat('D d M · H:i') }}</time>
                     <strong>{{ $appointment->client->fullName() }}</strong>
@@ -695,10 +696,9 @@
                                     type="button"
                                     @class(['agenda-timeline-event', 'agenda-timeline-event--'.$appointment->status->slug])
                                     style="--agenda-event-start: {{ $startOffset }}; --agenda-event-duration: {{ $duration }}"
-                                    wire:click="openDrawer({{ $appointment->id }})"
                                     @mouseenter="showAppointmentPreview($event, @js($this->appointmentPreviewData($appointment)))"
                                     @mouseleave="scheduleAppointmentPreviewHide()"
-                                    @click="hideAppointmentPreview()"
+                                    @click="openAppointmentDetail(() => $wire.openDrawer({{ $appointment->id }}))"
                                 >
                                     <span><strong>{{ $appointment->starts_at->format('H:i') }} - {{ $appointment->ends_at->format('H:i') }} {{ $appointment->client->fullName() }}</strong><small>{{ $appointment->service->name }}</small></span>
                                     @switch($appointment->status->slug)
@@ -708,6 +708,9 @@
                                         @case(\App\Services\Agenda\AppointmentStatusCatalog::ARRIVED)<flux:icon.map-pin class="size-4" />@break
                                         @case(\App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS)<flux:icon.play class="size-4" />@break
                                     @endswitch
+                                    @if ($appointment->latestNote)
+                                        <flux:icon.chat-bubble-oval-left class="agenda-event-note-icon size-4" />
+                                    @endif
                                 </button>
                             @endforeach
                         </section>
@@ -761,10 +764,9 @@
                                         <button
                                             type="button"
                                             @class(['agenda-event', 'agenda-event--'.$appointment->status->slug])
-                                            wire:click="openDrawer({{ $appointment->id }})"
                                             @mouseenter="showAppointmentPreview($event, @js($this->appointmentPreviewData($appointment)))"
                                             @mouseleave="scheduleAppointmentPreviewHide()"
-                                            @click="hideAppointmentPreview()"
+                                            @click="openAppointmentDetail(() => $wire.openDrawer({{ $appointment->id }}))"
                                         >
                                             <span>
                                                 {{ $appointment->starts_at->format('H:i') }}
@@ -780,6 +782,9 @@
                                                 @case(\App\Services\Agenda\AppointmentStatusCatalog::ARRIVED)<flux:icon.map-pin class="size-4" />@break
                                                 @case(\App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS)<flux:icon.play class="size-4" />@break
                                             @endswitch
+                                            @if ($appointment->latestNote)
+                                                <flux:icon.chat-bubble-oval-left class="agenda-event-note-icon size-4" />
+                                            @endif
                                         </button>
                                     @endforeach
                                 </div>
@@ -868,6 +873,8 @@
                 </div>
             </div>
 
+            <p x-show="preview?.note" x-text="preview?.note" class="agenda-hover-card__note"></p>
+
             <div class="agenda-hover-card__service">
                 <div>
                     <strong x-text="preview?.service"></strong>
@@ -887,11 +894,56 @@
         </div>
     </aside>
 
+    <div
+        x-show="detailOpening"
+        x-cloak
+        class="agenda-detail-overlay agenda-detail-overlay--loading"
+        aria-live="polite"
+        aria-label="Cargando detalle de la cita"
+    >
+        <div class="agenda-detail-backdrop"></div>
+
+        <aside class="agenda-detail-drawer" aria-busy="true">
+            <div class="agenda-detail-rail">
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--circle"></span>
+            </div>
+
+            <section class="agenda-detail-client agenda-detail-loading-client">
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--detail-avatar"></span>
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--detail-name"></span>
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--detail-copy"></span>
+            </section>
+
+            <section class="agenda-detail-booking agenda-detail-loading-booking">
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--detail-heading"></span>
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--detail-card"></span>
+                <span class="agenda-appointment-skeleton agenda-appointment-skeleton--detail-card"></span>
+            </section>
+        </aside>
+    </div>
+
     @if ($this->selectedAppointment)
         @php
             $appointment = $this->selectedAppointment;
             $paidAmount = (float) $appointment->payments->where('status', 'paid')->sum('amount');
             $amountDue = max(0, (float) $appointment->price - $paidAmount);
+            $isNoShow = $appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::NO_SHOW;
+            $isConfirmed = $appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED;
+            $hasArrived = $appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::ARRIVED;
+            $isInProgress = $appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS;
+            $displayNote = $appointment->latestNote?->note ?? $appointment->getAttribute('notes');
+            $quickSaleServices = $this->servicesCatalog
+                ->reject(fn (array $service): bool => $service['id'] === $appointment->service_id)
+                ->prepend([
+                    'id' => $appointment->service_id,
+                    'name' => $appointment->service->name,
+                    'duration_minutes' => $appointment->duration_minutes,
+                    'price' => (float) $appointment->price,
+                    'category_name' => 'Servicios',
+                ])
+                ->take(3);
+            $checkoutServiceCategories = $this->servicesCatalog->groupBy('category_name');
+            $checkoutProductCategories = $this->checkoutProductsCatalog->groupBy('category_name');
             $statusLabels = [
                 \App\Services\Agenda\AppointmentStatusCatalog::PENDING => 'Reservada',
                 \App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED => 'Confirmada',
@@ -904,12 +956,153 @@
             ];
         @endphp
 
-        <div class="agenda-detail-overlay" data-testid="appointment-detail" wire:key="appointment-detail-{{ $appointment->id }}" x-data="{ statusOpen: false, actionsOpen: false }" @keydown.escape.window="statusOpen || actionsOpen ? (statusOpen = false, actionsOpen = false) : $wire.closeDrawer()">
-            <button type="button" class="agenda-detail-backdrop" aria-label="Cerrar detalle" wire:click="closeDrawer"></button>
+        <div
+            class="agenda-detail-overlay"
+            x-data="{
+                statusOpen: false,
+                actionsOpen: false,
+                quickActionsOpen: false,
+                noteModalOpen: false,
+                checkoutPanelOpen: false,
+                checkoutClosing: false,
+                customTipModalOpen: false,
+                customTipMode: 'amount',
+                customTipInput: '0',
+                selectedTip: 'none',
+                checkoutStep: 'tip',
+                cartCatalogView: 'home',
+                cartSearch: '',
+                catalogSearch: '',
+                closing: false,
+                openCheckoutPanel() {
+                    this.selectedTip = 'none';
+                    this.checkoutStep = 'tip';
+                    this.cartCatalogView = 'home';
+                    this.cartSearch = '';
+                    this.catalogSearch = '';
+                    this.checkoutClosing = false;
+                    this.checkoutPanelOpen = true;
+                },
+                openCartCatalog(catalog) {
+                    this.catalogSearch = '';
+                    this.cartCatalogView = catalog;
+                },
+                closeCheckoutPanel() {
+                    if (this.checkoutClosing) {
+                        return;
+                    }
+
+                    this.checkoutClosing = true;
+                    window.setTimeout(() => {
+                        this.checkoutPanelOpen = false;
+                        this.checkoutClosing = false;
+                    }, 300);
+                },
+                openCustomTipModal() {
+                    if (this.selectedTip !== 'custom') {
+                        this.customTipMode = 'amount';
+                        this.customTipInput = '0';
+                    }
+
+                    this.customTipModalOpen = true;
+                },
+                appendCustomTip(value) {
+                    if (value === '.' && this.customTipInput.includes('.')) {
+                        return;
+                    }
+
+                    if (this.customTipInput === '0' && value !== '.') {
+                        this.customTipInput = value;
+
+                        return;
+                    }
+
+                    const decimalPart = this.customTipInput.split('.')[1] ?? '';
+                    if (this.customTipInput.includes('.') && decimalPart.length >= 2) {
+                        return;
+                    }
+
+                    this.customTipInput += value;
+                },
+                deleteCustomTipDigit() {
+                    this.customTipInput = this.customTipInput.length > 1
+                        ? this.customTipInput.slice(0, -1)
+                        : '0';
+                },
+                customTipAmount(subtotal) {
+                    const value = Number(this.customTipInput) || 0;
+
+                    return this.customTipMode === 'percent'
+                        ? Number(subtotal) * Math.min(value, 100) / 100
+                        : value;
+                },
+                customTipPercentage(subtotal) {
+                    if (Number(subtotal) <= 0) {
+                        return 0;
+                    }
+
+                    return this.customTipMode === 'percent'
+                        ? Math.min(Number(this.customTipInput) || 0, 100)
+                        : this.customTipAmount(subtotal) * 100 / Number(subtotal);
+                },
+                customTipPercentageLabel(subtotal) {
+                    const percentage = this.customTipPercentage(subtotal);
+                    const decimals = Number.isInteger(percentage) ? 0 : 1;
+
+                    return `${percentage.toFixed(decimals)}% tip`;
+                },
+                confirmCustomTip() {
+                    if (Number(this.customTipInput) <= 0) {
+                        return;
+                    }
+
+                    this.selectedTip = 'custom';
+                    this.customTipModalOpen = false;
+                },
+                tipAmount(subtotal) {
+                    const rates = { none: 0, ten: 0.10, eighteen: 0.18, twentyFive: 0.25, custom: 0 };
+
+                    return this.selectedTip === 'custom'
+                        ? this.customTipAmount(subtotal)
+                        : Number(subtotal) * (rates[this.selectedTip] ?? 0);
+                },
+                percentageAmount(subtotal, rate) {
+                    return Number(subtotal) * Number(rate);
+                },
+                checkoutTotal(subtotal) {
+                    return Number(subtotal) + this.tipAmount(subtotal);
+                },
+                money(amount) {
+                    return `PEN ${Number(amount).toFixed(2)}`;
+                },
+                closeDetail() {
+                    if (this.closing) {
+                        return;
+                    }
+
+                    this.closing = true;
+                    window.setTimeout(() => this.$wire.closeDrawer(), 300);
+                },
+            }"
+            x-bind:class="{ 'is-closing': closing }"
+            @appointment-note-added.window="noteModalOpen = false; quickActionsOpen = false"
+            data-testid="appointment-detail"
+            wire:key="appointment-detail-{{ $appointment->id }}"
+            @keydown.escape.window="customTipModalOpen
+                ? (customTipModalOpen = false)
+                : checkoutPanelOpen
+                ? closeCheckoutPanel()
+                : noteModalOpen
+                ? (noteModalOpen = false)
+                : statusOpen || actionsOpen || quickActionsOpen
+                ? (statusOpen = false, actionsOpen = false, quickActionsOpen = false)
+                : closeDetail()"
+        >
+            <button type="button" class="agenda-detail-backdrop" aria-label="Cerrar detalle" @click="closeDetail()"></button>
 
             <aside class="agenda-detail-drawer">
                 <div class="agenda-detail-rail">
-                    <button type="button" aria-label="Cerrar" wire:click="closeDrawer"><flux:icon.x-mark class="size-6" /></button>
+                    <button type="button" aria-label="Cerrar" x-bind:disabled="closing" @click="closeDetail()"><flux:icon.x-mark class="size-6" /></button>
                     <button type="button" aria-label="Pantalla completa" wire:click="toggleFullscreen"><flux:icon.arrows-pointing-out class="size-5" /></button>
                     <button type="button" aria-label="Configuración"><flux:icon.cog-6-tooth class="size-5" /></button>
                 </div>
@@ -940,7 +1133,13 @@
                 </section>
 
                 <section class="agenda-detail-booking">
-                    <header class="agenda-detail-booking__header">
+                    <header @class([
+                        'agenda-detail-booking__header',
+                        'agenda-detail-booking__header--confirmed' => $isConfirmed,
+                        'agenda-detail-booking__header--arrived' => $hasArrived,
+                        'agenda-detail-booking__header--in-progress' => $isInProgress,
+                        'agenda-detail-booking__header--no-show' => $isNoShow,
+                    ])>
                         <div>
                             <h2>{{ ucfirst($appointment->starts_at->translatedFormat('D d M')) }} <flux:icon.chevron-down class="size-4" /></h2>
                             <p>{{ $appointment->starts_at->format('H:i') }} · No se repite</p>
@@ -972,10 +1171,15 @@
                             </div>
                             <strong>PEN {{ number_format((float) $appointment->price, 0) }}</strong>
                         </article>
-                        <button type="button" class="agenda-detail-add-service" wire:click="openEditModal({{ $appointment->id }})"><flux:icon.plus-circle class="size-5" /> Agregar servicio</button>
+                        @unless ($isNoShow)
+                            <button type="button" class="agenda-detail-add-service" wire:click="openEditModal({{ $appointment->id }})"><flux:icon.plus-circle class="size-5" /> Agregar servicio</button>
+                        @endunless
 
-                        @if ($appointment->notes)
-                            <div class="agenda-detail-note"><strong>Notas</strong><p>{{ $appointment->notes }}</p></div>
+                        @if ($displayNote)
+                            <div class="agenda-detail-note">
+                                <strong>Notas</strong>
+                                <p>{{ $displayNote }}</p>
+                            </div>
                         @endif
                     </div>
 
@@ -985,12 +1189,284 @@
                             <strong>Por pagar <flux:icon.chevron-right class="size-4" /></strong><strong>PEN {{ number_format($amountDue, 0) }}</strong>
                         </div>
                         <div class="agenda-detail-checkout">
-                            <button type="button" class="agenda-detail-more" aria-label="Más opciones"><flux:icon.ellipsis-vertical class="size-5" /></button>
-                            <button type="button" wire:click="checkoutSelectedAppointment">Checkout</button>
+                            <div class="agenda-detail-quick-actions" @click.outside="quickActionsOpen = false">
+                                <button
+                                    type="button"
+                                    class="agenda-detail-more"
+                                    aria-label="Más opciones"
+                                    x-bind:aria-expanded="quickActionsOpen"
+                                    @click="quickActionsOpen = ! quickActionsOpen"
+                                >
+                                    <flux:icon.ellipsis-vertical class="size-5" />
+                                </button>
+
+                                <div
+                                    x-show="quickActionsOpen"
+                                    x-cloak
+                                    x-transition.opacity.scale.origin.bottom.left
+                                    class="agenda-detail-quick-actions__menu"
+                                >
+                                    <strong>Acciones rápidas</strong>
+                                    <button type="button" @click="quickActionsOpen = false; noteModalOpen = true"><flux:icon.clipboard-document-list class="size-4" /> Añade una nota</button>
+                                    <button type="button"><flux:icon.document-text class="size-4" /> Agregar un formulario</button>
+                                    <span class="agenda-detail-quick-actions__divider"></span>
+                                    <button type="button">Ver actividad de citas</button>
+                                    <button type="button">Establecer como repetitivo</button>
+                                    <button type="button">Agregar a la cita grupal</button>
+                                    <button type="button">Reservar de nuevo</button>
+                                    <span class="agenda-detail-quick-actions__divider"></span>
+                                    <button type="button" wire:click="openEditModal({{ $appointment->id }})" @click="quickActionsOpen = false">Reprogramar</button>
+                                    <button type="button" class="is-danger" wire:click="markNoShow" @click="quickActionsOpen = false">No se presentó</button>
+                                    <button type="button" class="is-danger" wire:click="openCancellationConfirmation" @click="quickActionsOpen = false">Cancelar</button>
+                                </div>
+                            </div>
+                            @if ($isNoShow)
+                                <button type="button" class="agenda-detail-done" x-bind:disabled="closing" @click="closeDetail()">Done</button>
+                            @else
+                                <button type="button" @click="openCheckoutPanel()">Checkout</button>
+                            @endif
                         </div>
                     </footer>
                 </section>
             </aside>
+
+            <div x-show="noteModalOpen" x-cloak class="agenda-note-modal" role="dialog" aria-modal="true" aria-labelledby="agenda-note-modal-title">
+                <button type="button" class="agenda-note-modal__backdrop" aria-label="Cerrar nota" @click="noteModalOpen = false; $wire.set('noteDraft', '')"></button>
+
+                <form class="agenda-note-modal__dialog" wire:submit="addNote">
+                    <header>
+                        <h2 id="agenda-note-modal-title">Añade una nota</h2>
+                        <button type="button" aria-label="Cerrar" @click="noteModalOpen = false; $wire.set('noteDraft', '')">
+                            <flux:icon.x-mark class="size-5" />
+                        </button>
+                    </header>
+
+                    <textarea
+                        wire:model="noteDraft"
+                        required
+                        maxlength="2000"
+                        placeholder="Introduzca aquí cualquier instrucción especial o detalle sobre la cita."
+                    ></textarea>
+                    @error('noteDraft') <p class="agenda-note-modal__error">{{ $message }}</p> @enderror
+                    <p class="agenda-note-modal__help">Esta nota solo será visible para los miembros de tu equipo.</p>
+
+                    <footer>
+                        <button type="submit">Ahorrar</button>
+                    </footer>
+                </form>
+            </div>
+
+            <div
+                x-show="checkoutPanelOpen"
+                x-cloak
+                class="agenda-checkout-overlay"
+                x-bind:class="{ 'is-closing': checkoutClosing }"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="agenda-checkout-title"
+            >
+                <button type="button" class="agenda-checkout-backdrop" aria-label="Cerrar checkout" @click="closeCheckoutPanel()"></button>
+
+                <aside class="agenda-checkout-rail">
+                    <button type="button" aria-label="Cerrar checkout" x-bind:disabled="checkoutClosing" @click="closeCheckoutPanel()">
+                        <flux:icon.x-mark class="size-6" />
+                    </button>
+                </aside>
+
+                <section class="agenda-checkout-drawer">
+                    <main class="agenda-checkout-main">
+                        <nav
+                            x-show="checkoutStep !== 'cart' || cartCatalogView === 'home'"
+                            class="agenda-checkout-breadcrumb"
+                            aria-label="Checkout progress"
+                        >
+                            <button type="button" x-bind:class="{ 'is-active': checkoutStep === 'cart' }" @click="checkoutStep = 'cart'">Cart</button>
+                            <flux:icon.chevron-right class="size-4" />
+                            <button type="button" x-bind:class="{ 'is-active': checkoutStep === 'tip' }" @click="checkoutStep = 'tip'">Tip</button>
+                            <flux:icon.chevron-right class="size-4" />
+                            <span>Payment</span>
+                        </nav>
+
+                        <div x-show="checkoutStep === 'tip'">
+                            <h2 id="agenda-checkout-title">Select tip</h2>
+                            <p class="agenda-checkout-intro">Select an amount for {{ $appointment->professional?->fullName() ?? 'your professional' }}</p>
+
+                            <div class="agenda-checkout-tips">
+                                <button type="button" x-bind:class="{ 'is-selected': selectedTip === 'none' }" @click="selectedTip = 'none'">
+                                    <strong>No tip</strong>
+                                </button>
+                                <button type="button" x-bind:class="{ 'is-selected': selectedTip === 'ten' }" @click="selectedTip = 'ten'">
+                                    <strong>10%</strong>
+                                    <span x-text="money(percentageAmount({{ (float) $appointment->price }}, 0.10))"></span>
+                                </button>
+                                <button type="button" x-bind:class="{ 'is-selected': selectedTip === 'eighteen' }" @click="selectedTip = 'eighteen'">
+                                    <strong>18%</strong>
+                                    <span x-text="money(percentageAmount({{ (float) $appointment->price }}, 0.18))"></span>
+                                </button>
+                                <button type="button" x-bind:class="{ 'is-selected': selectedTip === 'twentyFive' }" @click="selectedTip = 'twentyFive'">
+                                    <strong>25%</strong>
+                                    <span x-text="money(percentageAmount({{ (float) $appointment->price }}, 0.25))"></span>
+                                </button>
+                                <button type="button" x-bind:class="{ 'is-selected': selectedTip === 'custom' }" @click="openCustomTipModal()">
+                                    <flux:icon.plus-circle class="size-5" />
+                                    <strong>Custom tip</strong>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div x-show="checkoutStep === 'cart'" x-cloak class="agenda-checkout-cart">
+                            <div x-show="cartCatalogView === 'home'">
+                                <h2>Add to cart</h2>
+
+                                <label class="agenda-checkout-search">
+                                    <flux:icon.magnifying-glass class="size-5" />
+                                    <input type="search" x-model="cartSearch" placeholder="Search">
+                                </label>
+
+                                <div class="agenda-checkout-categories">
+                                    <button type="button"><flux:icon.calendar-days class="size-5" /><span>Appointments</span></button>
+                                    <button type="button" @click="openCartCatalog('services')"><flux:icon.scissors class="size-5" /><span>Services</span></button>
+                                    <button type="button" @click="openCartCatalog('products')"><flux:icon.archive-box class="size-5" /><span>Products</span></button>
+                                    <button type="button"><flux:icon.rectangle-stack class="size-5" /><span>Packages</span></button>
+                                    <button type="button"><flux:icon.users class="size-5" /><span>Memberships</span></button>
+                                    <button type="button"><flux:icon.gift class="size-5" /><span>Gift cards</span></button>
+                                </div>
+
+                                <div class="agenda-checkout-quick-sale__heading"><strong>Quick sale</strong><button type="button">Edit</button></div>
+                                <div class="agenda-checkout-quick-sale">
+                                    @foreach ($quickSaleServices as $quickService)
+                                        <button
+                                            type="button"
+                                            x-show="cartSearch === '' || String(@js(mb_strtolower($quickService['name']))).includes(cartSearch.toLowerCase())"
+                                        >
+                                            <strong>{{ $quickService['name'] }}</strong>
+                                            <span>PEN {{ number_format((float) $quickService['price'], 0) }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <section x-show="cartCatalogView === 'services'" x-cloak class="agenda-checkout-catalog-detail">
+                                <header><button type="button" aria-label="Volver" @click="cartCatalogView = 'home'"><flux:icon.arrow-left class="size-5" /></button><h2>Services</h2></header>
+                                <label class="agenda-checkout-search">
+                                    <flux:icon.magnifying-glass class="size-5" />
+                                    <input type="search" x-model="catalogSearch" placeholder="Search">
+                                </label>
+                                <div class="agenda-checkout-catalog-groups">
+                                    @forelse ($checkoutServiceCategories as $categoryName => $categoryServices)
+                                        <button
+                                            type="button"
+                                            x-show="catalogSearch === '' || String(@js(mb_strtolower($categoryName))).includes(catalogSearch.toLowerCase())"
+                                        >
+                                            <span>{{ $categoryName }} <small>{{ $categoryServices->count() }}</small></span>
+                                            <flux:icon.chevron-right class="size-5" />
+                                        </button>
+                                    @empty
+                                        <p>No services available.</p>
+                                    @endforelse
+                                </div>
+                            </section>
+
+                            <section x-show="cartCatalogView === 'products'" x-cloak class="agenda-checkout-catalog-detail">
+                                <header><button type="button" aria-label="Volver" @click="cartCatalogView = 'home'"><flux:icon.arrow-left class="size-5" /></button><h2>Products</h2></header>
+                                <label class="agenda-checkout-search">
+                                    <flux:icon.magnifying-glass class="size-5" />
+                                    <input type="search" x-model="catalogSearch" placeholder="Search">
+                                </label>
+                                <div class="agenda-checkout-catalog-groups">
+                                    @forelse ($checkoutProductCategories as $categoryName => $categoryProducts)
+                                        <button
+                                            type="button"
+                                            x-show="catalogSearch === '' || String(@js(mb_strtolower($categoryName))).includes(catalogSearch.toLowerCase())"
+                                        >
+                                            <span>{{ $categoryName }} <small>{{ $categoryProducts->count() }}</small></span>
+                                            <flux:icon.chevron-right class="size-5" />
+                                        </button>
+                                    @empty
+                                        <p>No products available.</p>
+                                    @endforelse
+                                </div>
+                            </section>
+                        </div>
+                    </main>
+
+                    <aside class="agenda-checkout-summary">
+                        <div class="agenda-checkout-client">
+                            <div>
+                                <strong>{{ $appointment->client->fullName() }}</strong>
+                                <span>{{ $appointment->client->email ?: 'Leave empty for walk-ins' }}</span>
+                            </div>
+                            <span class="agenda-checkout-client__icon"><flux:icon.user-plus class="size-6" /></span>
+                        </div>
+
+                        <article class="agenda-checkout-service">
+                            <div>
+                                <strong>{{ $appointment->service->name }}</strong>
+                                <span>{{ $this->serviceDurationLabel($appointment->duration_minutes) }} · {{ $appointment->professional?->fullName() ?? 'Cualquier miembro del equipo' }}</span>
+                            </div>
+                            <strong>PEN {{ number_format((float) $appointment->price, 0) }}</strong>
+                        </article>
+
+                        <button type="button" class="agenda-checkout-add" @click="checkoutStep = 'cart'"><flux:icon.shopping-cart class="size-4" /> Add to cart</button>
+
+                        <footer class="agenda-checkout-summary__footer">
+                            <div><span>Total</span><span x-text="money(checkoutTotal({{ (float) $appointment->price }}))"></span></div>
+                            <div><strong>To pay <flux:icon.chevron-right class="size-4" /></strong><strong x-text="money(checkoutTotal({{ (float) $appointment->price }}))"></strong></div>
+                            <div class="agenda-checkout-footer-actions">
+                                <button type="button" class="agenda-detail-more" aria-label="Más opciones"><flux:icon.ellipsis-vertical class="size-5" /></button>
+                                <button type="button" wire:click="checkoutSelectedAppointment">Continue to payment</button>
+                            </div>
+                        </footer>
+                    </aside>
+                </section>
+
+                <div x-show="customTipModalOpen" x-cloak class="agenda-custom-tip-modal" role="dialog" aria-modal="true" aria-labelledby="agenda-custom-tip-title">
+                    <button type="button" class="agenda-custom-tip-modal__backdrop" aria-label="Cerrar propina personalizada" @click="customTipModalOpen = false"></button>
+
+                    <section class="agenda-custom-tip-modal__dialog">
+                        <header>
+                            <h3 id="agenda-custom-tip-title">Add a tip</h3>
+                            <button type="button" aria-label="Cerrar" @click="customTipModalOpen = false">
+                                <flux:icon.x-mark class="size-5" />
+                            </button>
+                        </header>
+
+                        <div class="agenda-custom-tip-display">
+                            <template x-if="customTipMode === 'amount'">
+                                <div><span>PEN</span><strong x-text="customTipInput"></strong></div>
+                            </template>
+                            <template x-if="customTipMode === 'percent'">
+                                <div><strong x-text="customTipInput"></strong><span>%</span></div>
+                            </template>
+                        </div>
+
+                        <div class="agenda-custom-tip-mode" role="group" aria-label="Tipo de propina">
+                            <button type="button" x-bind:class="{ 'is-selected': customTipMode === 'amount' }" @click="customTipMode = 'amount'"><flux:icon.circle-stack class="size-4" /></button>
+                            <button type="button" x-bind:class="{ 'is-selected': customTipMode === 'percent' }" @click="customTipMode = 'percent'">%</button>
+                        </div>
+
+                        <div class="agenda-custom-tip-keypad">
+                            <button type="button" @click="appendCustomTip('1')">1</button>
+                            <button type="button" @click="appendCustomTip('2')">2</button>
+                            <button type="button" @click="appendCustomTip('3')">3</button>
+                            <button type="button" @click="appendCustomTip('4')">4</button>
+                            <button type="button" @click="appendCustomTip('5')">5</button>
+                            <button type="button" @click="appendCustomTip('6')">6</button>
+                            <button type="button" @click="appendCustomTip('7')">7</button>
+                            <button type="button" @click="appendCustomTip('8')">8</button>
+                            <button type="button" @click="appendCustomTip('9')">9</button>
+                            <button type="button" @click="appendCustomTip('.')">.</button>
+                            <button type="button" @click="appendCustomTip('0')">0</button>
+                            <button type="button" aria-label="Borrar último dígito" @click="deleteCustomTipDigit()"><flux:icon.backspace class="size-5" /></button>
+                        </div>
+
+                        <footer>
+                            <strong x-text="customTipPercentageLabel({{ (float) $appointment->price }})"></strong>
+                            <button type="button" x-bind:disabled="Number(customTipInput) <= 0" @click="confirmCustomTip()">Add</button>
+                        </footer>
+                    </section>
+                </div>
+            </div>
         </div>
     @endif
 

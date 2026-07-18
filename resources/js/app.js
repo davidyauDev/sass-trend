@@ -273,6 +273,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('agendaAppointmentPreview', (config = {}) => ({
         preview: null,
         appointmentOpening: false,
+        detailOpening: false,
         appointmentClosing: false,
         appointmentOpeningTransition: false,
         appointmentPanelIsReady: Boolean(config.panelReady),
@@ -293,7 +294,8 @@ document.addEventListener('alpine:init', () => {
 
             const target = event.currentTarget.getBoundingClientRect();
             const cardWidth = 376;
-            const cardHeight = ['completed', 'arrived'].includes(data.status) ? 290 : 245;
+            const baseCardHeight = ['completed', 'arrived'].includes(data.status) ? 290 : 245;
+            const cardHeight = baseCardHeight + (data.note ? 64 : 0);
             const gutter = 12;
             const fitsLeft = target.left >= cardWidth + gutter;
 
@@ -383,6 +385,22 @@ document.addEventListener('alpine:init', () => {
                 this.appointmentOpening = false;
             }
         },
+        async openAppointmentDetail(action) {
+            if (this.detailOpening) {
+                return;
+            }
+
+            this.detailOpening = true;
+            this.hideAppointmentPreview();
+
+            try {
+                await action();
+            } finally {
+                window.setTimeout(() => {
+                    this.detailOpening = false;
+                }, 300);
+            }
+        },
         appointmentPanelReady() {
             this.appointmentPanelIsReady = true;
         },
@@ -418,7 +436,7 @@ document.addEventListener('alpine:init', () => {
             this.appointmentOpeningTransition = true;
             window.setTimeout(() => {
                 this.appointmentOpeningTransition = false;
-            }, 500);
+            }, 300);
         },
         appointmentPanelClosed() {
             this.appointmentDirty = false;

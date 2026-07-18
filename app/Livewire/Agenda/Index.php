@@ -16,6 +16,7 @@ use App\Models\AppointmentPayment;
 use App\Models\AppointmentStatus;
 use App\Models\Branch;
 use App\Models\Client;
+use App\Models\Product;
 use App\Models\Resource;
 use App\Models\ScheduleBlock;
 use App\Models\Service;
@@ -618,12 +619,18 @@ class Index extends Component
     {
         $appointment = $this->selectedAppointment();
 
-        if ($appointment === null || trim($this->noteDraft) === '') {
+        if ($appointment === null) {
             return;
         }
 
-        $addAppointmentNote->handle($this->authUser(), $appointment, $this->noteDraft, true);
+        $validated = $this->validate([
+            'noteDraft' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $addAppointmentNote->handle($this->authUser(), $appointment, trim($validated['noteDraft']), true);
         $this->noteDraft = '';
+        unset($this->selectedAppointment, $this->appointments);
+        $this->dispatch('appointment-note-added');
         Flux::toast(variant: 'success', text: 'Nota agregada al historial.');
     }
 
@@ -860,6 +867,7 @@ class Index extends Component
                 default => 'Reservado',
             },
             'serviceCount' => 1,
+            'note' => $appointment->latestNote?->note ?? '',
         ];
     }
 
@@ -947,6 +955,27 @@ class Index extends Component
                     )),
             )
             ->values();
+    }
+
+    /**
+     * @return SupportCollection<int, array{id: int, name: string, price: float, stock: float, category_name: string}>
+     */
+    #[Computed]
+    public function checkoutProductsCatalog(): SupportCollection
+    {
+        return Product::query()
+            ->with('category')
+            ->where('is_active', true)
+            ->orderBy('category_id')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Product $product): array => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'price' => (float) $product->public_sale_price,
+                'stock' => (float) $product->current_stock,
+                'category_name' => $product->category?->name ?? 'Otros',
+            ]);
     }
 
     /**
@@ -1068,7 +1097,7 @@ class Index extends Component
         [$start, $end] = $this->rangeBounds();
 
         return Appointment::query()
-            ->with(['branch', 'client', 'service', 'professional', 'status', 'payments'])
+            ->with(['branch', 'client', 'service', 'professional', 'status', 'payments', 'latestNote'])
             ->whereHas('status', fn (Builder $query): Builder => $query->where('slug', '!=', AppointmentStatusCatalog::CANCELLED))
             ->search($this->search)
             ->when($this->branchFilterId !== null, fn (Builder $query): Builder => $query->where('branch_id', $this->branchFilterId))
@@ -1262,7 +1291,7 @@ class Index extends Component
         }
 
         return Appointment::query()
-            ->with(['branch', 'client', 'service', 'resource', 'professional', 'status', 'payments', 'notes.user', 'histories.user'])
+            ->with(['client', 'service', 'professional', 'status', 'payments', 'latestNote'])
             ->find($this->selectedAppointmentId);
     }
 

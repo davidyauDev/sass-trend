@@ -2,6 +2,7 @@
 
 use App\Livewire\Agenda\Index as AgendaIndex;
 use App\Models\Appointment;
+use App\Models\AppointmentNote;
 use App\Models\Branch;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -56,6 +57,15 @@ test('guarda una cita corta para un cliente sin cita previa', function (): void 
         ->and($appointment->starts_at->format('Y-m-d H:i'))->toBe('2026-07-15 13:15')
         ->and($appointment->client->fullName())->toBe('Cliente sin cita previa')
         ->and($appointment->status->slug)->toBe(AppointmentStatusCatalog::PENDING);
+
+    $component
+        ->set('noteDraft', 'Cliente solicita atención especial.')
+        ->call('addNote')
+        ->assertHasNoErrors()
+        ->assertSet('noteDraft', '')
+        ->assertSee('Cliente solicita atención especial.');
+
+    expect(AppointmentNote::query()->sole()->note)->toBe('Cliente solicita atención especial.');
 
     $component
         ->call('openCancellationConfirmation')
