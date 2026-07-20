@@ -14,8 +14,11 @@ use App\Models\ServiceCategory;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WebsiteSetting;
+use App\Services\Website\PublicBookingAvailabilityService;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -259,6 +262,30 @@ test('la reserva publica excluye horarios dentro de descansos del profesional', 
     ]);
     $service->professionalProfiles()->sync([$professional->id]);
     $professionalUser->services()->sync([$service->id]);
+
+    $availabilityQueries = [
+        'appointments' => 0,
+        'schedule_blocks' => 0,
+    ];
+
+    DB::listen(function (QueryExecuted $query) use (&$availabilityQueries): void {
+        foreach (array_keys($availabilityQueries) as $table) {
+            if (preg_match('/from ["`]?'.preg_quote($table, '/').'["`]?/i', $query->sql) === 1) {
+                $availabilityQueries[$table]++;
+            }
+        }
+    });
+
+    app(PublicBookingAvailabilityService::class)->availableSlots(
+        $location->load('schedules'),
+        $service,
+        $professional->load('schedules.breaks'),
+        CarbonImmutable::now()->startOfDay(),
+    );
+
+    expect($availabilityQueries)
+        ->appointments->toBe(1)
+        ->schedule_blocks->toBe(1);
 
     $component = Livewire::test(Booking::class)
         ->set('location_id', $location->id)

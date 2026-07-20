@@ -70,10 +70,20 @@ final class PublicBookingAvailabilityService
         }
 
         $durationMinutes = max(15, (int) $service->duration_minutes);
+        $availableSlots = $this->availability->searchSlotsBetween(
+            $windowStartsAt,
+            $windowEndsAt,
+            $durationMinutes,
+            $location->branch_id,
+            $professional->user_id,
+            null,
+            $stepMinutes,
+        );
         $slots = [];
 
-        for ($cursor = $windowStartsAt; $cursor->addMinutes($durationMinutes)->lessThanOrEqualTo($windowEndsAt); $cursor = $cursor->addMinutes($stepMinutes)) {
-            $slotEnd = $cursor->addMinutes($durationMinutes);
+        foreach ($availableSlots as $availableSlot) {
+            $cursor = CarbonImmutable::parse($availableSlot['starts_at']);
+            $slotEnd = CarbonImmutable::parse($availableSlot['ends_at']);
 
             $hasBreakConflict = collect($professionalSchedule->breaks)
                 ->contains(fn ($break): bool => $day->setTimeFromTimeString($break->starts_at)->lt($slotEnd)
@@ -83,13 +93,9 @@ final class PublicBookingAvailabilityService
                 continue;
             }
 
-            if ($this->availability->conflicts($cursor, $slotEnd, null, $location->branch_id, $professional->user_id, null)->isNotEmpty()) {
-                continue;
-            }
-
             $slots[] = [
-                'starts_at' => $cursor->toDateTimeString(),
-                'ends_at' => $slotEnd->toDateTimeString(),
+                'starts_at' => $availableSlot['starts_at'],
+                'ends_at' => $availableSlot['ends_at'],
                 'label' => $cursor->format('H:i').' - '.$slotEnd->format('H:i'),
             ];
         }

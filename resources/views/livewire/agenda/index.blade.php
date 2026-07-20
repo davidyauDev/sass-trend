@@ -8,7 +8,7 @@
     @appointment-panel-preloaded.window="appointmentPanelReady()"
     @appointment-panel-opened.window="appointmentPanelOpened()"
     @appointment-panel-closed.window="appointmentPanelClosed()"
-    wire:poll.30s
+    wire:poll.30s="pollAgenda"
     data-testid="agenda-page"
 >
     <header class="agenda-toolbar">
@@ -932,18 +932,24 @@
             $hasArrived = $appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::ARRIVED;
             $isInProgress = $appointment->status->slug === \App\Services\Agenda\AppointmentStatusCatalog::IN_PROGRESS;
             $displayNote = $appointment->latestNote?->note ?? $appointment->getAttribute('notes');
-            $quickSaleServices = $this->servicesCatalog
-                ->reject(fn (array $service): bool => $service['id'] === $appointment->service_id)
-                ->prepend([
-                    'id' => $appointment->service_id,
-                    'name' => $appointment->service->name,
-                    'duration_minutes' => $appointment->duration_minutes,
-                    'price' => (float) $appointment->price,
-                    'category_name' => 'Servicios',
-                ])
-                ->take(3);
-            $checkoutServiceCategories = $this->servicesCatalog->groupBy('category_name');
-            $checkoutProductCategories = $this->checkoutProductsCatalog->groupBy('category_name');
+            $quickSaleServices = collect();
+            $checkoutServiceCategories = collect();
+            $checkoutProductCategories = collect();
+
+            if ($checkoutCatalogLoaded) {
+                $quickSaleServices = $this->servicesCatalog
+                    ->reject(fn (array $service): bool => $service['id'] === $appointment->service_id)
+                    ->prepend([
+                        'id' => $appointment->service_id,
+                        'name' => $appointment->service->name,
+                        'duration_minutes' => $appointment->duration_minutes,
+                        'price' => (float) $appointment->price,
+                        'category_name' => 'Servicios',
+                    ])
+                    ->take(3);
+                $checkoutServiceCategories = $this->servicesCatalog->groupBy('category_name');
+                $checkoutProductCategories = $this->checkoutProductsCatalog->groupBy('category_name');
+            }
             $statusLabels = [
                 \App\Services\Agenda\AppointmentStatusCatalog::PENDING => 'Reservada',
                 \App\Services\Agenda\AppointmentStatusCatalog::CONFIRMED => 'Confirmada',
@@ -964,6 +970,7 @@
                 quickActionsOpen: false,
                 noteModalOpen: false,
                 checkoutPanelOpen: false,
+                checkoutCatalogLoaded: @js($checkoutCatalogLoaded),
                 checkoutClosing: false,
                 customTipModalOpen: false,
                 cashModalOpen: false,
@@ -983,7 +990,7 @@
                 cartSearch: '',
                 catalogSearch: '',
                 closing: false,
-                openCheckoutPanel() {
+                async openCheckoutPanel() {
                     this.selectedTip = 'none';
                     this.checkoutCartItems = [];
                     this.editItemModalOpen = false;
@@ -998,6 +1005,11 @@
                     this.catalogSearch = '';
                     this.checkoutClosing = false;
                     this.checkoutPanelOpen = true;
+
+                    if (! this.checkoutCatalogLoaded) {
+                        await this.$wire.loadCheckoutCatalog();
+                        this.checkoutCatalogLoaded = true;
+                    }
                 },
                 openCartCatalog(catalog) {
                     this.catalogSearch = '';
@@ -1385,15 +1397,14 @@
                 </form>
             </div>
 
-            <div
-                x-show="checkoutPanelOpen"
-                x-cloak
-                class="agenda-checkout-overlay"
-                x-bind:class="{ 'is-closing': checkoutClosing }"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="agenda-checkout-title"
-            >
+            <template x-if="checkoutPanelOpen">
+                <div
+                    class="agenda-checkout-overlay"
+                    x-bind:class="{ 'is-closing': checkoutClosing }"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="agenda-checkout-title"
+                >
                 <button type="button" class="agenda-checkout-backdrop" aria-label="Cerrar checkout" @click="closeCheckoutPanel()"></button>
 
                 <aside class="agenda-checkout-rail">
@@ -1731,7 +1742,8 @@
                         </footer>
                     </section>
                 </div>
-            </div>
+                </div>
+            </template>
         </div>
     @endif
 
@@ -1898,9 +1910,9 @@
             x-show="appointmentVisible"
             x-cloak
             wire:key="appointment-panel-persistent"
-            @keydown.escape.window="appointmentExitConfirmationOpen
+            @keydown.escape.window="appointmentVisible && (appointmentExitConfirmationOpen
                 ? cancelAppointmentExit()
-                : requestAppointmentClose(() => $wire.closeModal())"
+                : requestAppointmentClose(() => $wire.closeModal()))"
         >
             <button type="button" class="agenda-appointment-backdrop" aria-label="Cerrar panel de cita" @click="requestAppointmentClose(() => $wire.closeModal())"></button>
 
@@ -1938,17 +1950,33 @@
                         class="agenda-appointment-stage"
                         wire:key="appointment-stage-{{ $appointmentStep }}"
                         wire:loading.class="is-changing"
-                        wire:target="showServiceStep,showServicesSummary,continueToAppointmentTime,selectAppointmentDate,selectAppointmentSlot,continueToAppointmentDetails,showAppointmentTime"
+                        wire:target="showServiceStep,showServicesSummary,continueToAppointmentTime,selectAppointmentDate,continueToAppointmentDetails,showAppointmentTime"
                     >
                         @if ($appointmentStep === 'picker')
-                        <div class="agenda-service-step">
+                        @php
+                            $serviceSearchTerms = $this->servicesCatalog
+                                ->map(fn (array $service): string => mb_strtolower($service['name'].' '.$service['category_name']))
+                                ->values();
+                        @endphp
+                        <div
+                            class="agenda-service-step"
+                            x-data="{
+                                serviceSearch: '',
+                                matches(value) {
+                                    return this.serviceSearch === '' || String(value).includes(this.serviceSearch.toLowerCase());
+                                },
+                                hasMatches() {
+                                    return @js($serviceSearchTerms)->some((value) => this.matches(value));
+                                },
+                            }"
+                        >
                             <h2>Seleccione un servicio</h2>
 
                             <label class="agenda-service-search">
                                 <flux:icon.magnifying-glass class="size-5" />
                                 <input
                                     type="search"
-                                    wire:model.live.debounce.250ms="serviceSearch"
+                                    x-model.debounce.100ms="serviceSearch"
                                     placeholder="Buscar por nombre del servicio"
                                     aria-label="Buscar por nombre del servicio"
                                     autofocus
@@ -1957,7 +1985,11 @@
 
                             <div class="agenda-service-groups">
                                 @forelse ($this->servicesCatalog->groupBy(fn (array $service): string => $service['category_name']) as $category => $services)
-                                    <section class="agenda-service-group" wire:key="service-category-{{ md5($category) }}">
+                                    <section
+                                        class="agenda-service-group"
+                                        wire:key="service-category-{{ md5($category) }}"
+                                        x-show="matches(@js(mb_strtolower($category.' '.$services->pluck('name')->implode(' '))))"
+                                    >
                                         <h3>
                                             {{ $category }}
                                             <span>{{ $services->count() }}</span>
@@ -1968,6 +2000,7 @@
                                                 <button
                                                     type="button"
                                                     wire:key="appointment-service-{{ $service['id'] }}"
+                                                    x-show="matches(@js(mb_strtolower($service['name'].' '.$service['category_name'])))"
                                                     @click="selectAppointmentService(
                                                         {{ $service['id'] }},
                                                         () => $wire.selectAppointmentService({{ $service['id'] }})
@@ -1985,10 +2018,13 @@
                                         </div>
                                     </section>
                                 @empty
-                                    <div class="agenda-service-empty">
-                                        No encontramos servicios con “{{ $serviceSearch }}”.
-                                    </div>
+                                    <div class="agenda-service-empty">No hay servicios disponibles.</div>
                                 @endforelse
+                                @if ($this->servicesCatalog->isNotEmpty())
+                                    <div class="agenda-service-empty" x-show="! hasMatches()" x-cloak>
+                                        No encontramos servicios con “<span x-text="serviceSearch"></span>”.
+                                    </div>
+                                @endif
                             </div>
                         </div>
                         @elseif ($appointmentStep === 'services')
@@ -2101,7 +2137,14 @@
                             </div>
                         </div>
                     @elseif ($appointmentStep === 'time')
-                        <div class="agenda-wizard-stage agenda-time-stage">
+                        <div
+                            class="agenda-wizard-stage agenda-time-stage"
+                            wire:key="appointment-time-selection-{{ $appointmentTimeDate }}"
+                            x-data="{
+                                selectedSlotStart: $wire.entangle('selectedSlotStart'),
+                                selectedSlotEnd: $wire.entangle('selectedSlotEnd'),
+                            }"
+                        >
                             <nav class="agenda-wizard-breadcrumb" aria-label="Progreso de la cita">
                                 <button type="button" wire:click="showServicesSummary">Servicios</button>
                                 <flux:icon.chevron-right class="size-4" />
@@ -2160,8 +2203,8 @@
                                     <button
                                         type="button"
                                         wire:key="appointment-slot-{{ md5($slot['starts_at']) }}"
-                                        wire:click="selectAppointmentSlot('{{ $slot['starts_at'] }}', '{{ $slot['ends_at'] }}')"
-                                        @class(['is-selected' => $selectedSlotStart === $slot['starts_at']])
+                                        @click="selectedSlotStart = @js($slot['starts_at']); selectedSlotEnd = @js($slot['ends_at'])"
+                                        x-bind:class="{ 'is-selected': selectedSlotStart === @js($slot['starts_at']) }"
                                     >
                                         {{ $slot['label'] }}
                                     </button>
@@ -2180,7 +2223,7 @@
                                 <button
                                     type="button"
                                     wire:click="continueToAppointmentDetails"
-                                    @disabled($selectedSlotStart === '')
+                                    x-bind:disabled="selectedSlotStart === ''"
                                 >
                                     Continuar
                                 </button>

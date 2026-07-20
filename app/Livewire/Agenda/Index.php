@@ -36,6 +36,12 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
+/**
+ * @property-read SupportCollection<int, Appointment> $appointments
+ * @property-read SupportCollection<int, User> $professionalsCatalog
+ * @property-read Appointment|null $selectedAppointment
+ * @property-read SupportCollection<int, Service> $selectedServices
+ */
 #[Title('Agenda')]
 class Index extends Component
 {
@@ -93,6 +99,8 @@ class Index extends Component
     public string $selectedSlotEnd = '';
 
     public ?int $selectedAppointmentId = null;
+
+    public bool $checkoutCatalogLoaded = false;
 
     public string $noteDraft = '';
 
@@ -212,6 +220,13 @@ class Index extends Component
     public function toggleFullscreen(): void
     {
         $this->isFullscreen = ! $this->isFullscreen;
+    }
+
+    public function pollAgenda(): void
+    {
+        if ($this->appointmentPanelOpen || $this->selectedAppointmentId !== null || $this->cancellationPanelOpen) {
+            $this->skipRender();
+        }
     }
 
     public function preloadAppointmentPanel(): void
@@ -380,6 +395,7 @@ class Index extends Component
     public function openDrawer(int $appointmentId): void
     {
         $this->selectedAppointmentId = $appointmentId;
+        $this->checkoutCatalogLoaded = false;
         $this->appointmentPanelOpen = false;
         $this->noteDraft = '';
         $this->statusReason = '';
@@ -418,8 +434,20 @@ class Index extends Component
     public function closeDrawer(): void
     {
         $this->selectedAppointmentId = null;
+        $this->checkoutCatalogLoaded = false;
         $this->noteDraft = '';
         $this->statusReason = '';
+    }
+
+    public function loadCheckoutCatalog(): void
+    {
+        if ($this->selectedAppointmentId === null || $this->checkoutCatalogLoaded) {
+            $this->skipRender();
+
+            return;
+        }
+
+        $this->checkoutCatalogLoaded = true;
     }
 
     public function save(CreateAppointmentAction $createAppointment, UpdateAppointmentAction $updateAppointment): void
@@ -445,7 +473,7 @@ class Index extends Component
             $appointment = null;
             $startsAt = CarbonImmutable::parse($payload['starts_at']);
 
-            foreach ($this->selectedServices() as $service) {
+            foreach ($this->selectedServices as $service) {
                 $endsAt = $startsAt->addMinutes($service->duration_minutes);
                 $appointment = $createAppointment->handle($actor, array_merge($payload, [
                     'service_id' => $service->id,
@@ -537,7 +565,7 @@ class Index extends Component
 
     public function viewSelectedClientProfile(): void
     {
-        $appointment = $this->selectedAppointment();
+        $appointment = $this->selectedAppointment;
 
         if ($appointment === null) {
             return;
@@ -558,7 +586,7 @@ class Index extends Component
 
     public function openCancellationConfirmation(): void
     {
-        $appointment = $this->selectedAppointment();
+        $appointment = $this->selectedAppointment;
 
         if ($appointment === null) {
             return;
@@ -592,7 +620,7 @@ class Index extends Component
 
     public function rescheduleSelected(RescheduleAppointmentAction $rescheduleAppointment): void
     {
-        $appointment = $this->selectedAppointment();
+        $appointment = $this->selectedAppointment;
 
         if ($appointment === null) {
             return;
@@ -617,7 +645,7 @@ class Index extends Component
 
     public function addNote(AddAppointmentNoteAction $addAppointmentNote): void
     {
-        $appointment = $this->selectedAppointment();
+        $appointment = $this->selectedAppointment;
 
         if ($appointment === null) {
             return;
@@ -797,7 +825,7 @@ class Index extends Component
             return;
         }
 
-        $services = $this->selectedServices();
+        $services = $this->selectedServices;
         $firstService = $services->first();
 
         if (! $firstService instanceof Service) {
@@ -867,7 +895,7 @@ class Index extends Component
                 default => 'Reservado',
             },
             'serviceCount' => 1,
-            'note' => $appointment->latestNote?->note ?? '',
+            'note' => $appointment->latestNote->note ?? '',
         ];
     }
 
@@ -974,7 +1002,7 @@ class Index extends Component
                 'name' => $product->name,
                 'price' => (float) $product->public_sale_price,
                 'stock' => (float) $product->current_stock,
-                'category_name' => $product->category?->name ?? 'Otros',
+                'category_name' => $product->category->name ?? 'Otros',
             ]);
     }
 
@@ -1005,13 +1033,13 @@ class Index extends Component
     #[Computed]
     public function selectedServicesDuration(): int
     {
-        return (int) $this->selectedServices()->sum('duration_minutes');
+        return (int) $this->selectedServices->sum('duration_minutes');
     }
 
     #[Computed]
     public function selectedServicesTotal(): float
     {
-        return (float) $this->selectedServices()->sum(fn (Service $service): float => (float) $service->price);
+        return (float) $this->selectedServices->sum(fn (Service $service): float => (float) $service->price);
     }
 
     /**
@@ -1031,7 +1059,7 @@ class Index extends Component
         $startsAt = CarbonImmutable::parse($this->form->starts_at);
         $summary = [];
 
-        foreach ($this->selectedServices() as $service) {
+        foreach ($this->selectedServices as $service) {
             $endsAt = $startsAt->addMinutes($service->duration_minutes);
             $professionalId = $this->selectedServiceProfessionals[$service->id] ?? null;
             $professional = $professionalId !== null ? $professionals->get($professionalId) : null;
@@ -1119,15 +1147,15 @@ class Index extends Component
     public function dashboardStats(): array
     {
         $today = CarbonImmutable::now()->startOfDay();
-        $todayAppointments = $this->appointments()->filter(fn (Appointment $appointment): bool => $appointment->starts_at->isSameDay($today));
-        $confirmed = $this->appointments()->filter(fn (Appointment $appointment): bool => $appointment->status->slug === AppointmentStatusCatalog::CONFIRMED);
-        $cancelled = $this->appointments()->filter(fn (Appointment $appointment): bool => $appointment->status->slug === AppointmentStatusCatalog::CANCELLED);
+        $todayAppointments = $this->appointments->filter(fn (Appointment $appointment): bool => $appointment->starts_at->isSameDay($today));
+        $confirmed = $this->appointments->filter(fn (Appointment $appointment): bool => $appointment->status->slug === AppointmentStatusCatalog::CONFIRMED);
+        $cancelled = $this->appointments->filter(fn (Appointment $appointment): bool => $appointment->status->slug === AppointmentStatusCatalog::CANCELLED);
         $revenueToday = AppointmentPayment::query()
             ->where('status', 'paid')
             ->whereDate('paid_at', $today)
             ->sum('amount');
         $rangeMinutes = max(1, $this->rangeBounds()[0]->diffInMinutes($this->rangeBounds()[1]));
-        $bookedMinutes = $this->appointments()->sum('duration_minutes');
+        $bookedMinutes = $this->appointments->sum('duration_minutes');
 
         return [
             'appointments_today' => $todayAppointments->count(),
@@ -1145,18 +1173,21 @@ class Index extends Component
     public function rangeDays(): array
     {
         [$start, $end] = $this->rangeBounds();
+        $appointmentsByDate = $this->appointmentsByDate();
+        $blocksByDate = $this->scheduleBlocksByDate($start->startOfDay(), $end->endOfDay());
         $days = [];
 
         for ($cursor = $start->startOfDay(); $cursor->lessThanOrEqualTo($end->startOfDay()); $cursor = $cursor->addDay()) {
+            $dateKey = $cursor->toDateString();
             $days[] = [
                 'date' => $cursor,
-                'key' => $cursor->toDateString(),
+                'key' => $dateKey,
                 'label' => $cursor->translatedFormat('D d M'),
                 'short_label' => $cursor->translatedFormat('D'),
                 'is_today' => $cursor->isToday(),
                 'is_selected' => $cursor->isSameDay(CarbonImmutable::parse($this->selectedDate)),
-                'appointments' => $this->appointments()->filter(fn (Appointment $appointment): bool => $appointment->starts_at->isSameDay($cursor))->values(),
-                'blocks' => $this->scheduleBlocksForDate($cursor),
+                'appointments' => collect($appointmentsByDate[$dateKey] ?? []),
+                'blocks' => $blocksByDate[$dateKey] ?? [],
             ];
         }
 
@@ -1169,7 +1200,7 @@ class Index extends Component
     #[Computed]
     public function scheduleProfessionals(): SupportCollection
     {
-        return $this->professionalsCatalog()
+        return $this->professionalsCatalog
             ->when(
                 $this->professionalFilterIds !== $this->allProfessionalIds(),
                 fn (SupportCollection $professionals): SupportCollection => $professionals
@@ -1238,21 +1269,22 @@ class Index extends Component
         $anchor = $month->startOfWeek(CarbonImmutable::SUNDAY);
         $gridEnd = $month->endOfMonth()->endOfWeek(CarbonImmutable::SATURDAY);
         $selectedDate = CarbonImmutable::parse($this->selectedDate);
+        $appointmentsByDate = $includeEntries ? $this->appointmentsByDate() : [];
+        $blocksByDate = $includeEntries ? $this->scheduleBlocksByDate($anchor, $gridEnd->endOfDay()) : [];
         $grid = [];
 
         for ($cursor = $anchor; $cursor->lessThanOrEqualTo($gridEnd); $cursor = $cursor->addDay()) {
+            $dateKey = $cursor->toDateString();
             $grid[] = [
                 'date' => $cursor,
-                'key' => $cursor->toDateString(),
+                'key' => $dateKey,
                 'day' => $cursor->day,
                 'is_in_month' => $cursor->isSameMonth($month),
                 'is_unavailable' => $cursor->lessThan(CarbonImmutable::now()->startOfWeek(CarbonImmutable::MONDAY)),
                 'is_today' => $cursor->isToday(),
                 'is_selected' => $cursor->isSameDay($selectedDate),
-                'appointments' => $includeEntries
-                    ? $this->appointments()->filter(fn (Appointment $appointment): bool => $appointment->starts_at->isSameDay($cursor))->values()
-                    : collect(),
-                'blocks' => $includeEntries ? $this->scheduleBlocksForDate($cursor) : [],
+                'appointments' => collect($appointmentsByDate[$dateKey] ?? []),
+                'blocks' => $blocksByDate[$dateKey] ?? [],
             ];
         }
 
@@ -1266,17 +1298,19 @@ class Index extends Component
     public function miniCalendar(): array
     {
         $anchor = CarbonImmutable::parse($this->selectedDate)->startOfMonth()->startOfWeek(CarbonImmutable::MONDAY);
+        $appointmentsByDate = $this->appointmentsByDate();
         $grid = [];
 
         for ($cursor = $anchor; count($grid) < 42; $cursor = $cursor->addDay()) {
+            $dateKey = $cursor->toDateString();
             $grid[] = [
                 'date' => $cursor,
-                'key' => $cursor->toDateString(),
+                'key' => $dateKey,
                 'day' => $cursor->day,
                 'is_in_month' => $cursor->month === CarbonImmutable::parse($this->selectedDate)->month,
                 'is_today' => $cursor->isToday(),
                 'is_selected' => $cursor->isSameDay(CarbonImmutable::parse($this->selectedDate)),
-                'count' => $this->appointments()->filter(fn (Appointment $appointment): bool => $appointment->starts_at->isSameDay($cursor))->count(),
+                'count' => count($appointmentsByDate[$dateKey] ?? []),
             ];
         }
 
@@ -1304,7 +1338,7 @@ class Index extends Component
     #[Computed]
     public function timelineEntries(): SupportCollection
     {
-        $appointment = $this->selectedAppointment();
+        $appointment = $this->selectedAppointment;
 
         if ($appointment === null) {
             return collect();
@@ -1333,7 +1367,7 @@ class Index extends Component
             return;
         }
 
-        $services = $this->selectedServices();
+        $services = $this->selectedServices;
         $firstService = $services->first();
 
         if (! $firstService instanceof Service) {
@@ -1380,7 +1414,7 @@ class Index extends Component
 
     private function applyStatusToSelected(string $statusSlug, ChangeAppointmentStatusAction $changeStatus, ?string $reason = null): void
     {
-        $appointment = $this->selectedAppointment();
+        $appointment = $this->selectedAppointment;
 
         if ($appointment === null) {
             return;
@@ -1424,7 +1458,7 @@ class Index extends Component
      */
     private function allProfessionalIds(): array
     {
-        return array_values($this->professionalsCatalog()
+        return array_values($this->professionalsCatalog
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
             ->all());
@@ -1438,25 +1472,43 @@ class Index extends Component
     }
 
     /**
-     * @return array<int, array{id: int, label: string, reason: string, starts_at: CarbonImmutable, ends_at: CarbonImmutable, resource: string|null}>
+     * @return array<string, list<Appointment>>
      */
-    private function scheduleBlocksForDate(CarbonImmutable $date): array
+    private function appointmentsByDate(): array
     {
-        return ScheduleBlock::query()
-            ->with(['branch', 'resource'])
-            ->whereDate('starts_at', $date->toDateString())
+        $appointmentsByDate = [];
+
+        foreach ($this->appointments as $appointment) {
+            $appointmentsByDate[$appointment->starts_at->toDateString()][] = $appointment;
+        }
+
+        return $appointmentsByDate;
+    }
+
+    /**
+     * @return array<string, list<array{id: int, label: string, reason: string, starts_at: CarbonImmutable, ends_at: CarbonImmutable, resource: string|null}>>
+     */
+    private function scheduleBlocksByDate(CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        $blocksByDate = [];
+        $blocks = ScheduleBlock::query()
+            ->with('resource')
+            ->whereBetween('starts_at', [$start->toDateTimeString(), $end->toDateTimeString()])
             ->when($this->branchFilterId !== null, fn (Builder $query): Builder => $query->where('branch_id', $this->branchFilterId))
-            ->get()
-            ->map(fn (ScheduleBlock $block): array => [
+            ->get();
+
+        foreach ($blocks as $block) {
+            $blocksByDate[$block->starts_at->toDateString()][] = [
                 'id' => $block->id,
                 'label' => $block->block_type,
                 'reason' => $block->reason ?? '',
                 'starts_at' => $block->starts_at,
                 'ends_at' => $block->ends_at,
                 'resource' => $block->resource?->name,
-            ])
-            ->values()
-            ->all();
+            ];
+        }
+
+        return $blocksByDate;
     }
 
     /**
@@ -1539,7 +1591,7 @@ class Index extends Component
             return;
         }
 
-        $this->appointmentServiceOptions = Service::query()
+        $this->appointmentServiceOptions = array_values(Service::query()
             ->with('category')
             ->where('is_active', true)
             ->orderBy('service_category_id')
@@ -1550,10 +1602,10 @@ class Index extends Component
                 'name' => $service->name,
                 'duration_minutes' => $service->duration_minutes,
                 'price' => (float) $service->price,
-                'category_name' => $service->category?->name ?? 'Otros',
+                'category_name' => $service->category->name ?? 'Otros',
             ])
             ->values()
-            ->all();
+            ->all());
         $this->appointmentServicesLoaded = true;
     }
 

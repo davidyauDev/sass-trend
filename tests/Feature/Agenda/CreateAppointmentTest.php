@@ -4,13 +4,16 @@ use App\Livewire\Agenda\Index as AgendaIndex;
 use App\Models\Appointment;
 use App\Models\AppointmentNote;
 use App\Models\Branch;
+use App\Models\Product;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\User;
 use App\Services\Agenda\AppointmentStatusCatalog;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -151,6 +154,114 @@ test('precarga los servicios y conserva el panel listo entre aperturas', functio
         ->assertSet('appointmentPanelOpen', false)
         ->call('openCreateModal')
         ->assertSee('Corte clásico');
+});
+
+test('selecciona un servicio sin consultar el calendario por cada dia del mes', function (): void {
+    $this->seed([PermissionSeeder::class, RoleSeeder::class]);
+
+    $user = User::factory()->administratorGeneral()->create();
+    actingAs($user);
+
+    $category = ServiceCategory::factory()->create();
+    $service = Service::factory()->create([
+        'service_category_id' => $category->id,
+        'is_active' => true,
+    ]);
+    $component = Livewire::test(AgendaIndex::class)
+        ->call('preloadAppointmentPanel')
+        ->call('openCreateModal');
+    $calendarQueries = [
+        'appointments' => 0,
+        'schedule_blocks' => 0,
+    ];
+
+    DB::listen(function (QueryExecuted $query) use (&$calendarQueries): void {
+        foreach (array_keys($calendarQueries) as $table) {
+            if (preg_match('/from ["`]?'.preg_quote($table, '/').'["`]?/i', $query->sql) === 1) {
+                $calendarQueries[$table]++;
+            }
+        }
+    });
+
+    $component
+        ->call('selectAppointmentService', $service->id)
+        ->assertSet('appointmentStep', 'services');
+
+    expect($calendarQueries)
+        ->appointments->toBe(1)
+        ->schedule_blocks->toBe(1);
+});
+
+test('carga el catalogo de checkout solo cuando se solicita', function (): void {
+    $this->seed([PermissionSeeder::class, RoleSeeder::class]);
+
+    $user = User::factory()->administratorGeneral()->create();
+    actingAs($user);
+
+    $branch = Branch::factory()->create(['is_active' => true]);
+    $category = ServiceCategory::factory()->create();
+    $service = Service::factory()->create([
+        'service_category_id' => $category->id,
+        'is_active' => true,
+    ]);
+    $product = Product::factory()->create(['name' => 'Shampoo profesional']);
+    $component = Livewire::test(AgendaIndex::class)
+        ->set('selectedServiceIds', [$service->id])
+        ->set('selectedServiceProfessionals', [$service->id => null])
+        ->set('form.branch_id', $branch->id)
+        ->set('form.service_id', $service->id)
+        ->set('form.title', $service->name)
+        ->set('form.starts_at', '2026-07-15T13:15')
+        ->set('form.ends_at', '2026-07-15T14:15')
+        ->set('form.duration_minutes', '60')
+        ->set('form.price', '100')
+        ->set('form.currency', 'PEN')
+        ->set('form.status_slug', AppointmentStatusCatalog::PENDING)
+        ->call('save')
+        ->call('closeDrawer');
+    $appointment = Appointment::query()->sole();
+    $productQueries = 0;
+
+    DB::listen(function (QueryExecuted $query) use (&$productQueries): void {
+        if (preg_match('/from ["`]?products["`]?/i', $query->sql) === 1) {
+            $productQueries++;
+        }
+    });
+
+    $component
+        ->call('openDrawer', $appointment->id)
+        ->assertSet('checkoutCatalogLoaded', false)
+        ->assertDontSee($product->name);
+
+    expect($productQueries)->toBe(0);
+
+    $component
+        ->call('loadCheckoutCatalog')
+        ->assertSet('checkoutCatalogLoaded', true)
+        ->assertSee($product->name)
+        ->call('loadCheckoutCatalog');
+
+    expect($productQueries)->toBe(1);
+});
+
+test('el polling no renderiza la agenda mientras hay un panel abierto', function (): void {
+    $this->seed([PermissionSeeder::class, RoleSeeder::class]);
+
+    $user = User::factory()->administratorGeneral()->create();
+    actingAs($user);
+
+    $component = Livewire::test(AgendaIndex::class)->call('openCreateModal');
+    $calendarQueries = 0;
+
+    DB::listen(function (QueryExecuted $query) use (&$calendarQueries): void {
+        if (preg_match('/from ["`]?(appointments|schedule_blocks)["`]?/i', $query->sql) === 1) {
+            $calendarQueries++;
+        }
+    });
+
+    $component->call('pollAgenda')->assertSet('appointmentPanelOpen', true);
+
+    expect($calendarQueries)->toBe(0);
 });
 
 test('precarga una cita desde un intervalo de quince minutos', function (): void {
