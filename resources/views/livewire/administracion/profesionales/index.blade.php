@@ -370,25 +370,45 @@
                         <div class="grid gap-4">
                             <flux:input wire:model="form.public_name" label="Nombre Público" type="text" placeholder="Nombre Público" />
 
-                            {{-- Los permisos comienzan desactivados por defecto para nuevos profesionales. --}}
-                            {{-- <flux:switch
-                                wire:model.live="form.accepts_online_bookings"
-                                label="Este profesional acepta reservas en línea"
-                                align="left"
-                            /> --}}
+                            <div class="grid gap-4 rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-700 md:grid-cols-2">
+                                <div class="space-y-2">
+                                    <flux:switch
+                                        wire:model.live="form.is_active"
+                                        label="Profesional activo"
+                                        description="Permite que el profesional aparezca operativo en el sistema."
+                                        align="left"
+                                    />
+                                    <flux:badge :color="$form->is_active ? 'emerald' : 'zinc'">
+                                        {{ $form->is_active ? 'Profesional activo' : 'Profesional inactivo' }}
+                                    </flux:badge>
+                                </div>
 
-                            {{-- <div class="space-y-3">
+                                <div class="space-y-2">
+                                    <flux:switch
+                                        wire:model.live="form.accepts_online_bookings"
+                                        label="Acepta reservas online"
+                                        description="Permite seleccionarlo desde el Perfil web. Requiere acceso al sistema."
+                                        align="left"
+                                    />
+                                    <flux:badge :color="$form->accepts_online_bookings ? 'emerald' : 'amber'">
+                                        {{ $form->accepts_online_bookings ? 'Reservas online activadas' : 'Reservas online desactivadas' }}
+                                    </flux:badge>
+                                    @error('form.accepts_online_bookings')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                                </div>
+                            </div>
+
+                            <div class="space-y-3 rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-700">
                                 <flux:switch
                                     wire:model.live="form.has_system_access"
-                                    label="Crear un usuario a este profesional"
-                                    description="Ingresa el email para que el profesional pueda ver su propia agenda."
+                                    label="Acceso al sistema"
+                                    description="Crea o mantiene un usuario para que el profesional pueda gestionar su agenda."
                                     align="left"
                                 />
 
                                 @if ($form->has_system_access)
                                     <flux:input wire:model="form.email" label="Email" type="email" placeholder="Ingresa el email del profesional" />
                                 @endif
-                            </div> --}}
+                            </div>
                         </div>
                     </div>
 
@@ -529,8 +549,9 @@
                         </flux:button>
                     </flux:modal.close>
 
-                    <flux:button type="submit" variant="primary">
-                        Guardar
+                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled" wire:target="save">
+                        <span wire:loading.remove wire:target="save">Guardar</span>
+                        <span wire:loading wire:target="save">Guardando...</span>
                     </flux:button>
                 </div>
             </form>

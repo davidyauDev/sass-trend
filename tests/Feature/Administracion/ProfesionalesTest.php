@@ -120,6 +120,34 @@ test('valida acceso y reserva online del profesional', function () {
         ]);
 });
 
+test('puede activar reservas online al editar un profesional', function () {
+    actingAs(createProfessionalAdmin());
+
+    Location::factory()->create(['is_active' => true]);
+    $user = User::factory()->create([
+        'email' => 'profesional.web@test.pe',
+        'is_active' => true,
+    ]);
+    $professional = Professional::factory()->create([
+        'user_id' => $user->id,
+        'email' => 'profesional.web@test.pe',
+        'has_system_access' => true,
+        'accepts_online_bookings' => false,
+        'is_active' => true,
+    ]);
+
+    Livewire::test(ProfessionalsIndex::class)
+        ->call('openEditModal', $professional->id)
+        ->assertSee('Acepta reservas online')
+        ->assertSee('Acceso al sistema')
+        ->assertSee('Profesional activo')
+        ->set('form.accepts_online_bookings', true)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($professional->fresh()->accepts_online_bookings)->toBeTrue();
+});
+
 test('puede guardar un profesional con horarios existentes de mysql', function () {
     actingAs(createProfessionalAdmin());
 
