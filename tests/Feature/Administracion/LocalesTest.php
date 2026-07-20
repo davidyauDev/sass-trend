@@ -1,9 +1,12 @@
 <?php
 
+use App\Actions\Locations\SaveLocationSchedulesAction;
 use App\Livewire\Administracion\Locales\Index as LocationsIndex;
 use App\Models\Location;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -114,6 +117,59 @@ test('puede guardar horarios', function () {
         'opens_at' => '10:00',
         'closes_at' => '14:00',
     ]);
+});
+
+test('actualiza horarios antiguos sin duplicar la clave unica', function () {
+    $tenant = Tenant::query()->create([
+        'name' => 'Trend Horarios',
+        'slug' => 'trend-horarios',
+        'owner_name' => 'Owner',
+        'owner_email' => 'owner-horarios@trend.pe',
+        'plan' => Tenant::PLAN_BASIC,
+        'status' => Tenant::STATUS_ACTIVE,
+    ]);
+
+    tenancy()->initialize($tenant);
+
+    try {
+        $location = Location::factory()->create();
+        $timestamp = now();
+
+        DB::table('location_schedules')->insert([
+            'tenant_id' => null,
+            'location_id' => $location->id,
+            'day_of_week' => 1,
+            'is_open' => false,
+            'opens_at' => null,
+            'closes_at' => null,
+            'created_at' => $timestamp,
+            'updated_at' => $timestamp,
+        ]);
+
+        $schedules = collect(range(1, 7))
+            ->map(fn (int $day): array => [
+                'day_of_week' => $day,
+                'is_open' => $day === 1,
+                'opens_at' => $day === 1 ? '09:00' : null,
+                'closes_at' => $day === 1 ? '18:00' : null,
+            ])
+            ->all();
+
+        app(SaveLocationSchedulesAction::class)->handle($location, $schedules);
+
+        expect(DB::table('location_schedules')->where('location_id', $location->id)->count())->toBe(7);
+
+        $this->assertDatabaseHas('location_schedules', [
+            'tenant_id' => $tenant->id,
+            'location_id' => $location->id,
+            'day_of_week' => 1,
+            'is_open' => true,
+            'opens_at' => '09:00',
+            'closes_at' => '18:00',
+        ]);
+    } finally {
+        tenancy()->end();
+    }
 });
 
 test('puede activar y desactivar reservas online', function () {

@@ -14,9 +14,11 @@ final class SaveLocationSchedulesAction
     public function handle(Location $location, array $schedules): void
     {
         $timestamp = Carbon::now();
+        $tenantId = $location->getAttribute('tenant_id');
 
         $payload = collect($schedules)
             ->map(fn (array $schedule): array => [
+                'tenant_id' => $tenantId,
                 'location_id' => $location->id,
                 'day_of_week' => (int) $schedule['day_of_week'],
                 'is_open' => (bool) $schedule['is_open'],
@@ -27,10 +29,10 @@ final class SaveLocationSchedulesAction
             ])
             ->all();
 
-        LocationSchedule::query()
-            ->whereBelongsTo($location)
-            ->delete();
-
-        LocationSchedule::query()->insert($payload);
+        LocationSchedule::query()->upsert(
+            $payload,
+            ['location_id', 'day_of_week'],
+            ['tenant_id', 'is_open', 'opens_at', 'closes_at', 'updated_at'],
+        );
     }
 }
