@@ -62,7 +62,7 @@ final class UpdateProfessionalAction
 
             if ($data['has_system_access']) {
                 if ($linkedUser === null) {
-                    $linkedUser = $this->createLinkedUser($professional, (string) $data['email'], $locationIds, $data['is_active']);
+                    $linkedUser = $this->createLinkedUser($professional, (string) $data['email'], $locationIds, $data['is_active'], true);
                     $professional->forceFill(['user_id' => $linkedUser->id])->save();
                 } else {
                     [$firstName, $lastName] = $this->splitName($data['public_name']);
@@ -78,6 +78,10 @@ final class UpdateProfessionalAction
                 }
 
                 $this->assignUserLocations->handle($linkedUser, $locationIds);
+                $linkedUser->services()->sync($data['service_ids']);
+            } elseif ($linkedUser === null && $data['accepts_online_bookings']) {
+                $linkedUser = $this->createLinkedUser($professional, null, $locationIds, false, false);
+                $professional->forceFill(['user_id' => $linkedUser->id])->save();
                 $linkedUser->services()->sync($data['service_ids']);
             } elseif ($linkedUser !== null) {
                 [$firstName, $lastName] = $this->splitName($data['public_name']);
@@ -103,7 +107,7 @@ final class UpdateProfessionalAction
     /**
      * @param  list<int>  $locationIds
      */
-    private function createLinkedUser(Professional $professional, string $email, array $locationIds, bool $isActive): User
+    private function createLinkedUser(Professional $professional, ?string $email, array $locationIds, bool $isActive, bool $hasSystemAccess): User
     {
         [$firstName, $lastName] = $this->splitName($professional->public_name);
 
@@ -111,18 +115,20 @@ final class UpdateProfessionalAction
             'name' => $professional->public_name,
             'first_name' => $firstName,
             'last_name' => $lastName,
-            'email' => $email,
+            'email' => $email ?? "booking-professional-{$professional->id}@internal.invalid",
             'phone' => null,
             'role_id' => $this->professionalRole()->id,
             'password' => Hash::make(Str::password(32)),
-            'is_active' => $isActive,
+            'is_active' => $hasSystemAccess && $isActive,
             'is_primary_admin' => false,
-            'invited_at' => now(),
+            'invited_at' => $hasSystemAccess ? now() : null,
             'invitation_accepted_at' => null,
         ]);
 
         $this->assignUserLocations->handle($user, $locationIds);
-        $this->sendInvitation->handle($user);
+        if ($hasSystemAccess) {
+            $this->sendInvitation->handle($user);
+        }
 
         return $user;
     }

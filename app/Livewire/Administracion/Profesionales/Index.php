@@ -525,12 +525,6 @@ class Index extends Component
             ]);
         }
 
-        if ($payload['accepts_online_bookings'] && ! $payload['has_system_access']) {
-            throw ValidationException::withMessages([
-                'form.accepts_online_bookings' => 'Para aceptar reservas online primero debes crear el usuario del profesional.',
-            ]);
-        }
-
         $linkedUserId = null;
 
         if ($this->form->professionalId !== null) {

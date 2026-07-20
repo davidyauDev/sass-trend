@@ -105,9 +105,15 @@ test('valida acceso y reserva online del profesional', function () {
         ->set('form.has_system_access', false)
         ->set('form.accepts_online_bookings', true)
         ->call('save')
-        ->assertHasErrors([
-            'form.accepts_online_bookings',
-        ]);
+        ->assertHasNoErrors();
+
+    $professional = Professional::query()->where('public_name', 'Sin acceso')->firstOrFail();
+    $technicalUser = User::query()->findOrFail($professional->user_id);
+
+    expect($professional->accepts_online_bookings)->toBeTrue()
+        ->and($professional->has_system_access)->toBeFalse()
+        ->and($technicalUser->is_active)->toBeFalse()
+        ->and($technicalUser->invited_at)->toBeNull();
 
     Livewire::test(ProfessionalsIndex::class)
         ->call('openCreateModal')
@@ -124,14 +130,10 @@ test('puede activar reservas online al editar un profesional', function () {
     actingAs(createProfessionalAdmin());
 
     Location::factory()->create(['is_active' => true]);
-    $user = User::factory()->create([
-        'email' => 'profesional.web@test.pe',
-        'is_active' => true,
-    ]);
     $professional = Professional::factory()->create([
-        'user_id' => $user->id,
-        'email' => 'profesional.web@test.pe',
-        'has_system_access' => true,
+        'user_id' => null,
+        'email' => null,
+        'has_system_access' => false,
         'accepts_online_bookings' => false,
         'is_active' => true,
     ]);
@@ -145,7 +147,13 @@ test('puede activar reservas online al editar un profesional', function () {
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($professional->fresh()->accepts_online_bookings)->toBeTrue();
+    $professional->refresh();
+    $technicalUser = User::query()->findOrFail($professional->user_id);
+
+    expect($professional->accepts_online_bookings)->toBeTrue()
+        ->and($professional->has_system_access)->toBeFalse()
+        ->and($technicalUser->is_active)->toBeFalse()
+        ->and($technicalUser->invited_at)->toBeNull();
 });
 
 test('puede guardar un profesional con horarios existentes de mysql', function () {

@@ -343,7 +343,6 @@ class Booking extends Component
                 $query
                     ->where('is_active', true)
                     ->where('accepts_online_bookings', true)
-                    ->where('has_system_access', true)
                     ->whereNotNull('user_id')
                     ->whereHas('locations', fn (Builder $locationQuery): Builder => $locationQuery->whereKey($this->location_id));
             })
@@ -365,7 +364,6 @@ class Booking extends Component
             ->with(['locations', 'user'])
             ->where('is_active', true)
             ->where('accepts_online_bookings', true)
-            ->where('has_system_access', true)
             ->whereNotNull('user_id')
             ->whereHas('locations', fn (Builder $query): Builder => $query->whereKey($this->location_id))
             ->whereHas('services', fn (Builder $query): Builder => $query->whereKey($this->service_id))

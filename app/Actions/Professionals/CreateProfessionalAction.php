@@ -49,8 +49,14 @@ final class CreateProfessionalAction
             $professional->locations()->sync($locationIds);
             $professional->services()->sync($data['service_ids']);
 
-            if ($data['has_system_access']) {
-                $user = $this->createLinkedUser($professional, (string) $data['email'], $locationIds, $data['is_active']);
+            if ($data['has_system_access'] || $data['accepts_online_bookings']) {
+                $user = $this->createLinkedUser(
+                    $professional,
+                    $data['has_system_access'] ? (string) $data['email'] : null,
+                    $locationIds,
+                    $data['is_active'],
+                    $data['has_system_access'],
+                );
                 $professional->forceFill(['user_id' => $user->id])->save();
                 $user->services()->sync($data['service_ids']);
             }
@@ -64,7 +70,7 @@ final class CreateProfessionalAction
     /**
      * @param  list<int>  $locationIds
      */
-    private function createLinkedUser(Professional $professional, string $email, array $locationIds, bool $isActive): User
+    private function createLinkedUser(Professional $professional, ?string $email, array $locationIds, bool $isActive, bool $hasSystemAccess): User
     {
         $role = $this->professionalRole();
         [$firstName, $lastName] = $this->splitName($professional->public_name);
@@ -73,18 +79,20 @@ final class CreateProfessionalAction
             'name' => $professional->public_name,
             'first_name' => $firstName,
             'last_name' => $lastName,
-            'email' => $email,
+            'email' => $email ?? "booking-professional-{$professional->id}@internal.invalid",
             'phone' => null,
             'role_id' => $role->id,
             'password' => Hash::make(Str::password(32)),
-            'is_active' => $isActive,
+            'is_active' => $hasSystemAccess && $isActive,
             'is_primary_admin' => false,
-            'invited_at' => now(),
+            'invited_at' => $hasSystemAccess ? now() : null,
             'invitation_accepted_at' => null,
         ]);
 
         $this->assignUserLocations->handle($user, $locationIds);
-        $this->sendInvitation->handle($user);
+        if ($hasSystemAccess) {
+            $this->sendInvitation->handle($user);
+        }
 
         return $user;
     }

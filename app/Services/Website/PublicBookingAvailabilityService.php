@@ -31,7 +31,6 @@ final class PublicBookingAvailabilityService
             || ! $professional->is_active
             || ! $professional->accepts_online_bookings
             || $professional->user_id === null
-            || ! $professional->user?->is_active
         ) {
             return [];
         }

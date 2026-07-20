@@ -85,7 +85,7 @@ test('una reserva publica crea cliente y cita', function () {
         'last_name' => 'Rojas',
         'name' => 'Camila Rojas',
         'email' => 'camila.booking@test.pe',
-        'is_active' => true,
+        'is_active' => false,
     ]);
     $professionalUser->locations()->sync([$location->id]);
 
@@ -94,7 +94,7 @@ test('una reserva publica crea cliente y cita', function () {
         'public_name' => 'Camila Rojas',
         'email' => 'camila.booking@test.pe',
         'accepts_online_bookings' => true,
-        'has_system_access' => true,
+        'has_system_access' => false,
         'is_active' => true,
     ]);
     $professional->locations()->sync([$location->id]);

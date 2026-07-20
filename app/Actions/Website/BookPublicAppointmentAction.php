@@ -114,9 +114,9 @@ final class BookPublicAppointmentAction
             ]);
         }
 
-        if ($professional->user_id === null || ! $professional->user?->is_active) {
+        if ($professional->user_id === null) {
             throw ValidationException::withMessages([
-                'professional_id' => 'El profesional seleccionado todavía no tiene acceso activo.',
+                'professional_id' => 'El profesional seleccionado todavía no está preparado para recibir citas.',
             ]);
         }
 

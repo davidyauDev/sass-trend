@@ -387,13 +387,12 @@
                                     <flux:switch
                                         wire:model.live="form.accepts_online_bookings"
                                         label="Acepta reservas online"
-                                        description="Permite seleccionarlo desde el Perfil web. Requiere acceso al sistema."
+                                        description="Permite seleccionarlo desde el Perfil web, aunque no tenga acceso al sistema."
                                         align="left"
                                     />
                                     <flux:badge :color="$form->accepts_online_bookings ? 'emerald' : 'amber'">
                                         {{ $form->accepts_online_bookings ? 'Reservas online activadas' : 'Reservas online desactivadas' }}
                                     </flux:badge>
-                                    @error('form.accepts_online_bookings')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
                                 </div>
                             </div>
 
