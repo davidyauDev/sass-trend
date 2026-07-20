@@ -137,11 +137,12 @@ test('una reserva publica crea cliente y cita', function () {
     Livewire::test(Booking::class)
         ->assertSee('Servicios')
         ->assertSee('Limpieza facial')
+        ->assertSee('Faciales')
         ->assertSee('Equipo')
         ->assertSee('Camila Rojas')
         ->call('chooseService', $service->id)
         ->assertSet('service_id', $service->id)
-        ->assertDispatched('open-booking')
+        ->assertDispatched('open-booking', categoryId: $category->id)
         ->call('continueBooking')
         ->assertSet('bookingStep', 2)
         ->call('selectBookingProfessional', $professional->id)
@@ -271,6 +272,8 @@ test('la reserva publica excluye horarios dentro de descansos del profesional', 
         CarbonImmutable::now()->startOfDay()->setTime(12, 0)->toDateTimeString(),
         CarbonImmutable::now()->startOfDay()->setTime(12, 30)->toDateTimeString(),
         CarbonImmutable::now()->startOfDay()->setTime(13, 0)->toDateTimeString(),
+    )->and(collect($slots)->pluck('starts_at'))->toContain(
+        CarbonImmutable::now()->startOfDay()->setTime(9, 15)->toDateTimeString(),
     );
 
     tenancy()->end();

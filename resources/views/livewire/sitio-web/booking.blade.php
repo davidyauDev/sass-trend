@@ -8,6 +8,7 @@
     $serviceCategories = $services->pluck('category')->filter()->unique('id')->values();
     $bookingServices = $this->services;
     $bookingServiceGroups = $bookingServices->groupBy(fn ($service) => $service->category?->name ?? 'Servicios');
+    $bookingServiceCategories = $bookingServices->pluck('category')->filter()->unique('id')->values();
     $selectedBookingService = $services->firstWhere('id', $service_id);
     $selectedBookingProfessional = $this->professionals->firstWhere('id', $professional_id);
     $bookingDates = collect(range(0, 7))->map(fn (int $day) => \Carbon\CarbonImmutable::today()->addDays($day));
@@ -21,8 +22,8 @@
 @endphp
 
 <div
-    x-data="{ bookingOpen: false, galleryOpen: false, activeCategory: 'all', showAllServices: false }"
-    x-on:open-booking.window="bookingOpen = true"
+    x-data="{ bookingOpen: false, galleryOpen: false, activeCategory: 'all', bookingCategory: 'all', showAllServices: false }"
+    x-on:open-booking.window="bookingOpen = true; bookingCategory = $event.detail.categoryId ? String($event.detail.categoryId) : 'all'"
     class="min-h-screen bg-white"
 >
     <header class="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/95 backdrop-blur">
@@ -40,7 +41,7 @@
                 Servicios&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;{{ $location?->address ?? 'Reserva online' }}
             </div>
 
-            <button type="button" x-on:click="bookingOpen = true" class="shrink-0 rounded-full bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">Reservar</button>
+            <button type="button" x-on:click="bookingOpen = true; bookingCategory = 'all'" class="shrink-0 rounded-full bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">Reservar</button>
         </div>
     </header>
 
@@ -206,7 +207,7 @@
             </div>
 
             <aside class="sticky top-24 hidden rounded-[1.25rem] border border-zinc-200 bg-white p-4 shadow-[0_12px_45px_rgba(0,0,0,0.08)] lg:block">
-                <button type="button" x-on:click="bookingOpen = true" class="h-12 w-full rounded-full bg-zinc-950 text-sm font-semibold text-white transition hover:bg-zinc-800">{{ $settings->booking_button_label }}</button>
+                <button type="button" x-on:click="bookingOpen = true; bookingCategory = 'all'" class="h-12 w-full rounded-full bg-zinc-950 text-sm font-semibold text-white transition hover:bg-zinc-800">{{ $settings->booking_button_label }}</button>
                 <div class="mt-5 space-y-4 border-t border-zinc-200 pt-5 text-sm">
                     <div class="flex gap-3"><span>◷</span><div><div class="font-medium">Reservas disponibles</div><div class="mt-0.5 text-zinc-500">Consulta los horarios en tiempo real</div></div></div>
                     @if ($location)<div class="flex gap-3"><span>⌖</span><div><div class="font-medium">{{ $location->name }}</div><div class="mt-0.5 text-zinc-500">{{ $location->address }}</div></div></div>@endif
@@ -216,7 +217,7 @@
         </div>
     </main>
 
-    <button type="button" x-on:click="bookingOpen = true" class="fixed inset-x-4 bottom-4 z-20 h-13 rounded-full bg-zinc-950 text-sm font-semibold text-white shadow-xl lg:hidden">{{ $settings->booking_button_label }}</button>
+    <button type="button" x-on:click="bookingOpen = true; bookingCategory = 'all'" class="fixed inset-x-4 bottom-4 z-20 h-13 rounded-full bg-zinc-950 text-sm font-semibold text-white shadow-xl lg:hidden">{{ $settings->booking_button_label }}</button>
 
     <div
         x-cloak
@@ -231,7 +232,7 @@
                 <button type="button" x-on:click="bookingOpen = false" wire:click="resetBookingFlow" class="flex size-11 items-center justify-center rounded-full border border-zinc-300 bg-white text-xl transition hover:bg-zinc-100">×</button>
             </div>
 
-            <div class="mx-auto mt-3 grid max-w-5xl gap-8 lg:grid-cols-[minmax(0,1fr)_355px] lg:items-start">
+            <div class="mx-auto mt-3 grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
                 <main class="min-w-0 pb-24">
                     @if ($confirmedAppointment)
                         <section class="rounded-3xl border border-emerald-200 bg-white p-8 shadow-sm sm:p-12">
@@ -256,9 +257,20 @@
                         @if ($bookingStep === 1)
                             <section class="mt-4">
                                 <h2 class="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Selecciona servicios</h2>
+
+                                @if ($bookingServiceCategories->isNotEmpty())
+                                    <div class="mt-6 flex gap-2 overflow-x-auto pb-2">
+                                        <button type="button" x-on:click="bookingCategory = 'all'" class="shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition" x-bind:class="bookingCategory === 'all' ? 'border-zinc-950 bg-zinc-950 text-white' : 'border-zinc-300 bg-white text-zinc-700'">Todos</button>
+                                        @foreach ($bookingServiceCategories as $category)
+                                            <button type="button" x-on:click="bookingCategory = '{{ $category->id }}'" class="shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition" x-bind:class="bookingCategory === '{{ $category->id }}' ? 'border-zinc-950 bg-zinc-950 text-white' : 'border-zinc-300 bg-white text-zinc-700'">{{ $category->name }}</button>
+                                        @endforeach
+                                    </div>
+                                @endif
+
                                 <div class="mt-7 space-y-9">
                                     @forelse ($bookingServiceGroups as $categoryName => $categoryServices)
-                                        <div>
+                                        @php($bookingCategoryId = (string) ($categoryServices->first()?->service_category_id ?? 'uncategorized'))
+                                        <div x-show="bookingCategory === 'all' || bookingCategory === '{{ $bookingCategoryId }}'" x-transition.opacity>
                                             <h3 class="mb-3 text-base font-semibold">{{ $categoryName }}</h3>
                                             <div class="space-y-3">
                                                 @foreach ($categoryServices as $bookingService)
@@ -274,7 +286,13 @@
                                             </div>
                                         </div>
                                     @empty
-                                        <div class="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center text-sm text-zinc-500">No hay servicios disponibles para reservar en línea.</div>
+                                        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center text-sm text-amber-800">
+                                            @if ($location === null)
+                                                La ubicación todavía no está habilitada para reservas online.
+                                            @else
+                                                Todavía no hay servicios con profesionales disponibles en esta ubicación.
+                                            @endif
+                                        </div>
                                     @endforelse
                                 </div>
                                 @error('service_id')<p class="mt-4 text-sm text-red-600">{{ $message }}</p>@enderror
@@ -310,26 +328,47 @@
                         @elseif ($bookingStep === 3)
                             <section class="mt-4">
                                 <h2 class="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Selecciona fecha y hora</h2>
-                                @if ($selectedBookingProfessional)
-                                    <div class="mt-6 inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-sm">
-                                        <span class="flex size-6 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-800">{{ $selectedBookingProfessional->initials() }}</span>
-                                        <span>{{ $selectedBookingProfessional->displayName() }}</span><span>⌄</span>
-                                    </div>
-                                @endif
-                                <h3 class="mt-6 font-semibold">Selecciona una fecha</h3>
-                                <div class="mt-3 flex gap-3 overflow-x-auto pb-2">
+
+                                <div class="mt-7 flex items-center justify-between gap-4">
+                                    @if ($selectedBookingProfessional)
+                                        <button type="button" wire:click="previousBookingStep" class="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-3 py-2 text-sm transition hover:border-zinc-500">
+                                            @if ($selectedBookingProfessional->photoUrl($tenantSlug))
+                                                <img src="{{ $selectedBookingProfessional->photoUrl($tenantSlug) }}" alt="{{ $selectedBookingProfessional->displayName() }}" class="size-7 rounded-full object-cover">
+                                            @else
+                                                <span class="flex size-7 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-800">{{ $selectedBookingProfessional->initials() }}</span>
+                                            @endif
+                                            <span>{{ $selectedBookingProfessional->displayName() }}</span>
+                                            <span class="text-zinc-400">⌄</span>
+                                        </button>
+                                    @endif
+
+                                    <span class="flex size-11 items-center justify-center rounded-full border border-zinc-300 bg-white text-lg" title="Calendario">▣</span>
+                                </div>
+
+                                <div class="mt-7 flex items-center justify-between gap-4">
+                                    <h3 class="font-semibold">Selecciona una fecha</h3>
+                                    <div class="flex items-center gap-1 text-zinc-500"><span class="px-2">‹</span><span class="px-2">›</span></div>
+                                </div>
+
+                                <div class="mt-3 flex gap-3 overflow-x-auto pb-3">
                                     @foreach ($bookingDates as $bookingDate)
-                                        <button type="button" wire:click="selectBookingDate('{{ $bookingDate->toDateString() }}')" class="flex min-w-14 flex-col items-center rounded-2xl border px-3 py-3 text-center transition {{ $selected_date === $bookingDate->toDateString() ? 'border-[#6c4cff] bg-[#6c4cff] text-white' : 'border-zinc-200 bg-white hover:border-zinc-400' }}">
+                                        <button type="button" wire:click="selectBookingDate('{{ $bookingDate->toDateString() }}')" class="flex min-w-16 flex-col items-center rounded-2xl border px-3 py-3.5 text-center transition {{ $selected_date === $bookingDate->toDateString() ? 'border-[#6c4cff] bg-[#6c4cff] text-white shadow-sm' : 'border-zinc-200 bg-white hover:border-zinc-400' }}">
                                             <span class="text-xs capitalize opacity-80">{{ $bookingDate->locale('es')->translatedFormat('D') }}</span>
-                                            <span class="mt-1 text-xl font-semibold">{{ $bookingDate->format('d') }}</span>
-                                            <span class="text-xs capitalize opacity-80">{{ $bookingDate->locale('es')->translatedFormat('M') }}</span>
+                                            <span class="mt-1 text-2xl font-semibold leading-none">{{ $bookingDate->format('j') }}</span>
+                                            <span class="mt-1 text-xs capitalize opacity-80">{{ $bookingDate->locale('es')->translatedFormat('M') }}</span>
                                         </button>
                                     @endforeach
                                 </div>
-                                <h3 class="mt-5 font-semibold">Elige una hora</h3>
+
+                                <h3 class="mt-5 text-lg font-semibold">Elige una hora</h3>
                                 <div class="mt-3 space-y-3">
                                     @forelse ($this->availableSlots as $slot)
-                                        <button type="button" wire:click="selectSlot('{{ $slot['starts_at'] }}')" class="w-full rounded-2xl border bg-white px-5 py-4 text-left text-sm font-semibold transition {{ $selected_starts_at === $slot['starts_at'] ? 'border-[#6c4cff] ring-1 ring-[#6c4cff]' : 'border-zinc-200 hover:border-zinc-400' }}">{{ $slot['label'] }}</button>
+                                        <button type="button" wire:click="selectSlot('{{ $slot['starts_at'] }}')" class="flex min-h-16 w-full items-center justify-between rounded-2xl border bg-white px-5 py-4 text-left text-sm font-semibold transition {{ $selected_starts_at === $slot['starts_at'] ? 'border-[#6c4cff] ring-1 ring-[#6c4cff]' : 'border-zinc-200 hover:border-zinc-400' }}">
+                                            <span>{{ \Carbon\CarbonImmutable::parse($slot['starts_at'])->format('g:i A') }}</span>
+                                            @if ($selected_starts_at === $slot['starts_at'])
+                                                <span class="flex size-6 items-center justify-center rounded-full bg-[#6c4cff] text-xs text-white">✓</span>
+                                            @endif
+                                        </button>
                                     @empty
                                         <div class="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500">No hay horarios disponibles para esta fecha. Prueba con otro día.</div>
                                     @endforelse

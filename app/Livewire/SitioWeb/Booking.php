@@ -218,7 +218,7 @@ class Booking extends Component
         $this->confirmedAppointmentId = null;
         $this->bookingStep = 1;
 
-        $this->dispatch('open-booking');
+        $this->dispatch('open-booking', categoryId: $service->service_category_id);
     }
 
     public function submit(BookPublicAppointmentAction $bookPublicAppointment): void
@@ -396,6 +396,7 @@ class Booking extends Component
             $service,
             $professional,
             CarbonImmutable::parse($this->selected_date),
+            stepMinutes: 15,
         );
     }
 

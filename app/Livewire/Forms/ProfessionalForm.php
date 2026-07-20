@@ -4,6 +4,7 @@ namespace App\Livewire\Forms;
 
 use App\Models\Professional;
 use App\Models\ProfessionalSchedule;
+use App\Models\ProfessionalScheduleBreak;
 use App\Models\User;
 use Livewire\Form;
 
@@ -67,12 +68,12 @@ class ProfessionalForm extends Form
                 'day_of_week' => $schedule->day_of_week,
                 'label' => self::dayLabels()[$schedule->day_of_week],
                 'is_working' => $schedule->is_working,
-                'starts_at' => $schedule->starts_at ?? '',
-                'ends_at' => $schedule->ends_at ?? '',
+                'starts_at' => $this->normalizeStoredTime($schedule->starts_at),
+                'ends_at' => $this->normalizeStoredTime($schedule->ends_at),
                 'breaks' => $schedule->breaks
-                    ->map(fn ($break): array => [
-                        'starts_at' => $break->starts_at ?? '',
-                        'ends_at' => $break->ends_at ?? '',
+                    ->map(fn (ProfessionalScheduleBreak $break): array => [
+                        'starts_at' => $this->normalizeStoredTime($break->starts_at),
+                        'ends_at' => $this->normalizeStoredTime($break->ends_at),
                     ])
                     ->values()
                     ->all(),
@@ -182,5 +183,10 @@ class ProfessionalForm extends Form
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function normalizeStoredTime(?string $value): string
+    {
+        return $value !== null ? substr($value, 0, 5) : '';
     }
 }

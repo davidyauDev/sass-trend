@@ -120,6 +120,40 @@ test('valida acceso y reserva online del profesional', function () {
         ]);
 });
 
+test('puede guardar un profesional con horarios existentes de mysql', function () {
+    actingAs(createProfessionalAdmin());
+
+    Location::factory()->create(['is_active' => true]);
+    $professional = Professional::factory()->create([
+        'accepts_online_bookings' => false,
+        'has_system_access' => false,
+    ]);
+    $schedule = $professional->schedules()->create([
+        'day_of_week' => 1,
+        'is_working' => true,
+        'starts_at' => '10:00:00',
+        'ends_at' => '19:00:00',
+    ]);
+    $schedule->breaks()->create([
+        'starts_at' => '13:00:00',
+        'ends_at' => '14:00:00',
+    ]);
+
+    Livewire::test(ProfessionalsIndex::class)
+        ->call('openEditModal', $professional->id)
+        ->assertSet('form.schedules.0.starts_at', '10:00')
+        ->assertSet('form.schedules.0.ends_at', '19:00')
+        ->assertSet('form.schedules.0.breaks.0.starts_at', '13:00')
+        ->assertSet('form.schedules.0.breaks.0.ends_at', '14:00')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $monday = $professional->fresh()->schedules()->where('day_of_week', 1)->firstOrFail();
+
+    expect($monday->starts_at)->toStartWith('10:00')
+        ->and($monday->ends_at)->toStartWith('19:00');
+});
+
 test('puede crear y editar un grupo personalizado', function () {
     actingAs(createProfessionalAdmin());
 

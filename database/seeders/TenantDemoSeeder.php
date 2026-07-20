@@ -316,6 +316,7 @@ final class TenantDemoSeeder extends Seeder
                 ->all();
 
             $professional->services()->sync($serviceIds);
+            $this->seedProfessionalSchedules($professional);
         }
 
         DB::table('location_professional')
@@ -325,6 +326,22 @@ final class TenantDemoSeeder extends Seeder
         DB::table('professional_service_assignments')
             ->whereNull('tenant_id')
             ->update(['tenant_id' => tenant('id')]);
+    }
+
+    private function seedProfessionalSchedules(Professional $professional): void
+    {
+        foreach (range(1, 7) as $day) {
+            $isWorking = $day <= 6;
+
+            $professional->schedules()->updateOrCreate(
+                ['day_of_week' => $day],
+                [
+                    'is_working' => $isWorking,
+                    'starts_at' => $isWorking ? '10:00' : null,
+                    'ends_at' => $isWorking ? ($day === 6 ? '15:00' : '19:00') : null,
+                ],
+            );
+        }
     }
 
     private function seedProductCatalog(): void
