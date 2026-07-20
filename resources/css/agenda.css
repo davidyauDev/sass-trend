@@ -1850,7 +1850,13 @@
     .agenda-checkout-drawer,
     .agenda-custom-tip-modal__backdrop,
     .agenda-custom-tip-modal__dialog,
+    .agenda-cash-modal__backdrop,
+    .agenda-cash-modal__dialog,
+    .agenda-cart-edit-modal__backdrop,
+    .agenda-cart-edit-modal__dialog,
     .agenda-checkout-catalog-detail,
+    .agenda-checkout-catalog-items,
+    .agenda-checkout-payment,
     .agenda-appointment-skeleton::after {
         animation-duration: 1ms;
         animation-iteration-count: 1;
@@ -3445,7 +3451,6 @@
 
 .agenda-checkout-tips {
     display: grid;
-    max-width: 635px;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
 }
@@ -3479,6 +3484,49 @@
     color: var(--agenda-muted);
 }
 
+.agenda-checkout-payment {
+    animation: agenda-checkout-catalog-enter 300ms ease-out both;
+}
+
+.agenda-checkout-payment h2 {
+    margin-bottom: 30px;
+}
+
+.agenda-checkout-payment-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.agenda-checkout-payment-options > button {
+    display: flex;
+    min-height: 108px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 9px;
+    border: 1px solid var(--agenda-control-border);
+    border-radius: 10px;
+    background: var(--agenda-control-bg);
+    color: var(--agenda-text);
+    font-size: 14px;
+    transition: border-color 160ms ease-out, background-color 160ms ease-out;
+}
+
+.agenda-checkout-payment-options > button:hover {
+    border-color: #aaa5b4;
+    background: var(--agenda-control-hover);
+}
+
+.agenda-checkout-payment-options > button:nth-child(1) svg,
+.agenda-checkout-payment-options > button:nth-child(2) svg {
+    color: #169b0b;
+}
+
+.agenda-checkout-payment-options > button:nth-child(4) svg {
+    color: #6b45f4;
+}
+
 .agenda-checkout-cart h2 {
     margin-bottom: 29px;
 }
@@ -3488,7 +3536,6 @@
     min-height: 45px;
     align-items: center;
     gap: 12px;
-    max-width: 635px;
     padding: 0 15px;
     border: 1px solid var(--agenda-control-border);
     border-radius: 8px;
@@ -3506,7 +3553,6 @@
 
 .agenda-checkout-categories {
     display: grid;
-    max-width: 635px;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
     margin-top: 28px;
@@ -3537,7 +3583,6 @@
 
 .agenda-checkout-quick-sale__heading {
     display: flex;
-    max-width: 635px;
     align-items: center;
     justify-content: space-between;
     margin-top: 30px;
@@ -3551,7 +3596,6 @@
 
 .agenda-checkout-quick-sale {
     display: grid;
-    max-width: 635px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 13px;
     margin-top: 14px;
@@ -3618,7 +3662,6 @@
 
 .agenda-checkout-catalog-groups {
     display: grid;
-    max-width: 635px;
     gap: 12px;
     margin-top: 26px;
 }
@@ -3675,6 +3718,57 @@
 .agenda-checkout-catalog-groups > p {
     margin: 10px 0;
     color: var(--agenda-muted);
+    font-size: 14px;
+}
+
+.agenda-checkout-catalog-items {
+    display: grid;
+    gap: 12px;
+    margin-top: 26px;
+    animation: agenda-checkout-catalog-enter 300ms ease-out both;
+}
+
+.agenda-checkout-catalog-items > button {
+    position: relative;
+    display: flex;
+    min-height: 88px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    overflow: hidden;
+    padding: 14px 18px 14px 21px;
+    border: 1px solid var(--agenda-line);
+    border-radius: 10px;
+    color: var(--agenda-text);
+    text-align: left;
+}
+
+.agenda-checkout-catalog-items > button::before {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 7px;
+    background: #8edff8;
+    content: '';
+}
+
+.agenda-checkout-catalog-items > button:hover {
+    background: var(--agenda-control-hover);
+}
+
+.agenda-checkout-catalog-items > button > div {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+}
+
+.agenda-checkout-catalog-items > button span {
+    color: var(--agenda-muted);
+    font-size: 13px;
+}
+
+.agenda-checkout-catalog-items > button > strong {
+    flex: 0 0 auto;
     font-size: 14px;
 }
 
@@ -3751,6 +3845,41 @@
     flex: 0 0 auto;
 }
 
+.agenda-checkout-cart-item {
+    transition: background 160ms ease;
+}
+
+.agenda-checkout-cart-item:hover {
+    background: var(--agenda-control-hover);
+}
+
+.agenda-checkout-cart-item__actions {
+    display: none;
+    align-items: center;
+    gap: 8px;
+}
+
+.agenda-checkout-cart-item:hover .agenda-checkout-cart-item__price {
+    display: none;
+}
+
+.agenda-checkout-cart-item:hover .agenda-checkout-cart-item__actions,
+.agenda-checkout-cart-item:focus-within .agenda-checkout-cart-item__actions {
+    display: flex;
+}
+
+.agenda-checkout-cart-item__actions button {
+    display: grid;
+    width: 28px;
+    height: 28px;
+    place-items: center;
+    border-radius: 6px;
+}
+
+.agenda-checkout-cart-item__actions button:hover {
+    background: var(--agenda-bg);
+}
+
 .agenda-checkout-add {
     display: inline-flex;
     min-height: 34px;
@@ -3803,13 +3932,29 @@
     height: 40px;
 }
 
-.agenda-checkout-footer-actions > button:last-child {
+.agenda-checkout-footer-actions > .agenda-checkout-continue,
+.agenda-checkout-footer-actions > .agenda-checkout-save-unpaid,
+.agenda-checkout-footer-actions > .agenda-checkout-pay-now {
     min-height: 40px;
     border-radius: 999px;
-    background: #09090b;
-    color: #fff;
     font-size: 14px;
     font-weight: 750;
+}
+
+.agenda-checkout-footer-actions > .agenda-checkout-continue {
+    background: #09090b;
+    color: #fff;
+}
+
+.agenda-checkout-footer-actions > .agenda-checkout-pay-now {
+    background: #09090b;
+    color: #fff;
+}
+
+.agenda-checkout-footer-actions > .agenda-checkout-save-unpaid {
+    border: 1px solid var(--agenda-control-border);
+    background: var(--agenda-control-bg);
+    color: var(--agenda-text);
 }
 
 @keyframes agenda-checkout-enter {
@@ -3974,6 +4119,333 @@
 .agenda-custom-tip-modal__dialog footer > button:disabled {
     background: #a1a1aa;
     cursor: not-allowed;
+}
+
+.agenda-cash-modal {
+    position: fixed;
+    z-index: 11;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.agenda-cash-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgb(24 24 27 / 0.28);
+    animation: agenda-backdrop-in 180ms ease-out both;
+}
+
+.agenda-cash-modal__dialog {
+    position: relative;
+    width: min(462px, calc(100vw - 48px));
+    padding: 27px 43px 29px;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #fff;
+    color: #18181b;
+    box-shadow: 0 15px 38px rgb(15 23 42 / 0.24);
+    animation: agenda-exit-dialog-in 220ms ease-out both;
+}
+
+.agenda-cash-modal__dialog header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.agenda-cash-modal__dialog h3 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 750;
+}
+
+.agenda-cash-modal__dialog header button {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+}
+
+.agenda-cash-display {
+    display: flex;
+    width: max-content;
+    min-height: 82px;
+    align-items: flex-end;
+    margin: 0 auto 31px;
+    padding-bottom: 7px;
+    border-bottom: 2px solid #d4d4d8;
+    font-size: 34px;
+    line-height: 1.1;
+}
+
+.agenda-cash-display span {
+    font-weight: 700;
+}
+
+.agenda-cash-display strong {
+    min-width: 1ch;
+    color: #2563d8;
+    font-weight: 750;
+}
+
+.agenda-cash-suggestions {
+    display: flex;
+    gap: 14px;
+    margin: 0 -43px;
+    padding: 0 43px 14px;
+    overflow-x: auto;
+    scrollbar-color: #8f8f91 transparent;
+    scrollbar-width: thin;
+}
+
+.agenda-cash-suggestions button {
+    flex: 0 0 auto;
+    min-width: 74px;
+    min-height: 34px;
+    padding: 0 14px;
+    border: 1px solid #d4d4d8;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.agenda-cash-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 8px;
+    margin-top: 24px;
+}
+
+.agenda-cash-keypad button {
+    display: grid;
+    min-height: 56px;
+    place-items: center;
+    border: 1px solid #d4d4d8;
+    border-radius: 999px;
+    background: #fff;
+    color: #18181b;
+    font-size: 25px;
+    font-weight: 600;
+}
+
+.agenda-cash-keypad button:hover,
+.agenda-cash-suggestions button:hover {
+    background: #f4f4f5;
+}
+
+.agenda-cash-received {
+    margin: 28px 0 0;
+    font-size: 13px;
+}
+
+.agenda-cash-received strong {
+    color: #6b45f4;
+    font-weight: 500;
+}
+
+.agenda-cash-modal__dialog footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.agenda-cash-modal__dialog footer > strong {
+    font-size: 17px;
+    font-weight: 650;
+}
+
+.agenda-cash-modal__dialog footer > button {
+    min-width: 64px;
+    min-height: 44px;
+    border-radius: 999px;
+    background: #09090b;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.agenda-cash-modal__dialog footer > button:disabled {
+    background: #a1a1aa;
+    cursor: not-allowed;
+}
+
+.agenda-cart-edit-modal {
+    position: fixed;
+    z-index: 11;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.agenda-cart-edit-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgb(24 24 27 / 0.28);
+    animation: agenda-backdrop-in 180ms ease-out both;
+}
+
+.agenda-cart-edit-modal__dialog {
+    position: relative;
+    width: min(650px, calc(100vw - 48px));
+    padding: 27px 42px 27px;
+    border-radius: 14px;
+    background: #fff;
+    color: #18181b;
+    box-shadow: 0 15px 38px rgb(15 23 42 / 0.24);
+    animation: agenda-exit-dialog-in 220ms ease-out both;
+}
+
+.agenda-cart-edit-modal__dialog header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+
+.agenda-cart-edit-modal__dialog h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 750;
+}
+
+.agenda-cart-edit-modal__dialog header button {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+}
+
+.agenda-cart-edit-modal__fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 14px;
+}
+
+.agenda-cart-edit-modal__fields label {
+    display: grid;
+    gap: 6px;
+}
+
+.agenda-cart-edit-modal__fields label > strong {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.agenda-cart-edit-modal__wide {
+    grid-column: 1 / -1;
+}
+
+.agenda-cart-edit-price,
+.agenda-cart-edit-modal__fields select {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    border: 1px solid #d4d4d8;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.agenda-cart-edit-price > span {
+    padding-left: 14px;
+    color: #71717a;
+    font-size: 13px;
+}
+
+.agenda-cart-edit-price input,
+.agenda-cart-edit-quantity input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    padding: 0 12px;
+    outline: none;
+}
+
+.agenda-cart-edit-quantity {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 90px;
+    gap: 8px;
+}
+
+.agenda-cart-edit-quantity > input,
+.agenda-cart-edit-quantity > span {
+    min-height: 44px;
+    border: 1px solid #d4d4d8;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.agenda-cart-edit-quantity > span {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+}
+
+.agenda-cart-edit-quantity button {
+    width: 100%;
+    height: 42px;
+    color: #52525b;
+    font-size: 20px;
+}
+
+.agenda-cart-edit-modal__fields select {
+    width: 100%;
+    padding: 0 14px;
+    color: #18181b;
+}
+
+.agenda-cart-edit-modal__fields select:disabled {
+    background: #f4f4f5;
+    color: #a1a1aa;
+}
+
+.agenda-cart-edit-modal__dialog footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-top: 25px;
+}
+
+.agenda-cart-edit-modal__dialog footer > div {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.agenda-cart-edit-modal__dialog footer > div:first-child {
+    display: grid;
+    gap: 2px;
+}
+
+.agenda-cart-edit-modal__dialog footer span {
+    font-size: 13px;
+}
+
+.agenda-cart-edit-delete,
+.agenda-cart-edit-apply {
+    min-height: 44px;
+    border-radius: 999px;
+}
+
+.agenda-cart-edit-delete {
+    display: grid;
+    width: 44px;
+    place-items: center;
+    border: 1px solid #d4d4d8;
+    color: #f43f5e;
+}
+
+.agenda-cart-edit-apply {
+    padding: 0 19px;
+    background: #09090b;
+    color: #fff;
+    font-weight: 750;
 }
 
 .agenda-detail-booking__footer {

@@ -966,18 +966,34 @@
                 checkoutPanelOpen: false,
                 checkoutClosing: false,
                 customTipModalOpen: false,
+                cashModalOpen: false,
+                cashInput: '0',
+                cashPaymentAmount: 0,
                 customTipMode: 'amount',
                 customTipInput: '0',
                 selectedTip: 'none',
+                checkoutCartItems: [],
+                editItemModalOpen: false,
+                editingCartItemKey: null,
+                editItemPrice: '0',
+                editItemQuantity: 1,
                 checkoutStep: 'tip',
                 cartCatalogView: 'home',
+                catalogCategory: null,
                 cartSearch: '',
                 catalogSearch: '',
                 closing: false,
                 openCheckoutPanel() {
                     this.selectedTip = 'none';
+                    this.checkoutCartItems = [];
+                    this.editItemModalOpen = false;
+                    this.editingCartItemKey = null;
+                    this.cashModalOpen = false;
+                    this.cashInput = '0';
+                    this.cashPaymentAmount = 0;
                     this.checkoutStep = 'tip';
                     this.cartCatalogView = 'home';
+                    this.catalogCategory = null;
                     this.cartSearch = '';
                     this.catalogSearch = '';
                     this.checkoutClosing = false;
@@ -985,7 +1001,70 @@
                 },
                 openCartCatalog(catalog) {
                     this.catalogSearch = '';
+                    this.catalogCategory = null;
                     this.cartCatalogView = catalog;
+                },
+                openCatalogCategory(category) {
+                    this.catalogSearch = '';
+                    this.catalogCategory = category;
+                },
+                backFromCartCatalog() {
+                    if (this.catalogCategory !== null) {
+                        this.catalogCategory = null;
+                        this.catalogSearch = '';
+
+                        return;
+                    }
+
+                    this.cartCatalogView = 'home';
+                },
+                addCheckoutItem(item) {
+                    this.checkoutCartItems.push({
+                        ...item,
+                        key: `${item.type}-${item.id}-${Date.now()}-${Math.random()}`,
+                        quantity: 1,
+                        price: Number(item.price),
+                    });
+                    this.cartCatalogView = 'home';
+                    this.catalogCategory = null;
+                    this.catalogSearch = '';
+                },
+                removeCheckoutItem(key) {
+                    this.checkoutCartItems = this.checkoutCartItems.filter((item) => item.key !== key);
+                },
+                openCheckoutItemEditor(item) {
+                    this.editingCartItemKey = item.key;
+                    this.editItemPrice = Number(item.price).toFixed(2);
+                    this.editItemQuantity = Number(item.quantity);
+                    this.editItemModalOpen = true;
+                },
+                changeEditItemQuantity(change) {
+                    this.editItemQuantity = Math.max(1, Number(this.editItemQuantity) + Number(change));
+                },
+                applyCheckoutItemEdit() {
+                    const item = this.checkoutCartItems.find((entry) => entry.key === this.editingCartItemKey);
+
+                    if (! item) {
+                        return;
+                    }
+
+                    item.price = Math.max(0, Number(this.editItemPrice) || 0);
+                    item.quantity = Math.max(1, Number(this.editItemQuantity) || 1);
+                    this.checkoutCartItems = [...this.checkoutCartItems];
+                    this.editItemModalOpen = false;
+                },
+                removeEditingCheckoutItem() {
+                    this.removeCheckoutItem(this.editingCartItemKey);
+                    this.editItemModalOpen = false;
+                },
+                cartItemsSubtotal() {
+                    return this.checkoutCartItems.reduce(
+                        (total, item) => total + (Number(item.price) * Number(item.quantity)),
+                        0,
+                    );
+                },
+                checkoutSubtotal(base) {
+                    return Number(base) + this.cartItemsSubtotal();
                 },
                 closeCheckoutPanel() {
                     if (this.checkoutClosing) {
@@ -1059,6 +1138,50 @@
                     this.selectedTip = 'custom';
                     this.customTipModalOpen = false;
                 },
+                openCashModal(total) {
+                    this.cashInput = String(Math.ceil(Number(total)));
+                    this.cashModalOpen = true;
+                },
+                appendCashDigit(value) {
+                    if (value === '.' && this.cashInput.includes('.')) {
+                        return;
+                    }
+
+                    if (this.cashInput === '0' && value !== '.') {
+                        this.cashInput = value;
+
+                        return;
+                    }
+
+                    const decimalPart = this.cashInput.split('.')[1] ?? '';
+                    if (this.cashInput.includes('.') && decimalPart.length >= 2) {
+                        return;
+                    }
+
+                    this.cashInput += value;
+                },
+                deleteCashDigit() {
+                    this.cashInput = this.cashInput.length > 1 ? this.cashInput.slice(0, -1) : '0';
+                },
+                cashSuggestion(total, increment = 0) {
+                    return Math.ceil(Number(total) / 5) * 5 + Number(increment);
+                },
+                cashLeftToPay(total) {
+                    return Math.max(Number(total) - (Number(this.cashInput) || 0), 0);
+                },
+                cashChange(total, payment = null) {
+                    const received = payment === null ? Number(this.cashInput) || 0 : Number(payment);
+
+                    return Math.max(received - Number(total), 0);
+                },
+                confirmCashPayment() {
+                    if (Number(this.cashInput) <= 0) {
+                        return;
+                    }
+
+                    this.cashPaymentAmount = Number(this.cashInput);
+                    this.cashModalOpen = false;
+                },
                 tipAmount(subtotal) {
                     const rates = { none: 0, ten: 0.10, eighteen: 0.18, twentyFive: 0.25, custom: 0 };
 
@@ -1070,7 +1193,9 @@
                     return Number(subtotal) * Number(rate);
                 },
                 checkoutTotal(subtotal) {
-                    return Number(subtotal) + this.tipAmount(subtotal);
+                    const checkoutSubtotal = this.checkoutSubtotal(subtotal);
+
+                    return checkoutSubtotal + this.tipAmount(checkoutSubtotal);
                 },
                 money(amount) {
                     return `PEN ${Number(amount).toFixed(2)}`;
@@ -1088,7 +1213,11 @@
             @appointment-note-added.window="noteModalOpen = false; quickActionsOpen = false"
             data-testid="appointment-detail"
             wire:key="appointment-detail-{{ $appointment->id }}"
-            @keydown.escape.window="customTipModalOpen
+            @keydown.escape.window="cashModalOpen
+                ? (cashModalOpen = false)
+                : editItemModalOpen
+                ? (editItemModalOpen = false)
+                : customTipModalOpen
                 ? (customTipModalOpen = false)
                 : checkoutPanelOpen
                 ? closeCheckoutPanel()
@@ -1284,7 +1413,7 @@
                             <flux:icon.chevron-right class="size-4" />
                             <button type="button" x-bind:class="{ 'is-active': checkoutStep === 'tip' }" @click="checkoutStep = 'tip'">Tip</button>
                             <flux:icon.chevron-right class="size-4" />
-                            <span>Payment</span>
+                            <button type="button" x-bind:class="{ 'is-active': checkoutStep === 'payment' }" @click="checkoutStep = 'payment'">Payment</button>
                         </nav>
 
                         <div x-show="checkoutStep === 'tip'">
@@ -1297,15 +1426,15 @@
                                 </button>
                                 <button type="button" x-bind:class="{ 'is-selected': selectedTip === 'ten' }" @click="selectedTip = 'ten'">
                                     <strong>10%</strong>
-                                    <span x-text="money(percentageAmount({{ (float) $appointment->price }}, 0.10))"></span>
+                                    <span x-text="money(percentageAmount(checkoutSubtotal({{ (float) $appointment->price }}), 0.10))"></span>
                                 </button>
                                 <button type="button" x-bind:class="{ 'is-selected': selectedTip === 'eighteen' }" @click="selectedTip = 'eighteen'">
                                     <strong>18%</strong>
-                                    <span x-text="money(percentageAmount({{ (float) $appointment->price }}, 0.18))"></span>
+                                    <span x-text="money(percentageAmount(checkoutSubtotal({{ (float) $appointment->price }}), 0.18))"></span>
                                 </button>
                                 <button type="button" x-bind:class="{ 'is-selected': selectedTip === 'twentyFive' }" @click="selectedTip = 'twentyFive'">
                                     <strong>25%</strong>
-                                    <span x-text="money(percentageAmount({{ (float) $appointment->price }}, 0.25))"></span>
+                                    <span x-text="money(percentageAmount(checkoutSubtotal({{ (float) $appointment->price }}), 0.25))"></span>
                                 </button>
                                 <button type="button" x-bind:class="{ 'is-selected': selectedTip === 'custom' }" @click="openCustomTipModal()">
                                     <flux:icon.plus-circle class="size-5" />
@@ -1347,16 +1476,17 @@
                             </div>
 
                             <section x-show="cartCatalogView === 'services'" x-cloak class="agenda-checkout-catalog-detail">
-                                <header><button type="button" aria-label="Volver" @click="cartCatalogView = 'home'"><flux:icon.arrow-left class="size-5" /></button><h2>Services</h2></header>
+                                <header><button type="button" aria-label="Volver" @click="backFromCartCatalog()"><flux:icon.arrow-left class="size-5" /></button><h2 x-text="catalogCategory ?? 'Services'"></h2></header>
                                 <label class="agenda-checkout-search">
                                     <flux:icon.magnifying-glass class="size-5" />
                                     <input type="search" x-model="catalogSearch" placeholder="Search">
                                 </label>
-                                <div class="agenda-checkout-catalog-groups">
+                                <div x-show="catalogCategory === null" class="agenda-checkout-catalog-groups">
                                     @forelse ($checkoutServiceCategories as $categoryName => $categoryServices)
                                         <button
                                             type="button"
                                             x-show="catalogSearch === '' || String(@js(mb_strtolower($categoryName))).includes(catalogSearch.toLowerCase())"
+                                            @click="openCatalogCategory(@js($categoryName))"
                                         >
                                             <span>{{ $categoryName }} <small>{{ $categoryServices->count() }}</small></span>
                                             <flux:icon.chevron-right class="size-5" />
@@ -1365,19 +1495,41 @@
                                         <p>No services available.</p>
                                     @endforelse
                                 </div>
+
+                                @foreach ($checkoutServiceCategories as $categoryName => $categoryServices)
+                                    <div x-show="catalogCategory === @js($categoryName)" x-cloak class="agenda-checkout-catalog-items">
+                                        @foreach ($categoryServices as $catalogService)
+                                            <button
+                                                type="button"
+                                                x-show="catalogSearch === '' || String(@js(mb_strtolower($catalogService['name']))).includes(catalogSearch.toLowerCase())"
+                                                @click="addCheckoutItem(@js([
+                                                    'id' => $catalogService['id'],
+                                                    'type' => 'service',
+                                                    'name' => $catalogService['name'],
+                                                    'detail' => $this->serviceDurationLabel($catalogService['duration_minutes']),
+                                                    'price' => (float) $catalogService['price'],
+                                                ]))"
+                                            >
+                                                <div><strong>{{ $catalogService['name'] }}</strong><span>{{ $this->serviceDurationLabel($catalogService['duration_minutes']) }}</span></div>
+                                                <strong>PEN {{ number_format((float) $catalogService['price'], 0) }}</strong>
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @endforeach
                             </section>
 
                             <section x-show="cartCatalogView === 'products'" x-cloak class="agenda-checkout-catalog-detail">
-                                <header><button type="button" aria-label="Volver" @click="cartCatalogView = 'home'"><flux:icon.arrow-left class="size-5" /></button><h2>Products</h2></header>
+                                <header><button type="button" aria-label="Volver" @click="backFromCartCatalog()"><flux:icon.arrow-left class="size-5" /></button><h2 x-text="catalogCategory ?? 'Products'"></h2></header>
                                 <label class="agenda-checkout-search">
                                     <flux:icon.magnifying-glass class="size-5" />
                                     <input type="search" x-model="catalogSearch" placeholder="Search">
                                 </label>
-                                <div class="agenda-checkout-catalog-groups">
+                                <div x-show="catalogCategory === null" class="agenda-checkout-catalog-groups">
                                     @forelse ($checkoutProductCategories as $categoryName => $categoryProducts)
                                         <button
                                             type="button"
                                             x-show="catalogSearch === '' || String(@js(mb_strtolower($categoryName))).includes(catalogSearch.toLowerCase())"
+                                            @click="openCatalogCategory(@js($categoryName))"
                                         >
                                             <span>{{ $categoryName }} <small>{{ $categoryProducts->count() }}</small></span>
                                             <flux:icon.chevron-right class="size-5" />
@@ -1386,8 +1538,39 @@
                                         <p>No products available.</p>
                                     @endforelse
                                 </div>
+
+                                @foreach ($checkoutProductCategories as $categoryName => $categoryProducts)
+                                    <div x-show="catalogCategory === @js($categoryName)" x-cloak class="agenda-checkout-catalog-items">
+                                        @foreach ($categoryProducts as $catalogProduct)
+                                            <button
+                                                type="button"
+                                                x-show="catalogSearch === '' || String(@js(mb_strtolower($catalogProduct['name']))).includes(catalogSearch.toLowerCase())"
+                                                @click="addCheckoutItem(@js([
+                                                    'id' => $catalogProduct['id'],
+                                                    'type' => 'product',
+                                                    'name' => $catalogProduct['name'],
+                                                    'detail' => 'Stock: '.number_format((float) $catalogProduct['stock'], 0),
+                                                    'price' => (float) $catalogProduct['price'],
+                                                ]))"
+                                            >
+                                                <div><strong>{{ $catalogProduct['name'] }}</strong><span>Stock: {{ number_format((float) $catalogProduct['stock'], 0) }}</span></div>
+                                                <strong>PEN {{ number_format((float) $catalogProduct['price'], 0) }}</strong>
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @endforeach
                             </section>
                         </div>
+
+                        <section x-show="checkoutStep === 'payment'" x-cloak class="agenda-checkout-payment">
+                            <h2>Select payment</h2>
+                            <div class="agenda-checkout-payment-options">
+                                <button type="button" @click="openCashModal(checkoutTotal({{ (float) $appointment->price }}))"><flux:icon.banknotes class="size-6" /><span>Cash</span></button>
+                                <button type="button"><flux:icon.gift class="size-6" /><span>Gift card</span></button>
+                                <button type="button"><flux:icon.arrows-right-left class="size-6" /><span>Split payment</span></button>
+                                <button type="button"><flux:icon.currency-dollar class="size-6" /><span>Other</span></button>
+                            </div>
+                        </section>
                     </main>
 
                     <aside class="agenda-checkout-summary">
@@ -1407,14 +1590,32 @@
                             <strong>PEN {{ number_format((float) $appointment->price, 0) }}</strong>
                         </article>
 
+                        <template x-for="item in checkoutCartItems" :key="item.key">
+                            <article class="agenda-checkout-service agenda-checkout-cart-item">
+                                <div>
+                                    <strong x-text="item.name"></strong>
+                                    <span><span x-show="item.quantity > 1" x-text="`${item.quantity} × `"></span><span x-text="item.detail"></span></span>
+                                </div>
+                                <strong class="agenda-checkout-cart-item__price" x-text="money(item.price * item.quantity)"></strong>
+                                <div class="agenda-checkout-cart-item__actions">
+                                    <button type="button" aria-label="Editar elemento" @click="openCheckoutItemEditor(item)"><flux:icon.pencil-square class="size-4" /></button>
+                                    <button type="button" aria-label="Eliminar elemento" @click="removeCheckoutItem(item.key)"><flux:icon.trash class="size-4" /></button>
+                                </div>
+                            </article>
+                        </template>
+
                         <button type="button" class="agenda-checkout-add" @click="checkoutStep = 'cart'"><flux:icon.shopping-cart class="size-4" /> Add to cart</button>
 
                         <footer class="agenda-checkout-summary__footer">
                             <div><span>Total</span><span x-text="money(checkoutTotal({{ (float) $appointment->price }}))"></span></div>
-                            <div><strong>To pay <flux:icon.chevron-right class="size-4" /></strong><strong x-text="money(checkoutTotal({{ (float) $appointment->price }}))"></strong></div>
+                            <div x-show="cashPaymentAmount > 0" x-cloak><span>Payments</span><span x-text="`− ${money(cashPaymentAmount)}`"></span></div>
+                            <div x-show="cashPaymentAmount <= 0"><strong>To pay <flux:icon.chevron-right class="size-4" /></strong><strong x-text="money(checkoutTotal({{ (float) $appointment->price }}))"></strong></div>
+                            <div x-show="cashPaymentAmount > 0" x-cloak><strong>Change <flux:icon.chevron-right class="size-4" /></strong><strong x-text="money(cashChange(checkoutTotal({{ (float) $appointment->price }}), cashPaymentAmount))"></strong></div>
                             <div class="agenda-checkout-footer-actions">
                                 <button type="button" class="agenda-detail-more" aria-label="Más opciones"><flux:icon.ellipsis-vertical class="size-5" /></button>
-                                <button type="button" wire:click="checkoutSelectedAppointment">Continue to payment</button>
+                                <button x-show="checkoutStep !== 'payment'" type="button" class="agenda-checkout-continue" @click="checkoutStep = 'payment'; cartCatalogView = 'home'; catalogCategory = null">Continue to payment</button>
+                                <button x-show="checkoutStep === 'payment' && cashPaymentAmount <= 0" x-cloak type="button" class="agenda-checkout-save-unpaid">Save unpaid</button>
+                                <button x-show="checkoutStep === 'payment' && cashPaymentAmount > 0" x-cloak type="button" class="agenda-checkout-pay-now">Pay now</button>
                             </div>
                         </footer>
                     </aside>
@@ -1461,8 +1662,72 @@
                         </div>
 
                         <footer>
-                            <strong x-text="customTipPercentageLabel({{ (float) $appointment->price }})"></strong>
+                            <strong x-text="customTipPercentageLabel(checkoutSubtotal({{ (float) $appointment->price }}))"></strong>
                             <button type="button" x-bind:disabled="Number(customTipInput) <= 0" @click="confirmCustomTip()">Add</button>
+                        </footer>
+                    </section>
+                </div>
+
+                <div x-show="cashModalOpen" x-cloak class="agenda-cash-modal" role="dialog" aria-modal="true" aria-labelledby="agenda-cash-title">
+                    <button type="button" class="agenda-cash-modal__backdrop" aria-label="Cerrar importe en efectivo" @click="cashModalOpen = false"></button>
+
+                    <section class="agenda-cash-modal__dialog">
+                        <header>
+                            <h3 id="agenda-cash-title">Add cash amount</h3>
+                            <button type="button" aria-label="Cerrar" @click="cashModalOpen = false"><flux:icon.x-mark class="size-5" /></button>
+                        </header>
+
+                        <div class="agenda-cash-display"><span>PEN</span><strong x-text="cashInput"></strong></div>
+
+                        <div class="agenda-cash-suggestions">
+                            <template x-for="increment in [0, 5, 10, 20, 50]" :key="increment">
+                                <button type="button" @click="cashInput = String(cashSuggestion(checkoutTotal({{ (float) $appointment->price }}), increment))" x-text="`PEN ${cashSuggestion(checkoutTotal({{ (float) $appointment->price }}), increment)}`"></button>
+                            </template>
+                        </div>
+
+                        <div class="agenda-cash-keypad">
+                            <button type="button" @click="appendCashDigit('1')">1</button>
+                            <button type="button" @click="appendCashDigit('2')">2</button>
+                            <button type="button" @click="appendCashDigit('3')">3</button>
+                            <button type="button" @click="appendCashDigit('4')">4</button>
+                            <button type="button" @click="appendCashDigit('5')">5</button>
+                            <button type="button" @click="appendCashDigit('6')">6</button>
+                            <button type="button" @click="appendCashDigit('7')">7</button>
+                            <button type="button" @click="appendCashDigit('8')">8</button>
+                            <button type="button" @click="appendCashDigit('9')">9</button>
+                            <button type="button" @click="appendCashDigit('.')">.</button>
+                            <button type="button" @click="appendCashDigit('0')">0</button>
+                            <button type="button" aria-label="Borrar último dígito" @click="deleteCashDigit()"><flux:icon.backspace class="size-5" /></button>
+                        </div>
+
+                        <p class="agenda-cash-received">Cash received by <span>·</span> <strong>{{ $appointment->professional?->fullName() ?? 'Cualquier miembro del equipo' }}</strong></p>
+
+                        <footer>
+                            <strong>Left to pay <span>·</span> <span x-text="money(cashLeftToPay(checkoutTotal({{ (float) $appointment->price }})))"></span></strong>
+                            <button type="button" x-bind:disabled="Number(cashInput) <= 0" @click="confirmCashPayment()">Add</button>
+                        </footer>
+                    </section>
+                </div>
+
+                <div x-show="editItemModalOpen" x-cloak class="agenda-cart-edit-modal" role="dialog" aria-modal="true" aria-labelledby="agenda-cart-edit-title">
+                    <button type="button" class="agenda-cart-edit-modal__backdrop" aria-label="Cerrar edición" @click="editItemModalOpen = false"></button>
+
+                    <section class="agenda-cart-edit-modal__dialog">
+                        <header>
+                            <h3 id="agenda-cart-edit-title" x-text="`Edit ${checkoutCartItems.find((item) => item.key === editingCartItemKey)?.name ?? 'item'}`"></h3>
+                            <button type="button" aria-label="Cerrar" @click="editItemModalOpen = false"><flux:icon.x-mark class="size-5" /></button>
+                        </header>
+
+                        <div class="agenda-cart-edit-modal__fields">
+                            <label><strong>Price</strong><span class="agenda-cart-edit-price"><span>PEN</span><input type="number" min="0" step="0.01" x-model="editItemPrice"></span></label>
+                            <label><strong>Quantity</strong><span class="agenda-cart-edit-quantity"><input type="number" min="1" step="1" x-model.number="editItemQuantity"><span><button type="button" @click="changeEditItemQuantity(-1)">−</button><button type="button" @click="changeEditItemQuantity(1)">＋</button></span></span></label>
+                            <label class="agenda-cart-edit-modal__wide"><strong>Discounts</strong><select disabled><option>None available</option></select></label>
+                            <label class="agenda-cart-edit-modal__wide"><strong>Team member</strong><select><option>{{ $appointment->professional?->fullName() ?? 'Cualquier miembro del equipo' }}</option></select></label>
+                        </div>
+
+                        <footer>
+                            <div><span>Item total</span><strong x-text="money((Number(editItemPrice) || 0) * (Number(editItemQuantity) || 1))"></strong></div>
+                            <div><button type="button" class="agenda-cart-edit-delete" aria-label="Eliminar elemento" @click="removeEditingCheckoutItem()"><flux:icon.trash class="size-5" /></button><button type="button" class="agenda-cart-edit-apply" @click="applyCheckoutItemEdit()">Apply</button></div>
                         </footer>
                     </section>
                 </div>
